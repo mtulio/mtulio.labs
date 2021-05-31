@@ -1,0 +1,19 @@
+site_name: "@mtulio notes"
+#site_description: 'MTulio's notes.'
+site_author: 'Marco Braga'
+
+repo_url: https://github.com/mtulio/notebooks
+
+theme:
+    name: cerulean
+    nav_style: dark
+
+nav:
+    - Home: index.md
+    - Cloud: index.md
+    - Development:
+      - python: index.md
+
+markdown_extensions:
+    - toc:
+        permalink: '#'
