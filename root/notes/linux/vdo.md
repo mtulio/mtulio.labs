@@ -5,10 +5,18 @@
 
 ### Discarding Unused Blocks
 
-- Perform a batch discard
+- Perform a batch discard 
 
+Syntax:
 ~~~
 fstrim mount-point
+~~~
+
+Example:
+~~~
+df -h /mnt/data/ && sudo vdostats --human-readable
+fstrim /mnt/data
+df -h /mnt/data/ && sudo vdostats --human-readable
 ~~~
 
 ## References
