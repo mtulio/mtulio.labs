@@ -1,3 +1,3 @@
 # notebook
 
-Personal technical notes, drafts and blog posts
+Personal technical notes, drafts and blog posts.
