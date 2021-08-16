@@ -12,7 +12,7 @@ requirements: venv
 	$(VENV_PATH)/bin/pip3 install -r $(VENV_REQ)
 
 mkdocs-serve:
-	mkdocs serve
+	$(VENV_PATH)/bin/mkdocs serve
 
 mkdocs-build:
-	mkdocs build
+	$(VENV_PATH)/bin/mkdocs build
