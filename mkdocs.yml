@@ -4,16 +4,73 @@ site_author: 'Marco Braga'
 
 repo_url: https://github.com/mtulio/notebooks
 
-theme:
-    name: cerulean
-    nav_style: dark
+docs_dir: root
 
-nav:
-    - Home: index.md
-    - Cloud: index.md
-    - Development:
-      - python: index.md
+theme:
+  name: cerulean
+  nav_style: dark
 
 markdown_extensions:
-    - toc:
-        permalink: '#'
+  - toc:
+      permalink: '#'
+
+nav:
+  - Home: index.md
+  - automation:
+    - ansible: notes/automation/ansible.md
+    - rundeck: notes/automation/rundeck.md
+
+  - cloud:
+    - aws-cli: notes/cloud/aws-cli.md
+    - aws-iam: notes/cloud/aws-iam.md
+    - aws-network: notes/cloud/aws-network.md
+    - cloud-init: notes/cloud/cloud-init.md
+
+  - container:
+    - kubernetes: notes/container/kubernetes.md
+    - openshift:
+      - pipelines: notes/container/openshift/pipelines.md
+
+  - db:
+    - elasticsearch: notes/db/elasticsearch/README.md
+    - MongoDB: notes/db/mongo.md
+    - MongoDB-deployment: notes/db/MongoDB-deployment.md
+    - MySQL: notes/db/mysql.md
+    - Redis: notes/db/redis.md
+
+  - dev:
+    - git: notes/development/git.md
+    - lang_c: notes/development/lang_c.md
+    - lang_go: notes/development/lang_go.md
+    - python-basic: notes/development/python-basic.md
+    - python-install: notes/development/python-install.md
+    - python-lambda: notes/development/python-lambda.md
+    - python-pypi: notes/development/python-pypi.md
+    - python-tips: notes/development/python-tips.md
+    - tool-jq: notes/development/tool-jq.md
+    - yaml: notes/development/yaml.md
+
+  - Linux:
+    - cmd-find: notes/linux/cmd-find.md
+    - curl: notes/linux/curl.md
+    - firewall-cmd: notes/linux/firewall-cmd.md
+    - gnome: notes/linux/gnome.md
+    - log_parser: notes/linux/log_parser.md
+    - network_knife: notes/linux/network_knife.md
+    - openssl: notes/linux/openssl.md
+    - shell: notes/linux/shell.md
+    - ssh: notes/linux/ssh.md
+    - systemd: notes/linux/systemd.md
+    - vdo: notes/linux/vdo.md
+    - vi: notes/linux/vi.md
+    - wsl: notes/linux/wsl.md
+
+  - Observability:
+    - graylog: notes/observability/graylog.md
+    - netdata: notes/observability/netdata.md
+    - prometheus: notes/observability/prometheus.md
+
+  - Tools:
+    - Wireshark: notes/tools/wireshark.md
+
+  - References: notes/references.md
