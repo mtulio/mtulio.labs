@@ -1,18 +1,66 @@
 site_name: "@mtulio notes"
-#site_description: 'MTulio's notes.'
+site_url: https://notes.mtulio.eng.br
 site_author: 'Marco Braga'
-
+site_description: >-
+  Marco Braga public notes.
 repo_url: https://github.com/mtulio/notebooks
 
 docs_dir: root
 
+# theme:
+#   name: cerulean
+#   nav_style: dark
+
 theme:
-  name: cerulean
-  nav_style: dark
+  # https://github.com/squidfunk/mkdocs-material/blob/master/mkdocs.yml
+  name: material
+  palette:
+    - scheme: default
+      # primary: indigo
+      # accent: indigo
+      toggle:
+        icon: material/lightbulb
+        name: Switch to dark mode
+    - scheme: slate
+      # primary: red
+      # accent: red
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode
+
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    #- navigation.sections
+    - navigation.top
+
+    # integrate menus
+    #- toc.integrate
+    - search.highlight
+    - search.share
+    - search.suggest
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+# plugins:
+#   - social
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mtulio
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/mtulio
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/mtuliorbraga
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/in/mtuliorbraga/
 
 markdown_extensions:
   - toc:
-      permalink: '#'
+      permalink: true
 
 nav:
   - Home: index.md

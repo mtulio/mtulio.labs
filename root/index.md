@@ -102,3 +102,42 @@ To generate this refences
 [/notes/certifications/LPIC3-303/Course_LA](/notes/certifications/LPIC3-303/Course_LA)
 
 [/notes/tools/wireshark](/notes/tools/wireshark)
+
+
+## mtulio.eng.br tools
+
+- echo
+
+```bash
+curl -s https://mtulio.eng.br/api/echo |jq .
+```
+
+- ip
+
+```bash
+curl https://mtulio.eng.br/api/ip
+```
+
+- ping-go
+
+```bash
+curl https://mtulio.eng.br/api/ping-go
+```
+
+- ping-js
+
+```bash
+curl https://mtulio.eng.br/api/ping-js
+```
+
+- ping-go
+
+```bash
+curl https://mtulio.eng.br/api/ping-py
+```
+
+- py-async
+
+```bash
+curl https://mtulio.eng.br/api/py-async
+```
