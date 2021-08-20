@@ -73,6 +73,7 @@ nav:
 
   - cloud:
     - aws-cli: notes/cloud/aws-cli.md
+    - aws-ec2: notes/cloud/aws-ec2.md
     - aws-iam: notes/cloud/aws-iam.md
     - aws-network: notes/cloud/aws-network.md
     - cloud-init: notes/cloud/cloud-init.md
