@@ -1,4 +1,4 @@
-site_name: "@mtulio notes"
+site_name: "@mtulio labs | notes"
 site_url: https://notes.mtulio.eng.br
 site_author: 'Marco Braga'
 site_description: >-
@@ -42,10 +42,12 @@ theme:
     - search.highlight
     - search.share
     - search.suggest
+    - content.tabs.link
 
   font:
     text: Roboto
     code: Roboto Mono
+  
 
 # plugins:
 #   - social
@@ -64,65 +66,77 @@ extra:
 markdown_extensions:
   - toc:
       permalink: true
+  - pymdownx.tabbed
+  - pymdownx.superfences
+  
 
 nav:
-  - Home: index.md
-  - automation:
-    - ansible: notes/automation/ansible.md
-    - rundeck: notes/automation/rundeck.md
+  - Home:
+    - index.md
+    - about.md
+  - Playbooks:
+      - OpenShift:
+        - Machine resize: playbooks/openshift/resize-machines.md
+        - Machine resize: playbooks/openshift/resize-machines.md
+  - Notes:
+    - automation:
+      - ansible: notes/automation/ansible.md
+      - rundeck: notes/automation/rundeck.md
 
-  - cloud:
-    - aws-cli: notes/cloud/aws-cli.md
-    - aws-ec2: notes/cloud/aws-ec2.md
-    - aws-iam: notes/cloud/aws-iam.md
-    - aws-network: notes/cloud/aws-network.md
-    - cloud-init: notes/cloud/cloud-init.md
+    - cloud:
+      - aws-cli: notes/cloud/aws-cli.md
+      - aws-ec2: notes/cloud/aws-ec2.md
+      - aws-iam: notes/cloud/aws-iam.md
+      - aws-network: notes/cloud/aws-network.md
+      - cloud-init: notes/cloud/cloud-init.md
 
-  - container:
-    - kubernetes: notes/container/kubernetes.md
-    - openshift:
-      - pipelines: notes/container/openshift/pipelines.md
+    - container:
+      - kubernetes: notes/container/kubernetes.md
+      - openshift:
+        - pipelines: notes/container/openshift/pipelines.md
 
-  - db:
-    - elasticsearch: notes/db/elasticsearch/README.md
-    - MongoDB: notes/db/mongo.md
-    - MongoDB-deployment: notes/db/MongoDB-deployment.md
-    - MySQL: notes/db/mysql.md
-    - Redis: notes/db/redis.md
+    - db:
+      - elasticsearch: notes/db/elasticsearch/README.md
+      - MongoDB: notes/db/mongo.md
+      - MongoDB-deployment: notes/db/MongoDB-deployment.md
+      - MySQL: notes/db/mysql.md
+      - Redis: notes/db/redis.md
 
-  - dev:
-    - git: notes/development/git.md
-    - lang_c: notes/development/lang_c.md
-    - lang_go: notes/development/lang_go.md
-    - python-basic: notes/development/python-basic.md
-    - python-install: notes/development/python-install.md
-    - python-lambda: notes/development/python-lambda.md
-    - python-pypi: notes/development/python-pypi.md
-    - python-tips: notes/development/python-tips.md
-    - tool-jq: notes/development/tool-jq.md
-    - yaml: notes/development/yaml.md
+    - dev:
+      - git: notes/development/git.md
+      - lang_c: notes/development/lang_c.md
+      - lang_go: notes/development/lang_go.md
+      - python-basic: notes/development/python-basic.md
+      - python-install: notes/development/python-install.md
+      - python-lambda: notes/development/python-lambda.md
+      - python-pypi: notes/development/python-pypi.md
+      - python-tips: notes/development/python-tips.md
+      - tool-jq: notes/development/tool-jq.md
+      - yaml: notes/development/yaml.md
 
-  - Linux:
-    - cmd-find: notes/linux/cmd-find.md
-    - curl: notes/linux/curl.md
-    - firewall-cmd: notes/linux/firewall-cmd.md
-    - gnome: notes/linux/gnome.md
-    - log_parser: notes/linux/log_parser.md
-    - network_knife: notes/linux/network_knife.md
-    - openssl: notes/linux/openssl.md
-    - shell: notes/linux/shell.md
-    - ssh: notes/linux/ssh.md
-    - systemd: notes/linux/systemd.md
-    - vdo: notes/linux/vdo.md
-    - vi: notes/linux/vi.md
-    - wsl: notes/linux/wsl.md
+    - Linux:
+      - cmd-find: notes/linux/cmd-find.md
+      - curl: notes/linux/curl.md
+      - firewall-cmd: notes/linux/firewall-cmd.md
+      - gnome: notes/linux/gnome.md
+      - log_parser: notes/linux/log_parser.md
+      - network_knife: notes/linux/network_knife.md
+      - openssl: notes/linux/openssl.md
+      - shell: notes/linux/shell.md
+      - ssh: notes/linux/ssh.md
+      - systemd: notes/linux/systemd.md
+      - vdo: notes/linux/vdo.md
+      - vi: notes/linux/vi.md
+      - wsl: notes/linux/wsl.md
 
-  - Observability:
-    - graylog: notes/observability/graylog.md
-    - netdata: notes/observability/netdata.md
-    - prometheus: notes/observability/prometheus.md
+    - Observability:
+      - graylog: notes/observability/graylog.md
+      - netdata: notes/observability/netdata.md
+      - prometheus: notes/observability/prometheus.md
 
-  - Tools:
-    - Wireshark: notes/tools/wireshark.md
+    - Tools:
+      - Wireshark: notes/tools/wireshark.md
 
-  - References: notes/references.md
+    - References: notes/references.md
+
+  - Articles: articles/index.md
