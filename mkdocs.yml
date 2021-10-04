@@ -135,6 +135,9 @@ nav:
 
     - Tools:
       - Wireshark: notes/tools/wireshark.md
+    
+    - RaspberryPi:
+      - WiFi: notes/rpi/wifi.md
 
     - References: notes/references.md
 
