@@ -64,10 +64,14 @@ extra:
       link: https://linkedin.com/in/mtuliorbraga/
 
 markdown_extensions:
-  - toc:
-      permalink: true
-  - pymdownx.tabbed
+  # - toc:
+  #     permalink: true
+  - admonition
   - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  
 
 nav:
   - Home:
@@ -143,5 +147,6 @@ nav:
 
     - Templates:
       - mkdocs-tabs: notes/templates/mkdocs-tabs.md
+      - notes/templates/mkdocs-Admonitions.md
 
   - Articles: articles/index.md
