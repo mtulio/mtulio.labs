@@ -2,8 +2,8 @@ site_name: "@mtulio labs | notes"
 site_url: https://notes.mtulio.eng.br
 site_author: 'Marco Braga'
 site_description: >-
-  Marco Braga public notes.
-repo_url: https://github.com/mtulio/notebooks
+  Marco Braga | Playground
+repo_url: https://github.com/mtulio/mtulio.labs
 
 docs_dir: root
 
@@ -68,15 +68,14 @@ markdown_extensions:
       permalink: true
   - pymdownx.tabbed
   - pymdownx.superfences
-  
 
 nav:
   - Home:
     - index.md
     - about.md
+    - tools.md
   - Playbooks:
       - OpenShift:
-        - Machine resize: playbooks/openshift/resize-machines.md
         - Machine resize: playbooks/openshift/resize-machines.md
   - Notes:
     - automation:
@@ -138,5 +137,8 @@ nav:
       - Wireshark: notes/tools/wireshark.md
 
     - References: notes/references.md
+
+    - Templates:
+      - mkdocs-tabs: notes/templates/mkdocs-tabs.md
 
   - Articles: articles/index.md

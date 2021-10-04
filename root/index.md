@@ -1,13 +1,15 @@
-# My custom notes
+# Home
 
-Some personal notes.
+WIP
+
+<!--
 
 ## Pages
 
-<!--
+
 To generate this refences
  for F in $(find root/ |grep .md); do PATHNAME="$( echo $F |awk -F'root' '{print$2}' |awk -F'.md' '{print$1}')"; echo -e "[$PATHNAME]($PATHNAME)\n"; done
--->
+
 
 [/index](/index)
 
@@ -103,41 +105,5 @@ To generate this refences
 
 [/notes/tools/wireshark](/notes/tools/wireshark)
 
+-->
 
-## mtulio.eng.br tools
-
-- echo
-
-```bash
-curl -s https://mtulio.eng.br/api/echo |jq .
-```
-
-- ip
-
-```bash
-curl https://mtulio.eng.br/api/ip
-```
-
-- ping-go
-
-```bash
-curl https://mtulio.eng.br/api/ping-go
-```
-
-- ping-js
-
-```bash
-curl https://mtulio.eng.br/api/ping-js
-```
-
-- ping-go
-
-```bash
-curl https://mtulio.eng.br/api/ping-py
-```
-
-- py-async
-
-```bash
-curl https://mtulio.eng.br/api/py-async
-```
