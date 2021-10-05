@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+
+#
+# (WIP) Resize OpenShift Machines
+# - Follow steps to resize machine described here:
+#   https://mtulio.net/playbooks/openshift/resize-machines/
+#
+
+set -o pipefail
+set -o nounset
+set -o errexit
+
+# ######
+# Global
+# ######
+
+declare -g CLOUD_PROVIDER=$(oc get infrastructures \
+    -o jsonpath='{.items[*].status.platformStatus.type}')
+
+declare -g CACHE_FILE_MACHINES="/tmp/.cache.oc-machine-resize-machines.json"
+declare -g CACHE_FILE_NODES="/tmp/.cache.oc-machine-resize-nodes.json"
+
+# ###
+# AWS
+# ###
+
+# #####
+# Azure
+# #####
+
+# ####
+# OC
+# ####
+
+cache_get_machines() {
+    oc get machines \
+        -n openshift-machine-api \
+        -l machine.openshift.io/cluster-api-machine-role=master \
+        -o json > ${CACHE_FILE_MACHINES}
+}
+
+cache_get_nodes() {
+    oc get nodes \
+        -l kubernetes.io/os=linux,node-role.kubernetes.io/master= \
+        -o json > ${CACHE_FILE_NODES}
+}
+
+# ###
+# CLI
+# ###
+
+cmd_list_machines() {
+
+    cache_get_machines
+    cache_get_nodes
+
+    echo "Cloud Provider: ${CLOUD_PROVIDER}"
+    printf "%15s \t%15s \t%15s \t\t%10s \t%10s \t%10s \t%10s \t%10s\n" \
+        "MACHINE_NAME" "MACHINE_ID" "NODE_NAME"  \
+        "PHASE" "NODE_STATUS" \
+        "TYPE_SPEC" "TYPE_CLOUD" "RESOURCE_GROUP"
+
+    for machine_name in $(jq -r '.items[].metadata.name' ${CACHE_FILE_MACHINES}); do
+        node_name=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .status.nodeRef.name" ${CACHE_FILE_MACHINES})
+        node_status=$(jq -r ".items[] | select (.metadata.name==\"${node_name}\") | .status.conditions[] | select (.reason==\"KubeletReady\") |.status" ${CACHE_FILE_NODES})
+        test ${node_status} == "True" && node_status="Ready"
+        test ${node_status} == "False" && node_status="NotReady"
+
+        machine_id="N/A"
+        machine_phase=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .status.phase" ${CACHE_FILE_MACHINES})
+        machine_type_spec="N/A"
+        machine_type_cloud=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .metadata.labels.\"machine.openshift.io/instance-type\"" ${CACHE_FILE_MACHINES})
+        resource_group="N/A"
+        
+        if [[ "${CLOUD_PROVIDER}" == "AWS" ]]; then
+            machine_id=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .status.providerStatus.instanceId" ${CACHE_FILE_MACHINES})
+            machine_type_spec=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .spec.providerSpec.value.instanceType" ${CACHE_FILE_MACHINES})
+        elif [[ "${CLOUD_PROVIDER}" == "Azure" ]]; then
+            machine_id=${machine_name}
+            machine_type_spec=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .spec.providerSpec.value.vmSize" ${CACHE_FILE_MACHINES})
+            resource_group=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .spec.providerSpec.value.resourceGroup" ${CACHE_FILE_MACHINES})
+        fi
+
+        printf "%15s \t%15s \t%15s \t%10s  \t%10s \t%10s \t%10s \t%10s\n" \
+            ${machine_name} ${machine_id} ${node_name} \
+            ${machine_phase} ${node_status} \
+            ${machine_type_spec} ${machine_type_cloud} ${resource_group}
+    done
+    exit 0
+}
+
+# ####
+# MAIN
+# ####
+function show_help() {
+
+    cat <<-EOF
+Usage: ${0} [options]
+
+Available options:
+    -N | --machine-name {machine_name} Set Machine name to resize (should match with openshift-machine-api objects).
+    -s | --size {new_machine_size}     Set target machine size.
+    -l | --list-machines               List available Machines and sizes.
+    -L | --list-sizes                  List available sizes for target Machine.
+    -h | --help                        Show this help.
+
+Examples:
+    # Install this script
+    curl -so /usr/local/bin/oc-machine_resize \
+        && chmod u+x /usr/local/bin/oc-machine_resize
+
+    # list available Machines
+    ${0} --list-machines
+
+    # list available sizes for a given Machine
+    ${0} -N machine_name --list-sizes
+
+    # change machine size in AWS
+    ${0} --machine-name my-master-0 --size m5.xlarge
+
+    # change machine size in Azure
+    ${0} --machine-name my-master-0 --size Standard_D8s_v3
+
+EOF
+
+}
+
+function main() {
+
+    echo "TODO main()"
+}
+
+function main_cli() {
+
+    # NOTE: This requires GNU getopt.
+    # '-> On Mac OS X and FreeBSD need to be installed as: brew install gnu-getopt
+    GETOPT_SET=`getopt -n 'oc machine-resize' \
+            -o hNsli \
+            --long help,machine-name:,size:,list,install \
+            -- "$@"`
+
+    if [ $? != 0 ] ; then
+        echo "gnu-getopt seems not to be present. Please install it. Terminating..." >&2 ;
+        exit 1 ;
+    fi
+    eval set -- "${GETOPT_SET}"
+
+    while true; do
+        case "$1" in
+            -h | --help         ) show_help; exit 2 ;;
+            -N | --machine-name ) OPT_VERBOSE=$1; shift 2;;
+            -s | --size         ) OPT_DEBUG=$1; shift 2;;
+            -l | --list-machines) cmd_list_machines ; exit 0 ;;
+            -L | --list-sizes   ) OPT_INSTALL=true; shift ;;
+            -v | --version      ) OPT_VERSION=true; shift ;;
+            -- ) shift; break ;;
+            * ) echo "Option not found"; break ;;
+        esac
+    done
+
+    main
+    echo "Done"
+}
+
+main_cli "$@"
