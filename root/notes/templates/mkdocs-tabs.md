@@ -1,5 +1,8 @@
 ## mkdocs-tabs
 
+References:
+- [pymdown-extensions installation](https://facelessuser.github.io/pymdown-extensions/installation/)
+- 
 
 ## code
 
