@@ -1,18 +1,32 @@
 # Resize Machines
 
+<!--
+Dev note: This markdown was created to be rendered using mkdocs-material plugin.
+Reference of resources enabled on this page:
+- https://squidfunk.github.io/mkdocs-material/reference/content-tabs/
+- https://squidfunk.github.io/mkdocs-material/reference/admonitions/
+-->
+
+Steps to resize a Machine on OpenShift cluster.
+
 !!! tldr "Important Note"
-    All steps the steps described here will follow the safety way to resize a Machine in OCP 4.x.
-    This is not a official documentation and will be tested on versions 4.9 and 4.10.
+    - All steps described here will follow the safety way to resize a Machine in OCP 4.x.
+    - This is not a official documentation and those steps were tested on versions 4.9 and 4.10.
 
-Summary of steps:
+Overview of steps:
 
-- Gather cluster information
-- Set target Machines to resize
-- Set the new size
+- [Gather cluster information](#gather-cluster-information)
+- [Set target Machines to resize](#general-steps-to-resize-each-machine)
+- [Set the new size](#set-the-new-machine-size)
 - Graceful Power off
 - Change Machine size
 - Power on
 - Patch Machine Object spec
+
+Supported/documented platforms:
+
+- AWS
+- Azure
 
 ## Gather cluster information
 
@@ -52,7 +66,8 @@ Make sure that all group of nodes that will be resized are with the `Status=Read
 
 
 ``` shell
-oc get nodes -l kubernetes.io/os=linux,node-role.kubernetes.io/master=
+oc get nodes \
+    -l kubernetes.io/os=linux,node-role.kubernetes.io/master=
 ```
 
 Sample output:
@@ -72,7 +87,9 @@ Notes:
 - Sample steps filtering the group of nodes: `master`
 
 ``` shell
-oc get machines -n openshift-machine-api  -l machine.openshift.io/cluster-api-machine-role=master
+oc get machines \
+    -n openshift-machine-api \
+    -l machine.openshift.io/cluster-api-machine-role=master
 ```
 
 ```
@@ -96,8 +113,8 @@ Gather Cloud provider information from Machine object.
             -l machine.openshift.io/cluster-api-machine-role=master \
             -o json \
             | jq -r '.items[]| (\
-                "nodeName: " + .status.nodeRef.name,\
-                "machineName: "+ .metadata.name,\
+                "node_name: " + .status.nodeRef.name,\
+                "machine_name: "+ .metadata.name,\
                 "instanceId: "+ .status.providerStatus.instanceId,\
                 "instanceTypeSpec: "+ .spec.providerSpec.value.instanceType,\
                 "instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type",\
@@ -113,8 +130,8 @@ Gather Cloud provider information from Machine object.
             -l machine.openshift.io/cluster-api-machine-role=master \
             -o json \
             | jq -r '.items[]| (\
-                "nodeName: " + .status.nodeRef.name,\
-                "machineName: "+ .metadata.name,\
+                "node_name: " + .status.nodeRef.name,\
+                "machine_name: "+ .metadata.name,\
                 "instanceId: "+ .status.providerStatus.vmId,\
                 "instanceTypeSpec: "+ .spec.providerSpec.value.vmSize,\
                 "instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type",\
@@ -132,20 +149,20 @@ Gather Cloud provider information from Machine object.
     === "Azure"
 
         ``` shell
-        nodeName: mrbaz01-2754r-master-0
-        machineName: mrbaz01-2754r-master-0
+        node_name: mrbaz01-2754r-master-0
+        machine_name: mrbaz01-2754r-master-0
         instanceId: /subscriptions/a-b-c-d-xyz/resourceGroups/mrbaz01-2754r-rg/providers/Microsoft.Compute/virtualMachines/mrbaz01-2754r-master-0
         instanceTypeSpec: Standard_D4s_v3
         instanceTypeMeta: Standard_D4s_v3
 
-        nodeName: mrbaz01-2754r-master-1
-        machineName: mrbaz01-2754r-master-1
+        node_name: mrbaz01-2754r-master-1
+        machine_name: mrbaz01-2754r-master-1
         instanceId: /subscriptions/a-b-c-d-xyz/resourceGroups/mrbaz01-2754r-rg/providers/Microsoft.Compute/virtualMachines/mrbaz01-2754r-master-1
         instanceTypeSpec: Standard_D4s_v3
         instanceTypeMeta: Standard_D4s_v3
 
-        nodeName: mrbaz01-2754r-master-2
-        machineName: mrbaz01-2754r-master-2
+        node_name: mrbaz01-2754r-master-2
+        machine_name: mrbaz01-2754r-master-2
         instanceId: /subscriptions/a-b-c-d-xyz/resourceGroups/mrbaz01-2754r-rg/providers/Microsoft.Compute/virtualMachines/mrbaz01-2754r-master-2
         instanceTypeSpec: Standard_D4s_v3
         instanceTypeMeta: Standard_D4s_v3
@@ -156,34 +173,43 @@ Gather Cloud provider information from Machine object.
 !!! tip "Tip"
     Repeat the steps bellow for each machine you want to resize
 
-Set the `machineName` variable value.
+Set the `machine_name` variable value.
 
 !!! warning
-    Adapt the variable `machineName` according your environment
+    The variable `machine_name` should be set specific for your environment,
+    and updated for each machine to resize.
 
 
 ``` shell
-machineName=mrbaz01-2754r-master-0
+machine_name=mrbaz01-2754r-master-0
 ```
 
-### Set the new Machine Size
+### Set the new Machine size
 
 ``` shell
-new_machine_size="<cloud_provider_size>"
+new_machine_type="<cloud_provider_size>"
 ```
 
 !!! info "Example by Cloud Provider"
 
     === "AWS"
-
+        To check EC2 compatibility with OCP, please check [this doc](https://docs.openshift.com/container-platform/4.8/installing/installing_aws/installing-aws-vpc.html#installation-supported-aws-machine-types_installing-aws-vpc), then set:
         ``` shell
-        new_machine_size="m6i.xlarge"
+        new_machine_type="m5.xlarge"
         ```
 
     === "Azure"
-
+        To check VM size available for specific VM, run:
         ``` shell
-        new_machine_size="Standard_D8s_v3"
+        az vm list-vm-resize-options \
+            --resource-group ${resource_group} \
+            --name ${machine_name} \
+            --output table
+        ```
+
+        Then set the desired value:
+        ``` shell
+        new_machine_type="Standard_D8s_v3"
         ``` 
 
 ### Collect Machine info
@@ -191,53 +217,52 @@ new_machine_size="<cloud_provider_size>"
 !!! danger "Attention"
     You shouldn't change any step describe below, just run according your environment.
 
-Don't change the variables, the values will be populated based on machineName
+Discovery variable values based on `${machine_name}`
 
 !!! example "Choose the Cloud Provider"
 
     === "AWS"
 
         ``` shell
-        instanceId=$(oc get machine ${machineName} -n openshift-machine-api -o jsonpath={.status.providerStatus.instanceId})
+        instanceId=$(oc get machine ${machine_name} -n openshift-machine-api -o jsonpath={.status.providerStatus.instanceId})
 
-        nodeName=$(oc get machine ${machineName} -n openshift-machine-api -o jsonpath={.status.nodeRef.name})
+        node_name=$(oc get machine ${machine_name} -n openshift-machine-api -o jsonpath={.status.nodeRef.name})
         ```
 
     === "Azure"
 
         ``` shell
-        resourceGroup=$(oc get machine ${machineName} -n openshift-machine-api -o jsonpath={.spec.providerSpec.value.resourceGroup})
+        resource_group=$(oc get machine ${machine_name} -n openshift-machine-api -o jsonpath={.spec.providerSpec.value.resourceGroup})
 
-        instanceId=${machineName}
+        instanceId=${machine_name}
 
-        nodeName=$(oc get machine ${machineName} -n openshift-machine-api -o jsonpath={.status.nodeRef.name})
+        node_name=$(oc get machine ${machine_name} -n openshift-machine-api -o jsonpath={.status.nodeRef.name})
         ```
 
 - Make sure all varialbes are set:
 
 ```bash
-echo "${instanceId} ${nodeName}"
+echo "[${instanceId}] [${node_name}] ${resource_group:-}"
 ```
-
 
 ### Graceful Power off
 
 - Cordon the node
 
 ``` shell
-oc adm cordon ${nodeName} 
+oc adm cordon ${node_name}
 ```
 
 - Drain the node
 
 ``` shell
-oc adm drain ${nodeName} --ignore-daemonsets --grace-period=60
+oc adm drain ${node_name} --ignore-daemonsets --grace-period=60
 ```
 
 - Shutdown
 
 ``` shell
-oc debug node/${nodeName} -- chroot /host shutdown -h 1
+oc debug node/${node_name} -- chroot /host shutdown -h 1
 ```
 
 - Wait the node to shutdown
@@ -246,7 +271,7 @@ oc debug node/${nodeName} -- chroot /host shutdown -h 1
     Wait until node is `Status=NotReady`
 
 ``` shell
-oc get node ${nodeName} -w
+oc get node ${node_name} -w
 ```
 
 - Wait until the Instance/VM is in stopped state (by Cloud provider)
@@ -274,8 +299,8 @@ oc get node ${nodeName} -w
         ``` shell
         while true; do \
             st=$(az vm get-instance-view \
-                --resource-group $resourceGroup \
-                --name $machineName \
+                --resource-group ${resource_group} \
+                --name ${machine_name} \
                 --output json \
                 | jq -e '.instanceView.statuses[] \
                 | select( .code | startswith("PowerState") ).code'); \
@@ -312,8 +337,8 @@ oc get node ${nodeName} -w
 
         ``` shell
         az vm get-instance-view \
-            --resource-group ${resourceGroup} \
-            --name ${machineName}  \
+            --resource-group ${resource_group} \
+            --name ${machine_name}  \
             --output table
         ```
 
@@ -334,15 +359,15 @@ oc get node ${nodeName} -w
         ``` shell
         aws ec2 modify-instance-attribute \
             --instance-id ${instanceId} \
-            --instance-type ${new_machine_size}
+            --instance-type ${new_machine_type}
         ```
 
     === "Azure"
         ``` shell
         az vm resize \
-            --resource-group ${resourceGroup} \
-            --name ${machineName} \
-            --size ${new_machine_size}
+            --resource-group ${resource_group} \
+            --name ${machine_name} \
+            --size ${new_machine_type}
         ```
 
 - Check the current [new] size
@@ -359,8 +384,8 @@ oc get node ${nodeName} -w
     === "Azure"
         ``` shell
         az vm get-instance-view \
-            --resource-group $resourceGroup \
-            --name $machineName \
+            --resource-group ${resource_group} \
+            --name ${machine_name} \
             --output json \
             | jq -r '.hardwareProfile.vmSize'
         ```
@@ -382,8 +407,8 @@ oc get node ${nodeName} -w
 
         ``` shell
         az vm start \
-            --resource-group ${resourceGroup} \
-            --name ${machineName} \
+            --resource-group ${resource_group} \
+            --name ${machine_name} \
             --output table
         ```
 
@@ -414,8 +439,8 @@ oc get node ${nodeName} -w
         ``` shell
         while true; do
             st=$(az vm get-instance-view \
-                --resource-group ${resourceGroup} \
-                --name ${machineName} \
+                --resource-group ${resource_group} \
+                --name ${machine_name} \
                 --output json \
                 | jq -e '.instanceView.statuses[] | select( .code | startswith("PowerState") ).code');
             echo "state=$st";
@@ -430,13 +455,13 @@ oc get node ${nodeName} -w
 - Wait the node to be in Ready (`STATUS=Ready`)
 
 ``` shell
-oc get node ${nodeName} -w
+oc get node ${node_name} -w
 ```
 
 - Wait MAPI to reconcile and update the new machine size (`TYPE`)
 
 ``` shell
-oc get machine ${machineName} \
+oc get machine ${machine_name} \
     -n openshift-machine-api
 ```
 
@@ -471,7 +496,7 @@ oc get co
 - Uncordon the node
 
 ``` shell
-oc adm uncordon ${nodeName}
+oc adm uncordon ${node_name}
 ```
 
 - Wait until all operators clear the degraded state
@@ -487,12 +512,12 @@ oc get co -w
 
     === "AWS"
         ``` shell
-        oc get machine ${machineName} \
+        oc get machine ${machine_name} \
             -n openshift-machine-api \
             -o json \
             | jq -r '. | (\
-                "nodeName: " + .status.nodeRef.name,\
-                "machineName: "+ .metadata.name,\
+                "node_name: " + .status.nodeRef.name,\
+                "machine_name: "+ .metadata.name,\
                 "instanceTypeSpec: "+ .spec.providerSpec.value.instanceType,\
                 "instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type",\
                 "")'
@@ -501,12 +526,12 @@ oc get co -w
     === "Azure"
 
         ``` shell
-        oc get machine ${machineName} \
+        oc get machine ${machine_name} \
             -n openshift-machine-api \
             -o json \
             | jq -r '. | (\
-                "nodeName: " + .status.nodeRef.name,\
-                "machineName: "+ .metadata.name,\
+                "node_name: " + .status.nodeRef.name,\
+                "machine_name: "+ .metadata.name,\
                 "instanceTypeSpec: "+ .spec.providerSpec.value.vmSize,\
                 "instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type",\
                 "")'
@@ -521,19 +546,19 @@ Patch Machine Object:
 
     === "AWS"
         ``` shell
-        oc patch machine ${machineName} \
+        oc patch machine ${machine_name} \
             -n openshift-machine-api \
             --type=merge \
-            -p "{\"spec\":{\"providerSpec\":{\"value\":{\"instanceType\":\"${newMachineType}\"}}}}"
+            -p "{\"spec\":{\"providerSpec\":{\"value\":{\"instanceType\":\"${new_machine_type}\"}}}}"
         ```
 
     === "Azure"
 
         ``` shell
-        oc patch machine ${machineName} \
+        oc patch machine ${machine_name} \
             -n openshift-machine-api \
             --type=merge \
-            -p "{\"spec\":{\"providerSpec\":{\"value\":{\"vmSize\":\"${newMachineType}\"}}}}"
+            -p "{\"spec\":{\"providerSpec\":{\"value\":{\"vmSize\":\"${new_machine_type}\"}}}}"
         ```
 
 - Review if the Machine Type was changed:
@@ -542,12 +567,12 @@ Patch Machine Object:
 
     === "AWS"
         ``` shell
-        oc get machines ${machineName} \
+        oc get machines ${machine_name} \
             -n openshift-machine-api \
             -o json \
             | jq -r '. | (\
-                "nodeName: " + .status.nodeRef.name,\
-                "machineName: "+ .metadata.name,\
+                "node_name: " + .status.nodeRef.name,\
+                "machine_name: "+ .metadata.name,\
                 "instanceTypeSpec: "+ .spec.providerSpec.value.instanceType,\
                 "instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type",\
                 "")'
@@ -555,20 +580,20 @@ Patch Machine Object:
 
         Sample output:
         ```
-        nodeName: ip-10-0-133-111.ec2.internal
-        machineName: mrbg3-4glln-master-0
+        node_name: ip-10-0-133-111.ec2.internal
+        machine_name: mrbg3-4glln-master-0
         instanceTypeSpec: m5.xlarge
         instanceTypeMeta: m5.xlarge
         ```
 
     === "Azure"
         ``` shell
-        oc get machines ${machineName} \
+        oc get machines ${machine_name} \
             -n openshift-machine-api \
             -o json \
             | jq -r '. | (\
-                "nodeName: " + .status.nodeRef.name,\
-                "machineName: "+ .metadata.name,\
+                "node_name: " + .status.nodeRef.name,\
+                "machine_name: "+ .metadata.name,\
                 "instanceTypeSpec: "+ .spec.providerSpec.value.vmSize,\
                 "instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type",\
                 "")'
@@ -576,8 +601,8 @@ Patch Machine Object:
 
         Sample output:
         ```
-        nodeName: mrbaz01-2754r-master-1
-        machineName: mrbaz01-2754r-master-1
+        node_name: mrbaz01-2754r-master-1
+        machine_name: mrbaz01-2754r-master-1
         instanceTypeSpec: Standard_D8s_v3
         instanceTypeMeta: Standard_D8s_v3
         ```
@@ -594,7 +619,8 @@ oc get co
 - Review Kube apiservers
 
 ``` shell
-oc get pods -n openshift-kube-apiserver kube-apiserver-${nodeName}
+oc get pod kube-apiserver-${node_name} \
+    -n openshift-kube-apiserver
 ```
 
 - Review etcd cluster
@@ -602,7 +628,8 @@ oc get pods -n openshift-kube-apiserver kube-apiserver-${nodeName}
 Pods
 
 ``` shell
-oc get pods -n openshift-etcd etcd-${nodeName}
+oc get pod etcd-${node_name} \
+    -n openshift-etcd
 ```
 
 !!! info "Example output"
@@ -614,7 +641,9 @@ oc get pods -n openshift-etcd etcd-${nodeName}
 Members
 
 ``` shell
-oc exec -n openshift-etcd etcd-$nodeName -- etcdctl member list -w table 2>/dev/null
+oc exec \
+    -n openshift-etcd \
+    etcd-${node_name} -- etcdctl member list -w table 2>/dev/null
 ```
 
 !!! info "Example output"
@@ -631,7 +660,9 @@ oc exec -n openshift-etcd etcd-$nodeName -- etcdctl member list -w table 2>/dev/
 Endpoints healthy (`HEALTH=true`)
 
 ``` shell
-oc exec -n openshift-etcd etcd-$nodeName -- etcdctl endpoint health -w table 2>/dev/null
+oc exec \
+    -n openshift-etcd \
+    etcd-${node_name} -- etcdctl endpoint health -w table 2>/dev/null
 ```
 
 !!! info "Example output"
@@ -655,21 +686,52 @@ Repeat the section "[General steps to resize each machine](#general-steps-to-res
 - Review Nodes
 
 ``` shell
-oc get nodes -l kubernetes.io/os=linux,node-role.kubernetes.io/master=
+oc get nodes \
+    -l kubernetes.io/os=linux,node-role.kubernetes.io/master=
 ```
 
 - Gather current Machine summary
 
 ``` shell
-oc get machines -n openshift-machine-api  -l machine.openshift.io/cluster-api-machine-role=master
+oc get machines \
+    -n openshift-machine-api \
+    -l machine.openshift.io/cluster-api-machine-role=master
 ```
 
-- Review Machines attributes
+- Review Machines attributes from all machines
 
-``` shell
-oc get machines -n openshift-machine-api  -l machine.openshift.io/cluster-api-machine-role=master -o json |jq -r '.items[]| ("nodeName: " + .status.nodeRef.name, "machineName: "+ .metadata.name , "instanceId: "+ .status.providerStatus.instanceId, "instanceTypeSpec: "+ .spec.providerSpec.value.instanceType,"instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type", "")'
-```
 
-## Next Steps
+!!! example "Choose the Cloud Provider"
 
-- Create a kubectl plugin to handle all steps
+    === "AWS"
+        ``` shell
+        oc get machines \
+            -n openshift-machine-api \
+            -l machine.openshift.io/cluster-api-machine-role=master \
+            -o json \
+            | jq -r '.items[]| (\
+                "node_name: " + .status.nodeRef.name,\
+                "machine_name: "+ .metadata.name,\
+                "instanceTypeSpec: "+ .spec.providerSpec.value.instanceType,\
+                "instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type",\
+                "")'
+        ```
+
+    === "Azure"
+
+        ``` shell
+        oc get machines \
+            -n openshift-machine-api \
+            -l machine.openshift.io/cluster-api-machine-role=master \
+            -o json \
+            | jq -r '.items[]| (\
+                "node_name: " + .status.nodeRef.name,\
+                "machine_name: "+ .metadata.name,\
+                "instanceTypeSpec: "+ .spec.providerSpec.value.vmSize,\
+                "instanceTypeMeta: "+ .metadata.labels."machine.openshift.io/instance-type",\
+                "")'
+        ```
+
+## Suggested Next Steps
+
+- Create a [kubectl plugin](https://krew.sigs.k8s.io/plugins/) to handle all the steps covered here
