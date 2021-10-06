@@ -17,8 +17,26 @@ set -o errexit
 declare -g CLOUD_PROVIDER=$(oc get infrastructures \
     -o jsonpath='{.items[*].status.platformStatus.type}')
 
-declare -g CACHE_FILE_MACHINES="/tmp/.cache.oc-machine-resize-machines.json"
-declare -g CACHE_FILE_NODES="/tmp/.cache.oc-machine-resize-nodes.json"
+declare -g CACHE_DIR="~/.cache/oc_plugin-machine-resize"
+declare -g CACHE_FILE_MACHINES="${CACHE_DIR}/machines.json"
+declare -g CACHE_FILE_NODES="${CACHE_DIR}/nodes.json"
+declare -g CACHE_ETCD="${CACHE_DIR}/etcd-endpoint.json"
+
+declare -g HANDLER_MACHINE=false
+declare -g HANDLER_SIZE=false
+declare -g HANDLER_LSSIZE=false
+
+declare -g OPT_MACHINE=""
+declare -g OPT_SIZE=""
+
+declare -g CLI_OC=$(command -v oc)
+declare -g CLI_AWS=$(command -v aws)
+declare -g CLI_AZ=$(command -v az)
+declare -g CLI_JQ=$(command -v jq)
+
+check_dep_required() {
+    test -d ${CACHE_DIR} || mkdir -p ${CACHE_DIR}
+}
 
 # ###
 # AWS
@@ -45,20 +63,91 @@ cache_get_nodes() {
         -o json > ${CACHE_FILE_NODES}
 }
 
+cache_get_etcd() {
+    oc -n openshift-etcd rsh \
+        $(oc get pods -n openshift-etcd -o jsonpath='{.items[0].metadata.name}') \
+        etcdctl endpoint status -w json > ${CACHE_ETCD}
+}
+
+# Check if a given IP is a etcd leader, return a boolean with true for leader.
+check_etcd_leader_by_ip() {
+    local check_ip="$1"
+    jq -r ".[] | \
+        {
+            endpoint_ip: ( .Endpoint | capture(\"https://(?<ip>[[:digit:]].+):2379\").ip ),\
+            member_id: ( .Status.header.member_id),\
+            is_leader: ( .Status.header.member_id == .Status.leader)\
+        }" ${CACHE_ETCD} \
+        | jq -r ". | select(.endpoint_ip==\"${check_ip}\").is_leader"
+}
+
 # ###
 # CLI
 # ###
 
+resize_machine_runner() {
+    machine_name="${OPT_MACHINE}"
+
+    echo "resize_machine_runner(${machine_name})"
+
+    # Check Cloud Provider CLI
+    # Check if Machine was already resized (TYPE_CLOUD==--size)
+    # '-> Check if Machine was already resized (TYPE_SPEC==--size) -> patch Machien
+    # Check if Cloud Provider is supported
+    # Check Node is Ready
+    # Check Machine is Running
+    # Check if etcd cluster has a leader
+    # Check if etcd cluster has only one leader
+    # Check if it's not a etcd_leader (otherwise --force)
+    # Validation complete
+
+    # ask to continue
+
+    # cordon node
+    # drain node
+    # shutdown node
+    # wait until node is NotReady
+    # wait until instance/VM is stopped
+    # change instance type
+    # start machine
+    # wait VM is running
+    # wait Node is Ready
+    # uncordon
+    # wait Machine is Reconciled (TYPE_CLOUD==--size)
+    # wait CO is not degraded
+    # '-> check if pods is running (kube-api + etcd) : do we need? CO look to it
+    # check if all etcd member is started
+    # check if all etcd member is healthy
+    # check if etcd cluster has a leader
+    # Check if etcd cluster has only one leader
+}
+
+# Collect all information and resize the machine
+cmd_resize_machine() {
+    cache_get_machines
+    cache_get_nodes
+    cache_get_etcd
+
+    resize_machine_runner
+}
+
+cmd_list_sizes() {
+    echo "ToDo: List Sizes from Cloud Provider."
+}
+
+# Collect and show all machine+node information to resize
 cmd_list_machines() {
 
     cache_get_machines
     cache_get_nodes
+    cache_get_etcd
 
     echo "Cloud Provider: ${CLOUD_PROVIDER}"
-    printf "%15s \t%15s \t%15s \t\t%10s \t%10s \t%10s \t%10s \t%10s\n" \
+    printf "%15s \t%15s \t%15s \t\t%10s \t%10s \t%10s \t%10s \t%10s \t%10s\n" \
         "MACHINE_NAME" "MACHINE_ID" "NODE_NAME"  \
         "PHASE" "NODE_STATUS" \
-        "TYPE_SPEC" "TYPE_CLOUD" "RESOURCE_GROUP"
+        "TYPE_SPEC" "TYPE_CLOUD" "RESOURCE_GROUP" \
+        "ETCD_LEADER"
 
     for machine_name in $(jq -r '.items[].metadata.name' ${CACHE_FILE_MACHINES}); do
         node_name=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .status.nodeRef.name" ${CACHE_FILE_MACHINES})
@@ -66,11 +155,13 @@ cmd_list_machines() {
         test ${node_status} == "True" && node_status="Ready"
         test ${node_status} == "False" && node_status="NotReady"
 
+        machine_ip=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\").status.addresses[] | select (.type==\"InternalIP\").address" ${CACHE_FILE_MACHINES})
         machine_id="N/A"
         machine_phase=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .status.phase" ${CACHE_FILE_MACHINES})
         machine_type_spec="N/A"
         machine_type_cloud=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .metadata.labels.\"machine.openshift.io/instance-type\"" ${CACHE_FILE_MACHINES})
         resource_group="N/A"
+        etcd_leader=$(check_etcd_leader_by_ip ${machine_ip})
         
         if [[ "${CLOUD_PROVIDER}" == "AWS" ]]; then
             machine_id=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .status.providerStatus.instanceId" ${CACHE_FILE_MACHINES})
@@ -81,10 +172,11 @@ cmd_list_machines() {
             resource_group=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .spec.providerSpec.value.resourceGroup" ${CACHE_FILE_MACHINES})
         fi
 
-        printf "%15s \t%15s \t%15s \t%10s  \t%10s \t%10s \t%10s \t%10s\n" \
+        printf "%15s \t%15s \t%15s \t%10s  \t%10s \t%10s \t%10s \t%10s \t%10s\n" \
             ${machine_name} ${machine_id} ${node_name} \
             ${machine_phase} ${node_status} \
-            ${machine_type_spec} ${machine_type_cloud} ${resource_group}
+            ${machine_type_spec} ${machine_type_cloud} ${resource_group} \
+            ${etcd_leader}
     done
     exit 0
 }
@@ -126,8 +218,27 @@ EOF
 }
 
 function main() {
+    CMD_TARGET=""
 
-    echo "TODO main()"
+    if [[ ( ${HANDLER_MACHINE} == false ) && ( ${HANDLER_SIZE} == true ) ]]; then
+        echo "ERROR: --size {size} should be used with --machine-name {name}"
+        exit 1
+    fi
+    if [[ ( ${HANDLER_MACHINE} == true ) && \
+          ( ${HANDLER_SIZE} == false ) && \
+          ( ${HANDLER_LSSIZE} == false )]]; then
+        echo "ERROR: --size {size} is missing when --machine-name is set"
+        exit 1
+    fi
+
+    if [[ ( ${HANDLER_MACHINE} == true ) && ( ${HANDLER_SIZE} == true ) ]]; then
+        CMD_TARGET="cmd_resize_machine"
+    elif [[ ${HANDLER_LSSIZE} == true ]]; then
+        CMD_TARGET="cmd_list_sizes"
+    fi
+
+    echo "Running target [${CMD_TARGET}]"
+    ${CMD_TARGET}
 }
 
 function main_cli() {
@@ -135,8 +246,8 @@ function main_cli() {
     # NOTE: This requires GNU getopt.
     # '-> On Mac OS X and FreeBSD need to be installed as: brew install gnu-getopt
     GETOPT_SET=`getopt -n 'oc machine-resize' \
-            -o hNsli \
-            --long help,machine-name:,size:,list,install \
+            -o hN:s:lLi \
+            --long help,machine-name:,size:,list,list-sizes,install \
             -- "$@"`
 
     if [ $? != 0 ] ; then
@@ -145,16 +256,23 @@ function main_cli() {
     fi
     eval set -- "${GETOPT_SET}"
 
+    # run pre-req
+    check_dep_required
+
     while true; do
         case "$1" in
             -h | --help         ) show_help; exit 2 ;;
-            -N | --machine-name ) OPT_VERBOSE=$1; shift 2;;
-            -s | --size         ) OPT_DEBUG=$1; shift 2;;
+            -N | --machine-name )
+                HANDLER_MACHINE=true; OPT_MACHINE=$1; shift 2;;
+            -s | --size         )
+                HANDLER_SIZE=true; OPT_SIZE=$1; shift 2;;
             -l | --list-machines) cmd_list_machines ; exit 0 ;;
-            -L | --list-sizes   ) OPT_INSTALL=true; shift ;;
+            -L | --list-sizes   )
+                HANDLER_LSSIZE=true; shift ;;
+            -f | --force        ) OPT_FORCE=true; shift ;;
             -v | --version      ) OPT_VERSION=true; shift ;;
             -- ) shift; break ;;
-            * ) echo "Option not found"; break ;;
+            * ) echo "Option not found: $1"; break ;;
         esac
     done
 
