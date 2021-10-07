@@ -110,13 +110,14 @@ aws_get_instance_state() {
 aws_change_instance_type() {
     local machine_name=${1:-${OPT_MACHINE}}
     local instance_id=$(cache_get_machine_id ${machine_name})
-
+    local sleep_time_sec=30
     # Avoid error running modify right after Instance is stopped
     # API ERR: An error occurred (IncorrectInstanceState) when \
     # calling the ModifyInstanceAttribute operation: The \
     # instance 'i-0fa478d35649cbfd7' is not in the 'stopped' state.
-    echo " > Waiting power state to be propagated to API..."
-    sleep 30;
+    echo " >> Waiting [${sleep_time_sec}s] power state be propagated to AWS EC2 API..."
+    sleep ${sleep_time_sec};
+    echo " >> Changing instance [${instance_id}] to type [${OPT_SIZE}]..."
     aws ec2 modify-instance-attribute \
         --instance-id ${instance_id} \
         --instance-type ${OPT_SIZE}
@@ -125,6 +126,7 @@ aws_change_instance_type() {
 aws_power_on_instance() {
     local machine_name=${1:-${OPT_MACHINE}}
     local instance_id=$(cache_get_machine_id ${machine_name})
+    echo " >> Starting EC2..."
     aws ec2 start-instances \
         --instance-ids ${instance_id}
 }
@@ -283,7 +285,7 @@ run_oc_uncordon_node() {
     fi
     oc adm uncordon ${node_name}
 
-    echo -ne " > Node Cordoned [${node_name}]..."
+    echo -ne " >> Node Uncordoned [${node_name}]..."
     RT_RESP=${RT_YES}
 }
 
@@ -350,7 +352,7 @@ run_wait_node_notready() {
 run_wait_node_ready() {
     local machine_name=${OPT_MACHINE}
     local node_name=$(cache_get_node_name ${machine_name})
-    echo -e " > Waiting the node be NotReady..."
+    echo -e " > Waiting the node be Ready..."
 
     while true; do
         cache_update_get_nodes
@@ -367,6 +369,7 @@ run_wait_node_ready() {
 }
 
 run_wait_node_stopped() {
+    echo -e " > Waiting the Instance to report stopped on Cloud Provider [${CLOUD_PROVIDER}]..."
     while true; do \
         if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
             st=$(aws_get_instance_state)
@@ -377,29 +380,12 @@ run_wait_node_stopped() {
         echo " >> Instance still running [$st]; sleeping 15s"
         sleep 15;
     done
-    echo " > Node reported as not running [$st], following to the next step..."
-    RT_RESP=${RT_YES}
-}
-
-run_change_instance_type() {
-    if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
-        aws_change_instance_type
-    elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
-        azure_change_instance_type
-    fi
-    RT_RESP=${RT_YES}
-}
-
-run_machine_power_on() {
-    if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
-        aws_power_on_instance
-    elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
-        aws_power_on_vm
-    fi
+    echo " >> Node reported as not running [$st], following to the next step..."
     RT_RESP=${RT_YES}
 }
 
 run_wait_node_started() {
+    echo -e " > Waiting the Instance to report started on Cloud Provider [${CLOUD_PROVIDER}]..."
     while true; do \
         if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
             st=$(aws_get_instance_state)
@@ -410,7 +396,27 @@ run_wait_node_started() {
         echo " >> Instance still not running [$st]; sleeping 15s"
         sleep 15;
     done
-    echo " > Node reported as running [$st], following to the next step..."
+    echo " >> Node reported as running [$st], following to the next step..."
+    RT_RESP=${RT_YES}
+}
+
+run_machine_power_on() {
+    echo " > Sending power on command to Cloud Provider [${CLOUD_PROVIDER}]..."
+    if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
+        aws_power_on_instance
+    elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
+        aws_power_on_vm
+    fi
+    RT_RESP=${RT_YES}
+}
+
+run_change_instance_type() {
+    echo " > Running Instance resize on Cloud Provider [${CLOUD_PROVIDER}]..."
+    if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
+        aws_change_instance_type
+    elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
+        azure_change_instance_type
+    fi
     RT_RESP=${RT_YES}
 }
 
@@ -431,7 +437,8 @@ run_patch_machine_size() {
     local machine_name=${OPT_MACHINE}
     local machine_size_cloud=$(cache_get_machine_size_cloud ${machine_name})
 
-    echo -e " > Check target: target=[${OPT_SIZE}] machine_cloud=[${machine_size_cloud}]"
+    echo -e " > Starting the Machine Size patch..."
+    echo -e " >> Check target: target=[${OPT_SIZE}] machine_cloud=[${machine_size_cloud}]"
     if [[ "${OPT_SIZE}" != "${machine_size_cloud}" ]]; then
         echo " >> Target Machine size missmatch with Cloud Provider discovered on reconciliation...please check it."
         exit 1
@@ -442,7 +449,7 @@ run_patch_machine_size() {
         --type=merge \
         -p "{\"spec\":{\"providerSpec\":{\"value\":{\"${KEY_MACHINE_TYPE}\":\"${OPT_SIZE}\"}}}}"
 
-    echo -ne " > Machine patched with new size [${node_name}]..."
+    echo -e " >> Machine patched with new size [${OPT_SIZE}]..."
     RT_RESP=${RT_YES}
     return
 }
@@ -501,12 +508,8 @@ check_machine_was_not_resized_cloud() {
     RT_RESP=${RT_YES}
 }
 
-# check_machine_was_resized_mapi() {
-    
-# }
-
 check_node_is_ready() {
-    echo -ne " > Checking if node is Ready..."
+    echo -ne " > Checking if Node is Ready..."
     local node_status=$(cache_get_node_status)
     if [[ ${node_status} == "Ready" ]]; then
         RT_RESP=${RT_YES}
@@ -526,9 +529,9 @@ check_machine_is_running() {
 }
 
 check_etcd_has_leader() {
-    echo -ne " > Checking if etcd has leader..."
+    echo -ne " > Checking if etcd has a leader..."
     local node_leaders=($(cache_get_etcd_field_isleader))
-    #RC=$(list_contains_str ${node_leaders} "true")
+
     has_leader=false
     for leader_st in  ${node_leaders[@]}; do
         if [[ ${leader_st} == true ]]; then
@@ -566,7 +569,7 @@ check_etcd_machine_is_not_leader() {
     return
 }
 
-# Check resps
+#> Check resps
 check_resp() {
     local resp=$1
 
@@ -603,7 +606,7 @@ check_resp_force() {
         echo "FAIL. --force flag was not set."
         exit 1
     fi
-    if [[ "${OPT_FORCE:-}" == true ]] && [[ "${resp}" == "${RT_YES}" ]]; then
+    if [[ "${OPT_FORCE:-}" == true ]] && [[ "${resp}" == "${RT_NO}" ]]; then
         echo "FAIL. --force flag was set. Skiping FAIL state."
         return
     fi
@@ -628,8 +631,8 @@ resize_machine_runner() {
     # Check Machine is Running (--continue)
     check_machine_is_running; check_resp_cont ${RT_RESP}
 
-    # Check if etcd cluster has a leader
-    #check_etcd_has_leader; check_resp ${RT_RESP}
+    # Check if etcd cluster has a leader (ca we use forced flag?)
+    check_etcd_has_leader; check_resp_force ${RT_RESP}
 
     # Check if etcd cluster has only one leader (?)
     
@@ -649,7 +652,7 @@ resize_machine_runner() {
     run_oc_drain_node; check_resp_force ${RT_RESP}
 
     # shutdown node
-    run_machine_power_off;
+    run_machine_power_off; check_resp ${RT_RESP}
 
     # wait until node is NotReady
     run_wait_node_notready;
@@ -670,7 +673,7 @@ resize_machine_runner() {
     run_wait_node_ready;
 
     # uncordon
-    run_oc_uncordon_node;
+    run_oc_uncordon_node; check_resp ${RT_RESP}
 
     # wait Machine is Reconciled (TYPE_CLOUD==--size)
     run_wait_machine_reconciliation
@@ -802,7 +805,6 @@ function main() {
         CMD_TARGET="cmd_list_sizes"
     fi
 
-    echo "Running target [${CMD_TARGET}]"
     ${CMD_TARGET}
 }
 
@@ -828,22 +830,21 @@ function main_cli() {
         case "$1" in
             -h | --help         ) show_help; exit 2 ;;
             -N | --machine-name )
-                HANDLER_MACHINE=true; OPT_MACHINE=$2; shift 2;;
+                HANDLER_MACHINE=true ; OPT_MACHINE="$2" ; shift 2 ;;
             -s | --size         )
-                HANDLER_SIZE=true; OPT_SIZE=$2; shift 2;;
+                HANDLER_SIZE=true; OPT_SIZE="$2" ; shift 2 ;;
             -l | --list-machines) cmd_list_machines ; exit 0 ;;
             -L | --list-sizes   )
-                HANDLER_LSSIZE=true; shift ;;
-            -f | --force        ) OPT_FORCE=true; shift ;;
-            -c | --continue     ) OPT_CONTINUE=true; shift ;;
-            -v | --version      ) OPT_VERSION=true; shift ;;
+                HANDLER_LSSIZE=true ; shift ;;
+            -f | --force        ) OPT_FORCE=true ; shift ;;
+            -c | --continue     ) OPT_CONTINUE=true ; shift ;;
+            -v | --version      ) OPT_VERSION=true ; shift ;;
             -- ) shift; break ;;
             * ) echo "Option not found: $1"; break ;;
         esac
     done
 
     main
-    echo "Done"
 }
 
 main_cli "$@"
