@@ -109,6 +109,13 @@ aws_get_instance_state() {
 aws_change_instance_type() {
     local machine_name=${1:-${OPT_MACHINE}}
     local instance_id=$(cache_get_machine_id ${machine_name})
+
+    # Avoid error running modify right after Instance is stopped
+    # API ERR: An error occurred (IncorrectInstanceState) when \
+    # calling the ModifyInstanceAttribute operation: The \
+    # instance 'i-0fa478d35649cbfd7' is not in the 'stopped' state.
+    echo " > Waiting power state to be propagated to API..."
+    sleep 30;
     aws ec2 modify-instance-attribute \
         --instance-id ${instance_id} \
         --instance-type ${OPT_SIZE}
@@ -254,6 +261,22 @@ run_oc_cordon_node() {
     RT_RESP=${RT_YES}
 }
 
+run_oc_uncordon_node() {
+    local machine_name=${OPT_MACHINE}
+    local node_name=$(cache_get_node_name ${machine_name})
+    
+    echo -e " > UnCordoning the node [${node_name}]..."
+    if [[ "$(cache_get_node_status)" != "Ready" ]]; then
+        echo -ne " >> Node is NotReady, ignoring cordon..."
+        RT_RESP=${RT_YES}
+        return
+    fi
+    oc adm uncordon ${node_name}
+
+    echo -ne " > Node Cordoned [${node_name}]..."
+    RT_RESP=${RT_YES}
+}
+
 run_oc_drain_node() {
     local machine_name=${OPT_MACHINE}
     local node_name=$(cache_get_node_name ${machine_name})
@@ -309,6 +332,25 @@ run_wait_node_notready() {
             return
         fi
         echo " >> Node is Ready [${node_status}]...waiting 15s";
+        sleep 15
+    done
+    RT_RESP=${RT_YES}
+}
+
+run_wait_node_ready() {
+    local machine_name=${OPT_MACHINE}
+    local node_name=$(cache_get_node_name ${machine_name})
+    echo -e " > Waiting the node be NotReady..."
+
+    while true; do
+        cache_update_get_nodes
+        local node_status=$(cache_get_node_status)
+        if [[ ${node_status} == "Ready" ]]; then
+            echo " >> Node is Ready [${node_status}]...continuing the process...";
+            RT_RESP=${RT_YES}
+            return
+        fi
+        echo " >> Node is NotReady [${node_status}]...waiting 15s";
         sleep 15
     done
     RT_RESP=${RT_YES}
@@ -545,7 +587,7 @@ resize_machine_runner() {
     check_machine_is_running; check_resp_cont $RT_RESP
 
     # Check if etcd cluster has a leader
-    check_etcd_has_leader; check_resp $RT_RESP
+    #check_etcd_has_leader; check_resp $RT_RESP
 
     # Check if etcd cluster has only one leader (?)
     
@@ -583,10 +625,10 @@ resize_machine_runner() {
     run_wait_node_started;
 
     # wait Node is Ready
-    #run_wait_node_ready;
+    run_wait_node_ready;
 
     # uncordon
-    #run_oc_uncordon_node;
+    run_oc_uncordon_node;
 
     # wait Machine is Reconciled (TYPE_CLOUD==--size)
     # wait CO is not degraded
