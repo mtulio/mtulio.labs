@@ -44,12 +44,13 @@ declare -g CLOUD_PROVIDER=$(oc get infrastructures \
 
 # Globals by Cloud (and avoid if statements on code)
 if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
-    declare -g KEY_MACHINE_TYPE=".spec.providerSpec.value.instanceType"
-    declare -g KEY_MACHINE_ID=".status.providerStatus.instanceId"
+    declare -g KEY_PATH_MACHINE_TYPE=".spec.providerSpec.value.instanceType"
+    declare -g KEY_MACHINE_TYPE="instanceType"
+    declare -g KEY_PATH_MACHINE_ID=".status.providerStatus.instanceId"
 
 elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
-    declare -g KEY_MACHINE_TYPE=".spec.providerSpec.value.vmSize"
-    declare -g KEY_MACHINE_ID=".status.providerStatus.vmId"
+    declare -g KEY_PATH_MACHINE_TYPE=".spec.providerSpec.value.vmSize"
+    declare -g KEY_PATH_MACHINE_ID=".status.providerStatus.vmId"
 fi
 
 check_dep_required() {
@@ -85,7 +86,7 @@ check_dep_required() {
 cache_get_machine_id() {
     local machine_name=${1:-${OPT_MACHINE}}
     local resp=$(jq -r ".items[] \
-        | select (.metadata.name==\"${machine_name}\")${KEY_MACHINE_ID}" \
+        | select (.metadata.name==\"${machine_name}\")${KEY_PATH_MACHINE_ID}" \
         ${CACHE_FILE_MACHINES})
     echo ${resp}
 }
@@ -198,7 +199,7 @@ cache_get_node_name() {
     local machine_name=${1:-${OPT_MACHINE}}
     jq -r ".items[] \
         | select (.metadata.name==\"${machine_name}\").status.nodeRef.name" \
-    ${CACHE_FILE_MACHINES}
+        ${CACHE_FILE_MACHINES}
 }
 
 cache_get_node_status() {
@@ -207,7 +208,7 @@ cache_get_node_status() {
     local resp=$(jq -r ".items[] \
         | select (.metadata.name==\"${node_name}\").status.conditions[] \
         | select (.type==\"Ready\").status" \
-    ${CACHE_FILE_NODES})
+        ${CACHE_FILE_NODES})
     if [[ "${resp}" == "Unknown" ]]; then
         echo "NotReady"
         return
@@ -223,7 +224,7 @@ cache_get_machine_phase() {
     local machine_name=${1:-${OPT_MACHINE}}
     jq -r ".items[] \
         | select (.metadata.name==\"${machine_name}\").status.phase" \
-    ${CACHE_FILE_MACHINES}
+        ${CACHE_FILE_MACHINES}
 }
 
 cache_get_machine_node_ip() {
@@ -231,7 +232,16 @@ cache_get_machine_node_ip() {
     jq -r ".items[] \
         | select (.metadata.name==\"${machine_name}\").status.addresses[] \
         | select (.type==\"InternalIP\").address " \
-    ${CACHE_FILE_MACHINES}
+        ${CACHE_FILE_MACHINES}
+}
+
+cache_get_machine_size_cloud() {
+    local machine_name=${1:-${OPT_MACHINE}}
+    jq -r ".items[] \
+        | select (\
+            .metadata.name==\"${machine_name}\"\
+        ).metadata.labels.\"machine.openshift.io/instance-type\"" \
+        ${CACHE_FILE_MACHINES}
 }
 
 cache_get_etcd_field_isleader() {
@@ -404,6 +414,39 @@ run_wait_node_started() {
     RT_RESP=${RT_YES}
 }
 
+run_wait_machine_reconciliation() {
+    local machine_name=${OPT_MACHINE}
+    while true; do 
+        cache_update_get_machines
+        local machine_size=$(cache_get_machine_size_cloud ${machine_name})
+        test "${machine_size}" == "${OPT_SIZE}" && break;
+        echo " >> Instance size was not updated [${machine_size}]; sleeping 15s"
+        sleep 15;
+    done
+    echo " > Instance size reports as [${machine_size}], following to the next step..."
+    RT_RESP=${RT_YES}
+}
+
+run_patch_machine_size() {
+    local machine_name=${OPT_MACHINE}
+    local machine_size_cloud=$(cache_get_machine_size_cloud ${machine_name})
+
+    echo -e " > Check target: target=[${OPT_SIZE}] machine_cloud=[${machine_size_cloud}]"
+    if [[ "${OPT_SIZE}" != "${machine_size_cloud}" ]]; then
+        echo " >> Target Machine size missmatch with Cloud Provider discovered on reconciliation...please check it."
+        exit 1
+    fi
+
+    oc patch machine ${machine_name} \
+        -n openshift-machine-api \
+        --type=merge \
+        -p "{\"spec\":{\"providerSpec\":{\"value\":{\"${KEY_MACHINE_TYPE}\":\"${OPT_SIZE}\"}}}}"
+
+    echo -ne " > Machine patched with new size [${node_name}]..."
+    RT_RESP=${RT_YES}
+    return
+}
+
 # ######
 # COMMON
 # ######
@@ -444,7 +487,7 @@ check_machine_was_not_resized_cloud() {
         jq -r ".items[] | \
             select (\
                 .metadata.name==\"${machine_name}\"\
-            )${KEY_MACHINE_TYPE}" \
+            )${KEY_PATH_MACHINE_TYPE}" \
         ${CACHE_FILE_MACHINES})
 
     if [[ "${machine_type_spec}" == "${OPT_SIZE}" ]]; then
@@ -572,27 +615,26 @@ check_resp_force() {
 # ###
 
 resize_machine_runner() {
-    machine_name="${OPT_MACHINE}"
 
-    echo "resize_machine_runner(${machine_name})"
+    echo "Starting resize process to machine [${OPT_MACHINE}] as target size [${OPT_SIZE}]"
 
     # Check if Machine was already resized (TYPE_CLOUD==--size)
     # '-> Check if Machine was already resized (TYPE_SPEC==--size) if not -> patch Machine
-    check_machine_was_not_resized_cloud; check_resp $RT_RESP
+    check_machine_was_not_resized_cloud; check_resp ${RT_RESP}
 
     # Check Node is Ready (--continue)
-    check_node_is_ready; check_resp_cont $RT_RESP
+    check_node_is_ready; check_resp_cont ${RT_RESP}
 
     # Check Machine is Running (--continue)
-    check_machine_is_running; check_resp_cont $RT_RESP
+    check_machine_is_running; check_resp_cont ${RT_RESP}
 
     # Check if etcd cluster has a leader
-    #check_etcd_has_leader; check_resp $RT_RESP
+    #check_etcd_has_leader; check_resp ${RT_RESP}
 
     # Check if etcd cluster has only one leader (?)
     
     # Check if machine it's not a etcd_leader (otherwise --force)
-    check_etcd_machine_is_not_leader; check_resp_force $RT_RESP
+    check_etcd_machine_is_not_leader; check_resp_force ${RT_RESP}
 
     # Validation complete
     echo " > ALl validation was complete, starting the resize..."
@@ -601,10 +643,10 @@ resize_machine_runner() {
     # ToDo
 
     # cordon node
-    run_oc_cordon_node; check_resp_force $RT_RESP
+    run_oc_cordon_node; check_resp_force ${RT_RESP}
 
     # drain node
-    run_oc_drain_node; check_resp_force $RT_RESP
+    run_oc_drain_node; check_resp_force ${RT_RESP}
 
     # shutdown node
     run_machine_power_off;
@@ -631,6 +673,11 @@ resize_machine_runner() {
     run_oc_uncordon_node;
 
     # wait Machine is Reconciled (TYPE_CLOUD==--size)
+    run_wait_machine_reconciliation
+
+    # patch Machine API object
+    run_patch_machine_size
+
     # wait CO is not degraded
     # '-> check if pods is running (kube-api + etcd) : do we need? CO look to it
     # check if all etcd member is started
@@ -651,8 +698,6 @@ cmd_resize_machine() {
 cmd_list_sizes() {
     echo "ToDo: List Sizes from Cloud Provider."
 }
-
-
 
 # Collect and show all machine+node information to resize
 cmd_list_machines() {
@@ -677,8 +722,8 @@ cmd_list_machines() {
         machine_ip=$(cache_get_machine_node_ip ${machine_name})
         machine_id=$(cache_get_machine_id ${machine_name})
         machine_phase=$(cache_get_machine_phase ${machine_name})
-        machine_type_spec=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\")${KEY_MACHINE_TYPE}" ${CACHE_FILE_MACHINES})
-        machine_type_cloud=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .metadata.labels.\"machine.openshift.io/instance-type\"" ${CACHE_FILE_MACHINES})
+        machine_type_spec=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\")${KEY_PATH_MACHINE_TYPE}" ${CACHE_FILE_MACHINES})
+        machine_type_cloud=$(cache_get_machine_size_cloud ${machine_name})
         resource_group="N/A"
         etcd_leader=$(check_etcd_leader_by_ip ${machine_ip})
         
