@@ -23,6 +23,7 @@ declare -g CACHE_CO="${CACHE_DIR}/cluster-operators.json"
 declare -g HANDLER_MACHINE=false
 declare -g HANDLER_SIZE=false
 declare -g HANDLER_LSSIZE=false
+declare -g HANDLER_LIST=false
 
 declare -g RT_RESP=false
 declare -g RT_YES=true
@@ -38,21 +39,23 @@ declare -g CLI_AWS=$(command -v aws)
 declare -g CLI_AZ=$(command -v az)
 declare -g CLI_JQ=$(command -v jq)
 
-# Cloud specifics
-declare -g CLOUD_PROVIDER=$(oc get infrastructures \
-    -o jsonpath='{.items[*].status.platformStatus.type}' \
-    | tr '[:upper:]' '[:lower:]')
+set_dep_cloud() {
+    # Cloud specifics
+    declare -g CLOUD_PROVIDER=$(oc get infrastructures \
+        -o jsonpath='{.items[*].status.platformStatus.type}' \
+        | tr '[:upper:]' '[:lower:]')
 
-# Globals by Cloud (and avoid if statements on code)
-if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
-    declare -g KEY_PATH_MACHINE_TYPE=".spec.providerSpec.value.instanceType"
-    declare -g KEY_MACHINE_TYPE="instanceType"
-    declare -g KEY_PATH_MACHINE_ID=".status.providerStatus.instanceId"
+    # Globals by Cloud (and avoid if statements on code)
+    if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
+        declare -g KEY_PATH_MACHINE_TYPE=".spec.providerSpec.value.instanceType"
+        declare -g KEY_MACHINE_TYPE="instanceType"
+        declare -g KEY_PATH_MACHINE_ID=".status.providerStatus.instanceId"
 
-elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
-    declare -g KEY_PATH_MACHINE_TYPE=".spec.providerSpec.value.vmSize"
-    declare -g KEY_PATH_MACHINE_ID=".status.providerStatus.vmId"
-fi
+    elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
+        declare -g KEY_PATH_MACHINE_TYPE=".spec.providerSpec.value.vmSize"
+        declare -g KEY_PATH_MACHINE_ID=".status.providerStatus.vmId"
+    fi
+}
 
 check_dep_required() {
     test -d ${CACHE_DIR} || mkdir -p ${CACHE_DIR}
@@ -817,7 +820,8 @@ EOF
 function main() {
     local cmd_target=""
 
-    if [[ ( ${HANDLER_MACHINE} == false ) && ( ${HANDLER_SIZE} == true ) ]]; then
+    if [[ ( ${HANDLER_MACHINE} == false ) && \
+          ( ${HANDLER_SIZE} == true ) ]]; then
         echo "ERROR: --size {size} should be used with --machine-name {name}"
         exit 1
     fi
@@ -828,10 +832,17 @@ function main() {
         exit 1
     fi
 
-    if [[ ( ${HANDLER_MACHINE} == true ) && ( ${HANDLER_SIZE} == true ) ]]; then
+    if [[ ( ${HANDLER_MACHINE} == true ) && \
+          ( ${HANDLER_SIZE} == true ) ]]; then
         cmd_target="cmd_resize_machine"
     elif [[ ${HANDLER_LSSIZE} == true ]]; then
         cmd_target="cmd_list_sizes"
+    elif [[ ${HANDLER_LIST} == true ]]; then
+        cmd_target="cmd_list_machines"
+    fi
+
+    if [[ -z "${cmd_target}" ]]; then
+        echo "ERROR no target option was found."
     fi
 
     ${cmd_target}
@@ -853,7 +864,7 @@ function main_cli() {
     eval set -- "${GETOPT_SET}"
 
     # run pre-req
-    check_dep_required
+    
 
     while true; do
         case "$1" in
@@ -862,7 +873,8 @@ function main_cli() {
                 HANDLER_MACHINE=true ; OPT_MACHINE="$2" ; shift 2 ;;
             -s | --size         )
                 HANDLER_SIZE=true; OPT_SIZE="$2" ; shift 2 ;;
-            -l | --list-machines) cmd_list_machines ; exit 0 ;;
+            -l | --list-machines) 
+                HANDLER_LIST=true; shift ;;
             -L | --list-sizes   )
                 HANDLER_LSSIZE=true ; shift ;;
             -f | --force        ) OPT_FORCE=true ; shift ;;
@@ -872,6 +884,9 @@ function main_cli() {
             * ) echo "Option not found: $1"; break ;;
         esac
     done
+
+    set_dep_cloud
+    check_dep_required;
 
     main
 }
