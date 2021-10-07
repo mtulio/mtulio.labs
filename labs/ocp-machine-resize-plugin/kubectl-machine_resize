@@ -18,6 +18,7 @@ declare -g CACHE_DIR="${HOME}/.cache/oc_plugin-machine-resize"
 declare -g CACHE_FILE_MACHINES="${CACHE_DIR}/machines.json"
 declare -g CACHE_FILE_NODES="${CACHE_DIR}/nodes.json"
 declare -g CACHE_ETCD="${CACHE_DIR}/etcd-endpoint.json"
+declare -g CACHE_CO="${CACHE_DIR}/cluster-operators.json"
 
 declare -g HANDLER_MACHINE=false
 declare -g HANDLER_SIZE=false
@@ -204,6 +205,10 @@ cache_update_get_nodes() {
         -o json > ${CACHE_FILE_NODES}
 }
 
+cache_update_get_co() {
+    oc get co -o json > ${CACHE_CO}
+}
+
 cache_update_get_etcd() {
     # rsh was failing when a member is failing (returning 1, force does not work)
     set +o pipefail
@@ -217,7 +222,6 @@ cache_update_get_etcd() {
 
     set -o pipefail
     set -o errexit
-
 }
 
 cache_get_node_name() {
@@ -714,9 +718,11 @@ resize_machine_runner() {
 
 # Collect all information and resize the machine
 cmd_resize_machine() {
+    echo "Collecting current cluster state/objects to resize flow..."
     cache_update_get_machines
     cache_update_get_nodes
     cache_update_get_etcd
+    cache_update_get_co
 
     resize_machine_runner
 }
@@ -809,7 +815,7 @@ EOF
 }
 
 function main() {
-    CMD_TARGET=""
+    local cmd_target=""
 
     if [[ ( ${HANDLER_MACHINE} == false ) && ( ${HANDLER_SIZE} == true ) ]]; then
         echo "ERROR: --size {size} should be used with --machine-name {name}"
@@ -823,12 +829,12 @@ function main() {
     fi
 
     if [[ ( ${HANDLER_MACHINE} == true ) && ( ${HANDLER_SIZE} == true ) ]]; then
-        CMD_TARGET="cmd_resize_machine"
+        cmd_target="cmd_resize_machine"
     elif [[ ${HANDLER_LSSIZE} == true ]]; then
-        CMD_TARGET="cmd_list_sizes"
+        cmd_target="cmd_list_sizes"
     fi
 
-    ${CMD_TARGET}
+    ${cmd_target}
 }
 
 function main_cli() {
