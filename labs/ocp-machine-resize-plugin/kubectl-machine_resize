@@ -110,17 +110,40 @@ aws_get_instance_state() {
 aws_change_instance_type() {
     local machine_name=${1:-${OPT_MACHINE}}
     local instance_id=$(cache_get_machine_id ${machine_name})
-    local sleep_time_sec=30
+    local sl_time_sec=30
+    local sl_time_total=10
+    local sl_time_count=1
     # Avoid error running modify right after Instance is stopped
     # API ERR: An error occurred (IncorrectInstanceState) when \
     # calling the ModifyInstanceAttribute operation: The \
     # instance 'i-0fa478d35649cbfd7' is not in the 'stopped' state.
-    echo " >> Waiting [${sleep_time_sec}s] power state be propagated to AWS EC2 API..."
-    sleep ${sleep_time_sec};
+    #echo " >> Waiting [${sleep_time_sec}s] power state be propagated to AWS EC2 API..."
+    #sleep ${sleep_time_sec};
     echo " >> Changing instance [${instance_id}] to type [${OPT_SIZE}]..."
-    aws ec2 modify-instance-attribute \
-        --instance-id ${instance_id} \
-        --instance-type ${OPT_SIZE}
+
+    # disable safeguard and implement err check
+    set +o errexit
+    while true; do
+        aws ec2 modify-instance-attribute \
+            --instance-id ${instance_id} \
+            --instance-type ${OPT_SIZE}
+        RC=$?
+        if [[ ${RC} -eq 0 ]]; then
+            echo " >> SUCCESS: type changed from Cloud Provider"
+            break
+        fi
+        if [[ ${RC} -eq 255 ]]; then
+            echo " >> ERROR [${RC}] detected when sending modify-instance-attribute"
+            echo " >> Sleeping [${sl_time_sec}s] [${sl_time_count}/${sl_time_total}]..."
+            sleep ${sl_time_sec}
+        fi
+        if [[ "${sl_time_count}" == "${sl_time_total}" ]]; then
+            echo " >> ERROR timeout waiting the Instance to be available to be modified."
+            exit 1
+        fi
+        sl_time_count=$(echo "${sl_time_count} + 1" |bc)
+    done
+    set -o errexit
 }
 
 aws_power_on_instance() {
