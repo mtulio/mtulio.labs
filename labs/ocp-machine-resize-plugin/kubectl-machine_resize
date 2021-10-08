@@ -854,7 +854,7 @@ function main_cli() {
     # '-> On Mac OS X and FreeBSD need to be installed as: brew install gnu-getopt
     GETOPT_SET=`getopt -n 'oc machine-resize' \
             -o hN:s:lLifc \
-            --long help,machine-name:,size:,list,list-sizes,install,force,continue \
+            --long help,machine-name:,size:,list-machines,list-sizes,install,force,continue \
             -- "$@"`
 
     if [ $? != 0 ] ; then
@@ -868,18 +868,18 @@ function main_cli() {
 
     while true; do
         case "$1" in
-            -h | --help         ) show_help; exit 2 ;;
-            -N | --machine-name )
+            -h | --help          ) show_help; exit 2 ;;
+            -N | --machine-name  )
                 HANDLER_MACHINE=true ; OPT_MACHINE="$2" ; shift 2 ;;
-            -s | --size         )
+            -s | --size          )
                 HANDLER_SIZE=true; OPT_SIZE="$2" ; shift 2 ;;
-            -l | --list-machines) 
+            -l | --list-machines ) 
                 HANDLER_LIST=true; shift ;;
-            -L | --list-sizes   )
+            -L | --list-sizes    )
                 HANDLER_LSSIZE=true ; shift ;;
-            -f | --force        ) OPT_FORCE=true ; shift ;;
-            -c | --continue     ) OPT_CONTINUE=true ; shift ;;
-            -v | --version      ) OPT_VERSION=true ; shift ;;
+            -f | --force         ) OPT_FORCE=true ; shift ;;
+            -c | --continue      ) OPT_CONTINUE=true ; shift ;;
+            -v | --version       ) OPT_VERSION=true ; shift ;;
             -- ) shift; break ;;
             * ) echo "Option not found: $1"; break ;;
         esac
