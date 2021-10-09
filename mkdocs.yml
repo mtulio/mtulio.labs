@@ -81,6 +81,7 @@ nav:
   - Playbooks:
       - OpenShift:
         - Machine resize: playbooks/openshift/resize-machines.md
+        - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
   - Notes:
     - automation:
       - ansible: notes/automation/ansible.md
