@@ -12,7 +12,7 @@
 Download the script:
 
 ``` shell
-curl -o /usr/local/bin/oc-machine_resize https://github.com/mtulio/mtulio.labs/blob/lab-machine-resize-plugin/labs/ocp-machine-resize-plugin/kubectl-machine_resize
+curl -o /usr/local/bin/oc-machine_resize https://github.com/mtulio/mtulio.labs/blob/master/labs/ocp-machine-resize-plugin/kubectl-machine_resize
 chmod u+x /usr/local/bin/oc-machine_resize
 ```
 
