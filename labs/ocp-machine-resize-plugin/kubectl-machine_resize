@@ -52,6 +52,7 @@ set_dep_cloud() {
         declare -g KEY_PATH_MACHINE_ID=".status.providerStatus.instanceId"
 
     elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
+        echo " >> WARNING: Azure Platform is under development <<"
         declare -g KEY_PATH_MACHINE_TYPE=".spec.providerSpec.value.vmSize"
         declare -g KEY_PATH_MACHINE_ID=".status.providerStatus.vmId"
     fi
@@ -117,12 +118,11 @@ aws_change_instance_type() {
     local sl_time_sec=30
     local sl_time_total=10
     local sl_time_count=1
+
     # Avoid error running modify right after Instance is stopped
     # API ERR: An error occurred (IncorrectInstanceState) when \
     # calling the ModifyInstanceAttribute operation: The \
     # instance 'i-0fa478d35649cbfd7' is not in the 'stopped' state.
-    #echo " >> Waiting [${sleep_time_sec}s] power state be propagated to AWS EC2 API..."
-    #sleep ${sleep_time_sec};
     echo " >> Changing instance [${instance_id}] to type [${OPT_SIZE}]..."
 
     # disable safeguard and implement err check
@@ -751,8 +751,6 @@ cmd_list_machines() {
     for machine_name in $(jq -r '.items[].metadata.name' ${CACHE_FILE_MACHINES}); do
         node_name=$(cache_get_node_name ${machine_name})
         node_status=$(cache_get_node_status ${machine_name})
-        #node_status="NotReady"
-        #test ${node_status_check} == "True" && node_status="Ready"
 
         machine_ip=$(cache_get_machine_node_ip ${machine_name})
         machine_id=$(cache_get_machine_id ${machine_name})
@@ -762,13 +760,8 @@ cmd_list_machines() {
         resource_group="N/A"
         etcd_leader=$(check_etcd_leader_by_ip ${machine_ip})
         
-        #if [[ "${CLOUD_PROVIDER}" == "aws" ]]; then
-        #    machine_id=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .status.providerStatus.instanceId" ${CACHE_FILE_MACHINES})
-        #    machine_type_spec=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .spec.providerSpec.value.instanceType" ${CACHE_FILE_MACHINES})
-        #elif [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
         if [[ "${CLOUD_PROVIDER}" == "azure" ]]; then
             machine_id=${machine_name}
-            #machine_type_spec=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .spec.providerSpec.value.vmSize" ${CACHE_FILE_MACHINES})
             resource_group=$(jq -r ".items[] |select (.metadata.name==\"${machine_name}\") | .spec.providerSpec.value.resourceGroup" ${CACHE_FILE_MACHINES})
         fi
 
