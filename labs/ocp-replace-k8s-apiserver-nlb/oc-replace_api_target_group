@@ -1,0 +1,417 @@
+#/bin/sh
+
+#
+# Switch NLB's listeners to target group type 'instnace' on
+# kube-apiserver on OpenShift deployment.
+#
+
+set -o pipefail
+set -o nounset
+set -o errexit
+
+
+declare -g INFRA_NAME=$(oc get infrastructures \
+    -o jsonpath='{.items[*].status.infrastructureName}')
+
+set_defaults() {
+    declare -g VPC_ID=$(aws ec2 describe-vpcs \
+        --filters Name=tag-key,Values=kubernetes.io/cluster/${INFRA_NAME} \
+        --query 'Vpcs[].VpcId' --output text)
+
+    declare -g INSTANCE_IDS=$(oc get machines \
+        -n openshift-machine-api \
+        -l machine.openshift.io/cluster-api-machine-role=master \
+        -o json \
+        | jq -r '.items[]| ( "Id="+ .status.providerStatus.instanceId)' \
+        | tr '\n' ' ')
+
+    declare -g INSTANCE_IPS=$(oc get machines \
+        -n openshift-machine-api \
+        -l machine.openshift.io/cluster-api-machine-role=master \
+        -o json \
+        | jq -r '.items[].status.addresses[] | select (.type=="InternalIP") | ("Id="+ .address)' \
+        | tr '\n' ' ')
+
+
+    declare -g NLB_INT="${INFRA_NAME}-int"
+    declare -g NLB_EXT="${INFRA_NAME}-ext"
+
+    declare -g TG_NAME_SINT="${INFRA_NAME}-sint"
+    declare -g TG_NAME_AINT="${INFRA_NAME}-aint"
+    declare -g TG_NAME_AEXT="${INFRA_NAME}-aext"
+
+    declare -g TG_PORT_SINT=22623
+    declare -g TG_PORT_API=6443
+
+    echo -e "infra\t\t: ${INFRA_NAME}"
+    echo -e "vpc\t\t: ${VPC_ID}"
+    echo -e "instanceIds\t: ${INSTANCE_IDS}"
+    echo -e "instanceIps\t: ${INSTANCE_IPS}"
+
+}
+
+patch_security_group() {
+    local master_sg=${INFRA_NAME}-master-sg
+
+    local master_sg_id=$(aws ec2 describe-security-groups \
+        --filters Name=tag:Name,Values=${master_sg} \
+        --query 'SecurityGroups[].GroupId' \
+        --output text)
+
+    aws ec2 authorize-security-group-ingress \
+        --group-id ${master_sg_id} \
+        --protocol tcp \
+        --port 6443 \
+        --cidr 0.0.0.0/0
+
+    # don't need as i's already exists on current IPI
+    # aws ec2 authorize-security-group-ingress \
+    # --group-id ${master_sg_id} \
+    #     --protocol tcp \
+    #     --port 22623 \
+    #     --cidr 10.0.0.0/16
+}
+
+#
+# Target Create
+#
+
+create_target_group() {
+    local tg_type="${1}"
+    local tg_suffix="${2}"
+    local tg_port="${3}"
+    local tg_hc_path="${4}"
+
+    local tg_name="${INFRA_NAME}-${tg_suffix}"
+    local tg_file="/tmp/${tg_name}.json"
+
+    cat << EOF > ${tg_file}
+{
+    "Name": "${tg_name}",
+    "Protocol": "TCP",
+    "Port": ${tg_port},
+    "VpcId": "${VPC_ID}",
+    "HealthCheckProtocol": "HTTPS",
+    "HealthCheckPort": "${tg_port}",
+    "HealthCheckEnabled": true,
+    "HealthCheckPath": "${tg_hc_path}",
+    "HealthCheckIntervalSeconds": 10,
+    "HealthCheckTimeoutSeconds": 10,
+    "HealthyThresholdCount": 2,
+    "UnhealthyThresholdCount": 2,
+    "Matcher": {
+        "HttpCode": "200-399"
+    },
+    "TargetType": "${tg_type}",
+    "Tags": [
+        {
+            "Key": "kubernetes.io/cluster/${INFRA_NAME}",
+            "Value": "owned"
+        },
+        {
+            "Key": "Name",
+            "Value": "${tg_name}"
+        }
+    ]
+}
+
+EOF
+    echo "Creating target group [${tg_name}] from config [${tg_file}]"
+    target_group_arn=$(aws elbv2 create-target-group \
+        --name ${tg_name} \
+        --cli-input-json file://${tg_file} \
+        |jq -r '.TargetGroups[].TargetGroupArn')
+    
+    if [[ "${tg_type}" == "instance" ]]; then
+        targets="${INSTANCE_IDS}"
+    else
+        targets="${INSTANCE_IPS}"
+    fi
+
+    echo "Registerig targets [${targets}] to target group [${tg_name}]"
+    aws elbv2 register-targets \
+        --target-group-arn ${target_group_arn} \
+        --targets ${targets}
+}
+
+create_tg_instance() {
+    create_target_group "instance" $@
+}
+
+create_tg_ip() {
+    create_target_group "ip" $@
+}
+
+create_tg_inst_aint_tmpId() {
+    create_tg_instance "aint-tmpId" ${TG_PORT_API} "/readyz"
+}
+
+create_tg_inst_aext_tmpId() {
+    create_tg_instance "aext-tmpId" ${TG_PORT_API} "/readyz"
+}
+
+create_tg_inst_sint_tmpId() {
+    create_tg_instance "sint-tmpId" ${TG_PORT_SINT} "/healthz"
+}
+
+create_kubeapi_targets_tmp_instance() {
+    create_tg_inst_aint_tmpId
+    create_tg_inst_aext_tmpId
+    create_tg_inst_sint_tmpId
+}
+
+create_tg_inst_aint_tmpIp() {
+    create_tg_ip "aint-tmpIp" ${TG_PORT_API} "/readyz"
+}
+
+create_tg_inst_aext_tmpIp() {
+    create_tg_ip "aext-tmpIp" ${TG_PORT_API} "/readyz"
+}
+
+create_tg_inst_sint_tmpIp() {
+    create_tg_ip "sint-tmpIp" ${TG_PORT_SINT} "/healthz"
+}
+
+create_kubeapi_targets_tmp_ip() {
+    create_tg_inst_aint_tmpIp
+    create_tg_inst_aext_tmpIp
+    create_tg_inst_sint_tmpIp
+}
+
+create_tg_inst_aint_default() {
+    create_tg_${1} "aint" ${TG_PORT_API} "/readyz"
+}
+
+create_tg_inst_aext_default() {
+    create_tg_${1} "aext" ${TG_PORT_API} "/readyz"
+}
+
+create_tg_inst_sint_default() {
+    create_tg_${1} "sint" ${TG_PORT_SINT} "/healthz"
+}
+
+create_kubeapi_targets_default_ip() {
+    create_tg_inst_aint_default "ip"
+    create_tg_inst_aext_default "ip"
+    create_tg_inst_sint_default "ip"
+}
+
+create_kubeapi_targets_default_instance() {
+    create_tg_inst_aint_default "instance"
+    create_tg_inst_aext_default "instance"
+    create_tg_inst_sint_default "instance"
+}
+
+#
+# Replace flow
+#
+replace_nlb_listener() {
+    local nlb_name="${1}"
+    local listener_port="${2}"
+    local target_name="${3}"
+
+    load_balancer_arn=$(aws elbv2 describe-load-balancers \
+        --names ${nlb_name} \
+        --query 'LoadBalancers[].LoadBalancerArn' \
+        --output text)
+
+    listener_arn=$(aws elbv2 describe-listeners \
+        --load-balancer-arn ${load_balancer_arn} \
+        --query "Listeners[?Port == \`${listener_port}\`].ListenerArn" \
+        --output text)
+
+    target_group_arn=$(aws elbv2 describe-target-groups \
+        --names ${target_name} \
+        |jq -r '.TargetGroups[].TargetGroupArn')
+
+    echo -e "load_balancer_arn\t: ${load_balancer_arn}"
+    echo -e "listener_arn\t\t: ${listener_arn}"
+    echo -e "target_group_arn\t: ${target_group_arn}"
+
+    aws elbv2 modify-listener \
+        --listener-arn ${listener_arn} \
+        --default-actions Type=forward,TargetGroupArn=${target_group_arn}
+
+}
+
+# default targets
+replace_nlb_listener_sint_to_default() {
+    replace_nlb_listener "${NLB_INT}" ${TG_PORT_SINT} "${TG_NAME_SINT}"
+}
+
+replace_nlb_listener_aint_to_default() {
+    replace_nlb_listener "${NLB_INT}" ${TG_PORT_API} "${TG_NAME_AINT}"
+}
+
+replace_nlb_listener_aext_to_default() {
+    replace_nlb_listener "${NLB_EXT}" ${TG_PORT_API} "${TG_NAME_AEXT}"
+}
+
+replace_nlb_listeners_to_default() {
+    replace_nlb_listener_sint_to_default
+    replace_nlb_listener_aint_to_default
+    replace_nlb_listener_aext_to_default
+}
+
+# tmpId targets
+replace_nlb_listener_sint_to_tmpId() {
+    replace_nlb_listener "${NLB_INT}" ${TG_PORT_SINT} "${TG_NAME_SINT}-tmpId"
+}
+
+replace_nlb_listener_aint_to_tmpId() {
+    replace_nlb_listener "${NLB_INT}" ${TG_PORT_API} "${TG_NAME_AINT}-tmpId"
+}
+
+replace_nlb_listener_aext_to_tmpId() {
+    replace_nlb_listener "${NLB_EXT}" ${TG_PORT_API} "${TG_NAME_AEXT}-tmpId"
+}
+
+replace_nlb_listeners_to_tmpId() {
+    replace_nlb_listener_sint_to_tmpId
+    replace_nlb_listener_aint_to_tmpId
+    replace_nlb_listener_aext_to_tmpId
+}
+
+# tmpIp targets
+replace_nlb_listener_sint_to_tmpIp() {
+    replace_nlb_listener "${NLB_INT}" ${TG_PORT_SINT} "${TG_NAME_SINT}-tmpIp"
+}
+
+replace_nlb_listener_aint_to_tmpIp() {
+    replace_nlb_listener "${NLB_INT}" ${TG_PORT_API} "${TG_NAME_AINT}-tmpIp"
+}
+
+replace_nlb_listener_aext_to_tmpIp() {
+    replace_nlb_listener "${NLB_EXT}" ${TG_PORT_API} "${TG_NAME_AEXT}-tmpIp"
+}
+
+replace_nlb_listeners_to_tmpIp() {
+    replace_nlb_listener_sint_to_tmpIp
+    replace_nlb_listener_aint_to_tmpIp
+    replace_nlb_listener_aext_to_tmpIp
+}
+
+#
+# Delete flow
+#
+
+delete_target_group_by_name() {
+    local tg_name="$1"
+    local target_group_arn=$(aws elbv2 describe-target-groups \
+        --names ${tg_name} \
+        | jq -r '.TargetGroups[].TargetGroupArn')
+
+    aws elbv2 delete-target-group \
+        --target-group-arn "${target_group_arn}"
+}
+
+delete_tg_sint_default() { delete_target_group_by_name "${TG_NAME_SINT}"; }
+delete_tg_aint_default() { delete_target_group_by_name "${TG_NAME_AINT}"; }
+delete_tg_aext_default() { delete_target_group_by_name "${TG_NAME_AEXT}"; }
+delete_targets_default() {
+    delete_tg_sint_default
+    delete_tg_aint_default
+    delete_tg_aext_default
+}
+
+#
+# CLI commands
+#
+
+cmd_patch_sg() {
+    patch_security_group || true
+}
+
+# REPLACE to INSTANCE commands
+
+# Only create a new target, don't touch on NLB
+cmd_create_tmp_instance() {
+    create_kubeapi_targets_tmp_instance
+}
+
+# Create a temporary target group and switch NLB's listener
+# Keep original (default) targets
+cmd_replace_tmp_instance() {
+    cmd_patch_sg
+    create_kubeapi_targets_tmp_instance
+    replace_nlb_listeners_to_tmpId
+}
+
+# Replace the default target group
+cmd_replace_to_instance() {
+    cmd_patch_sg
+
+    create_kubeapi_targets_tmp_instance
+    
+    #> replace to tmp
+    replace_nlb_listeners_to_tmpId
+
+    #> remove old
+    # ToDo
+    delete_targets_default
+
+    #> create new targets to default
+    create_kubeapi_targets_default_instance
+
+    #> replace to new default targets
+    replace_nlb_listeners_to_default
+}
+
+# REPLACE to IP commands
+
+# Only create a new target, don't touch on NLB
+cmd_create_tmp_ip() {
+    create_kubeapi_targets_tmp_ip
+}
+
+# Create a temporary target group and switch NLB's listener
+# Keep original (default) targets
+cmd_replace_tmp_ip() {
+    cmd_patch_sg
+
+    create_kubeapi_targets_tmp_ip
+
+    replace_nlb_listeners_to_tmpIp
+}
+
+# Replace the default target group
+cmd_replace_to_ip() {
+    cmd_patch_sg
+
+    create_kubeapi_targets_tmp_ip
+    
+    replace_nlb_listeners_to_tmpIp
+
+    delete_targets_default
+
+    create_kubeapi_targets_default_ip
+
+    replace_nlb_listeners_to_default
+}
+
+
+helpme() {
+    cat <<-EOF
+Usage: ${0} command
+
+Available commands:
+    "to-target-instance"     : Rollout to targets type Instance, and remove original
+    "to-target-ip"           : Rollout to targets type IP, and remove original
+    "to-target-tmp-instance" : Rollout to targets type Instance, and keep original
+    "to-target-tmp-ip"       : Rollout to targets type Instance, and keep original
+    "create-targets-instance": Create target groups type Instance only (do not replace)
+    "create-targets-ip"      : Create target groups type IP only (do not replace)
+
+EOF
+}
+
+case "$1" in
+    "to-target-instance") set_defaults; cmd_replace_to_instance ;;
+    "to-target-ip") set_defaults; cmd_replace_to_ip ;;
+    "to-target-tmp-instance") set_defaults; cmd_replace_tmp_instance ;;
+    "to-target-tmp-ip") set_defaults; cmd_replace_tmp_ip ;;
+    "create-targets-instance") set_defaults; cmd_create_tmp_instance ;;
+    "create-targets-ip") set_defaults; cmd_create_tmp_ip ;;
+    "patch-security-group") cmd_patch_sg ;;
+    *) helpme ;;
+esac
