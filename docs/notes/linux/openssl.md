@@ -16,3 +16,9 @@ openssl pkcs12 -in cert.pfx -nocerts -out cert.key.pem -nodes
 * Run the following command to remove the passphrase from the private key: 
 
 `openssl rsa -in key.pem -out server.key`
+
+## x509
+
+```
+openssl x509 -in /etc/etcd/kubernetes.pem -text -noout
+```
