@@ -1,6 +1,18 @@
 # Home
 
-WIP
+This is my personal notes, not linked with any company nor product.
+
+You can use/follow those steps/labs with your own risks, without any warranty, otherwise it will be very explicit on the description the risks and how to mitigate it.
+
+Enjoy it! =)
+
+
+## Pages
+
+- [Home]https://mtulio.net)
+- [Runbooks/Playbooks](https://mtulio.net/notes) : Steps to run some solution
+- [Notes](https://mtulio.net/notes) : Random notes organized by technology
+- [Articles](https://mtulio.net/articles) : Blog/Articles
 
 <!--
 
