@@ -9,11 +9,10 @@ set -o pipefail
 set -o nounset
 set -o errexit
 
-
-declare -g INFRA_NAME=$(oc get infrastructures \
-    -o jsonpath='{.items[*].status.infrastructureName}')
-
 set_defaults() {
+    declare -g INFRA_NAME=$(oc get infrastructures \
+        -o jsonpath='{.items[*].status.infrastructureName}')
+
     declare -g VPC_ID=$(aws ec2 describe-vpcs \
         --filters Name=tag-key,Values=kubernetes.io/cluster/${INFRA_NAME} \
         --query 'Vpcs[].VpcId' --output text)
@@ -403,15 +402,23 @@ Available commands:
     "create-targets-ip"      : Create target groups type IP only (do not replace)
 
 EOF
+    exit 0
 }
 
-case "$1" in
-    "to-target-instance") set_defaults; cmd_replace_to_instance ;;
-    "to-target-ip") set_defaults; cmd_replace_to_ip ;;
-    "to-target-tmp-instance") set_defaults; cmd_replace_tmp_instance ;;
-    "to-target-tmp-ip") set_defaults; cmd_replace_tmp_ip ;;
-    "create-targets-instance") set_defaults; cmd_create_tmp_instance ;;
-    "create-targets-ip") set_defaults; cmd_create_tmp_ip ;;
-    "patch-security-group") cmd_patch_sg ;;
-    *) helpme ;;
-esac
+main() {
+    case "${1:-}" in
+        "to-target-instance"        ) CMD="cmd_replace_to_instance" ;;
+        "to-target-ip"              ) CMD="cmd_replace_to_ip" ;;
+        "to-target-tmp-instance"    ) CMD="cmd_replace_tmp_instance" ;;
+        "to-target-tmp-ip"          ) CMD="cmd_replace_tmp_ip" ;;
+        "create-targets-instance"   ) CMD="cmd_create_tmp_instance" ;;
+        "create-targets-ip"         ) CMD="cmd_create_tmp_ip" ;;
+        "patch-security-group"      ) CMD="cmd_patch_sg" ;;
+        *) helpme ;;
+    esac
+
+    set_defaults
+    ${CMD}
+}
+
+main "$@"

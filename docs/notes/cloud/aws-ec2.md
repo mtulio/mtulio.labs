@@ -6,9 +6,21 @@ Query instance type offerings for each available region that has EC2 service.
 
 ~~~python
 import boto3
+import pandas as pd
+
+diff_left="m5"
+diff_right="m6i"
+
+type_left=f"{diff_left}.xlarge"
+type_right=f"{diff_right}.xlarge"
 
 data = []
-columns = ['region', 'count(m5.large)', 'count(m4.large)', 'count(m5VSm4)']
+columns = [
+	'region',
+	f'count({type_left})',
+	f'count({type_right})',
+	f'diff({diff_left}_{diff_right})'
+]
 
 azByRegion = {}
 # {
@@ -24,20 +36,20 @@ ec2_regions = sess.get_available_regions('ec2')
 for region in ec2_regions:
   print(f"Checkiing region {region}")
   azByRegion[region] = {
-    "m5.large": [],
-    "m4.large": []
+    f"{type_left}": [],
+    f"{type_right}": []
   }
   ec2 = sess.client('ec2', region_name=region)
   try:
     offerings = ec2.describe_instance_type_offerings(
             LocationType='availability-zone',
-            Filters=[{"Name": "instance-type", "Values": ["m5.large", "m4.large"]}]
+            Filters=[{"Name": "instance-type", "Values": [type_left, type_right]}]
         )['InstanceTypeOfferings']
   except KeyError:
     print(f"InstanceTypeOfferings not found on region {region}")
     continue
     pass
-  
+
   for of in offerings:
     azByRegion[region][of['InstanceType']].append(of['Location'])
 
@@ -46,12 +58,12 @@ data = []
 for rg in azByRegion.keys():
     row = []
     row.append(rg)
-    row.append(len(azByRegion[rg]['m5.large']))
-    row.append(len(azByRegion[rg]['m4.large']))
-    row.append(len(azByRegion[rg]['m5.large']) - len(azByRegion[rg]['m4.large']))
+    row.append(len(azByRegion[rg][type_left]))
+    row.append(len(azByRegion[rg][type_right]))
+    row.append(len(azByRegion[rg][type_left]) - len(azByRegion[rg][type_right]))
     data.append(row)
 
-df = pd.DataFrame(data, columns=columns, index=['region'])
+df = pd.DataFrame(data, columns=columns)
 df.set_index('region', inplace=True)
-df
+print(df)
 ~~~

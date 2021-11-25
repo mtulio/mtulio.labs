@@ -10,3 +10,7 @@
 aws iam list-roles \
   | jq -c '.Roles[] | select( .RoleName | contains("lambda-aws-resource-tagger"))' |jq .Arn
 ```
+
+### select
+
+select (.type=="InternalIP")
