@@ -1,4 +1,4 @@
-# Go Lang
+# Go Language
 
 ## Install
 
@@ -29,8 +29,10 @@ go get -d github.com/mtulio/terraform-provider-aws@release-2.67.0-add-gp3-valid
 ```
 
 References:
+
 - https://golang.org/ref/mod
 - https://golang.org/ref/mod#go-mod-file-replace
+- https://jfrog.com/blog/go-big-with-pseudo-versions-and-gocenter/
 
 ## Runtime
 
