@@ -38,7 +38,7 @@ oc apply -f htpasswd-idp.yaml
 
 - grant permissions to the user
 ``` shell
-oc adm policy add-cluster-role-to-user admin mtulio
+oc adm policy add-cluster-role-to-user admin user
 ```
 
 ## Reference
