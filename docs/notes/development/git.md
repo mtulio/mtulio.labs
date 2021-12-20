@@ -40,3 +40,18 @@ Refs:
 - https://help.github.com/en/github/using-git/splitting-a-subfolder-out-into-a-new-repository
 
 
+## Examples
+
+### Squash current branch
+
+```
+git checkout feature/support-component
+git reset upstream/master
+git add vendor/ go.sum go.mod 
+git commit -m 'Provider: add Vendor code required to introduce'
+git status
+git add .gitignore Dockerfile Dockerfile.okd pkg/ pkg/ manifests/ 
+git status
+git commit -m 'Provider: add components'
+git push -f
+```

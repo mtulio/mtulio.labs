@@ -14,3 +14,7 @@ aws iam list-roles \
 ### select
 
 select (.type=="InternalIP")
+
+## References
+
+- [Manual](https://stedolan.github.io/jq/manual/)

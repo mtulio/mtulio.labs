@@ -39,3 +39,11 @@ References:
 ### GOMAXPROCS
 
 - [Lab changing GOMAXPROCS according the CPU used on the machine](https://github.com/mtulio/mtulio.labs/tree/master/labs/go-get-maxprocs#gomaxprocs-usage-lab)
+
+
+## Concurrency
+
+- [Talk concurrency](https://go.dev/blog/io2013-talk-concurrency)
+- [Blog/Producer-consumer](https://betterprogramming.pub/hands-on-go-concurrency-the-producer-consumer-pattern-c42aab4e3bd2)
+
+
