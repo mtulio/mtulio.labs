@@ -10,7 +10,7 @@ Dependencies:
 - IAM instance profile for node need to have policies to access ECR
 - contianer should have access to create/update the secret
 
-Credits for [@guessi gist](https://gist.github.com/guessi/89eb1a8227d3ffea06e10ecd9d890b0f):
+> Credits for [@guessi gist](https://gist.github.com/guessi/89eb1a8227d3ffea06e10ecd9d890b0f):
 
 ``` shell
 #!/bin/bash
@@ -63,3 +63,10 @@ refresh_token() {
 
 refresh_token "${ECR_REGION}"
 ```
+
+Token refresh alternatives/references:
+- [Blog/Keeping AWS Registry pull credentials fresh in Kubernetes](https://medium.com/@xynova/keeping-aws-registry-pull-credentials-fresh-in-kubernetes-2d123f581ca6)
+
+## Reference
+
+ToDo
