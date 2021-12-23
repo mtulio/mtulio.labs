@@ -2,6 +2,7 @@
 
 ## Install
 
+ToDo
 
 ## Module
 
@@ -47,3 +48,15 @@ References:
 - [Blog/Producer-consumer](https://betterprogramming.pub/hands-on-go-concurrency-the-producer-consumer-pattern-c42aab4e3bd2)
 
 
+## Best Practices
+
+- [Google talks/Twelve Go Best Practices](https://talks.golang.org/2013/bestpractices.slide#1)
+
+
+## Algorithms
+
+### Leaky Bucket
+
+- [Wikipedia definition](https://en.wikipedia.org/wiki/Leaky_bucket)
+- [mtulio's labs Sample: AWS IAM Filter user](https://github.com/mtulio/go-labs/pull/4)
+- [Go Play/Simple sample](https://go.dev/play/p/ZrTPLcdeDF)
