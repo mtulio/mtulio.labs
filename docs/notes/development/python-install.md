@@ -1,4 +1,4 @@
-# python install
+# python install | Development notes
 
 ## Manually (from source)
 

@@ -1,4 +1,4 @@
-# Go Language
+# Go Language | Development notes
 
 ## Install
 

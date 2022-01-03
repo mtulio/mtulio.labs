@@ -1,4 +1,4 @@
-# C Language
+# C Language | Development notes
 
 > "No programming technique solves all problems. 
 > No programming language produces only correct results.

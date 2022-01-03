@@ -1,4 +1,4 @@
-# python Tips
+# python Tips | Development notes
 
 
 ## pycurl using different SSL lib

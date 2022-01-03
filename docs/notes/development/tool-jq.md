@@ -1,4 +1,4 @@
-# jq (json query tool)
+# jq (json query tool) | Development notes
 
 ## Filter
 

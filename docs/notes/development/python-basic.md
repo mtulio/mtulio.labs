@@ -1,4 +1,4 @@
-# python-basic
+# python-basic | Development notes
 
 Basic operations in Python
 

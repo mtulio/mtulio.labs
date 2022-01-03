@@ -1,4 +1,4 @@
-# Python Pypi
+# Python Pypi | Development notes
 
 ## Publishing an module
 

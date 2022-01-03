@@ -1,4 +1,4 @@
-# Python LAMBDA
+# Python LAMBDA | Development notes
 
 Syntax: `lambda argument_list: expression`
 

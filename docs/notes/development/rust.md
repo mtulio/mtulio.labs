@@ -1,4 +1,4 @@
-# Development | Rust Language
+# Rust Language | Development notes
 
 ## Learning
 

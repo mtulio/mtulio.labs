@@ -1,4 +1,4 @@
-# GIT
+# GIT | Development notes
 
 Some useful commands.
 
