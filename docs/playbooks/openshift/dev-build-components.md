@@ -1,5 +1,25 @@
 # OpenShift Development | Build components
 
+## installer
+
+Clone the git repository
+
+```shell
+cd ${GOHOME}/go/src/github.com/openshift/
+git clone --recursive https://github.com/openshift/installer
+cd installer
+```
+
+Build:
+```shell
+$(which time) -v hack/build.sh
+```
+
+Save it in your custom bin path:
+```shell
+cp -v bin/openshift-install ${MY_BIN}/openshift-install-$(git branch |grep ^'*' |awk '{print$2}')
+```
+
 ## machine-config-operator
 
 Clone the git repository

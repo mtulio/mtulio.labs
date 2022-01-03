@@ -10,6 +10,7 @@ It's possible to override the release image used by installer, and also
 possible to create your owns - used to test specific components.
 
 The steps below will cover:
+
 - steps to override a release image
 - steps to create a custom release
 
