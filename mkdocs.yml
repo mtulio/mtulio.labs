@@ -90,6 +90,7 @@ nav:
         - Get Credentials with CI Registry: playbooks/openshift/install-credentials-with-ci.md
 
   - Notes:
+    - Home: notes/README.md
     - automation:
       - ansible: notes/automation/ansible.md
       - rundeck: notes/automation/rundeck.md
@@ -174,4 +175,10 @@ nav:
       - mkdocs-tabs: notes/templates/mkdocs-tabs.md
       - notes/templates/mkdocs-Admonitions.md
 
-  - Articles: articles/index.md
+  - Articles:
+    - Home: articles/README.md
+    - Articles: articles/index.md
+
+  - Open Learning:
+      - Home: learning/README.md
+      - Workshops: learning/workshops.md
