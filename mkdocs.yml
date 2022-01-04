@@ -79,6 +79,7 @@ nav:
     - about.md
     - tools.md
   - Runbooks:
+      - Home: playbooks/README.md
       - OpenShift:
         - Machine resize: playbooks/openshift/resize-machines.md
         - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
