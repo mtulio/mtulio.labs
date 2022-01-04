@@ -78,10 +78,16 @@ nav:
     - index.md
     - about.md
     - tools.md
-  - Playbooks:
+  - Runbooks:
       - OpenShift:
         - Machine resize: playbooks/openshift/resize-machines.md
         - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
+        - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
+      - OpenShift Dev:
+        - Build components: playbooks/openshift/dev-build-components.md
+        - Create custom release: playbooks/openshift/dev-custom-release.md
+        - Get Credentials with CI Registry: playbooks/openshift/install-credentials-with-ci.md
+
   - Notes:
     - automation:
       - ansible: notes/automation/ansible.md
@@ -91,13 +97,30 @@ nav:
       - aws-cli: notes/cloud/aws-cli.md
       - aws-ec2: notes/cloud/aws-ec2.md
       - aws-iam: notes/cloud/aws-iam.md
+      - aws-instances: notes/cloud/aws-instances.md
+      - aws-monitoring: notes/cloud/aws-monitoring.md
       - aws-network: notes/cloud/aws-network.md
+      - aws-nlb: notes/cloud/aws-nlb.md
+      - aws-s3: notes/cloud/aws-s3.md
+      - azure-ha: notes/cloud/azure-ha.md
+      - aliyun-cli: notes/cloud/aliyun-cli.md
+      - aliyun-ecs: notes/cloud/aliyun-ecs.md
+      - aliyun-oss: notes/cloud/aliyun-oss.md
+      - aliyun-ram: notes/cloud/aliyun-ram.md
+      - aliyun-vpc: notes/cloud/aliyun-vpc.md
       - cloud-init: notes/cloud/cloud-init.md
 
     - container:
-      - kubernetes: notes/container/kubernetes.md
-      - openshift:
+      - Kubernetes: 
+        #- k8s: notes/container/kubernetes.md
+        - K8S: notes/container/k8s/README.md
+        - oc-patch: notes/container/k8s/kubectl-patch.md
+        - oc-plugins: notes/container/k8s/kubectl-patch.md
+      - OpenShift:
+        - OpenShift: notes/container/openshift/README.md
         - pipelines: notes/container/openshift/pipelines.md
+        - CVO: notes/container/openshift/cvo.md
+        - Custom Image: notes/container/openshift/CVO.md
 
     - db:
       - elasticsearch: notes/db/elasticsearch/README.md
