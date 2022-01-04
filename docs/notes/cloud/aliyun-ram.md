@@ -63,39 +63,70 @@ aliyun ram ListUsers --MaxItems 1000 |jq -r ".Users.User[] | select (.UserName |
     mapfile -t RAM_USERS_TO_DELETE < <(aliyun ram ListUsers --MaxItems 1000 |jq -r ".Users.User[] | select (.UserName |contains(\"${FILTER1}\")) | select (.UserName |contains(\"${FILTER2}\")) |.UserName")
     echo "Total users to be deleted: ${#RAM_USERS_TO_DELETE[@]}"
     for USR in ${RAM_USERS_TO_DELETE[@]}; do
-    echo "# Deleting users [${USR}]..."
-    echo "## Deleting policies from User..."
-    mapfile -t RAM_USER_POLICY_TO_DELETE < <(aliyun ram ListPoliciesForUser \
-        --UserName ${USR} \
-        | jq -r '.Policies.Policy[] | (.PolicyName, .PolicyType, .DefaultVersion)')
-    
-    # Removing policy when it exists
-    if [[ ${#RAM_USER_POLICY_TO_DELETE[@]} -gt 0 ]]; then
-        # Considering only one policy by user
-        POL_NAME=${RAM_USER_POLICY_TO_DELETE[0]}
-        POL_TYPE=${RAM_USER_POLICY_TO_DELETE[1]}
-        POL_VERS=${RAM_USER_POLICY_TO_DELETE[2]}
-        echo "### User Policy found: type=[${POL_TYPE}] Name=[${POL_NAME}] version=[${POL_VERS}]"
-        echo "### Detaching Policy from User..."
-        aliyun ram DetachPolicyFromUser \
+        echo "# Deleting users [${USR}]..."
+        echo "## Deleting policies from User..."
+        mapfile -t RAM_USER_POLICY_TO_DELETE < <(aliyun ram ListPoliciesForUser \
             --UserName ${USR} \
-            --PolicyName ${POL_NAME} \
-            --PolicyType ${POL_TYPE}
-        echo "### Deleting Custom Policy..."
-        aliyun ram DeletePolicy \
-            --PolicyName ${POL_NAME}
-    fi
-    echo "### Removing User access keys..."
-    for UAK in $(aliyun ram ListAccessKeys --UserName ${USR} | jq -r '.AccessKeys.AccessKey[].AccessKeyId'); do
-        echo "### Removing User access key=[${UAK}]..."
-        aliyun ram DeleteAccessKey \
-            --UserName ${USR} \
-            --UserAccessKeyId ${UAK};
-    done
-    echo "### Removing User..."
-    aliyun ram DeleteUser \
-        --UserName ${USR}
+            | jq -r '.Policies.Policy[] | (.PolicyName, .PolicyType, .DefaultVersion)')
+        
+        # Removing policy when it exists
+        if [[ ${#RAM_USER_POLICY_TO_DELETE[@]} -gt 0 ]]; then
+            # Considering only one policy by user
+            POL_NAME=${RAM_USER_POLICY_TO_DELETE[0]}
+            POL_TYPE=${RAM_USER_POLICY_TO_DELETE[1]}
+            POL_VERS=${RAM_USER_POLICY_TO_DELETE[2]}
+            echo "### User Policy found: type=[${POL_TYPE}] Name=[${POL_NAME}] version=[${POL_VERS}]"
+            echo "### Detaching Policy from User..."
+            aliyun ram DetachPolicyFromUser \
+                --UserName ${USR} \
+                --PolicyName ${POL_NAME} \
+                --PolicyType ${POL_TYPE}
+            echo "### Deleting Custom Policy versions..."
+            for POL_VID in $(aliyun ram ListPolicyVersions --PolicyName ${POL_NAME} --PolicyType ${POL_TYPE} |jq -r ".PolicyVersions.PolicyVersion[] | select(.IsDefaultVersion == false).VersionId" ); do
+                aliyun ram DeletePolicyVersion \
+                    --PolicyName ${POL_NAME} \
+                    --VersionId ${POL_VID}
+            done
+            echo "### Deleting Custom Policy..."
+            aliyun ram DeletePolicy \
+                --PolicyName ${POL_NAME}
+        fi
+        echo "### Removing User access keys..."
+        for UAK in $(aliyun ram ListAccessKeys --UserName ${USR} | jq -r '.AccessKeys.AccessKey[].AccessKeyId'); do
+            echo "### Removing User access key=[${UAK}]..."
+            aliyun ram DeleteAccessKey \
+                --UserName ${USR} \
+                --UserAccessKeyId ${UAK};
+        done
+        echo "### Removing User..."
+        aliyun ram DeleteUser \
+            --UserName ${USR}
 
     done
 } | tee -a aliyun-user-cleaner.log
+```
+
+### Cleaning policies
+
+```bash
+{
+    FILTER1="mrb"
+    FILTER2="-openshift-"
+    mapfile -t RAM_POLICIES_TO_DELETE < <(aliyun ram ListPolicies --MaxItems 1000 |jq -r ".Policies.Policy[] | select (.PolicyName |contains(\"${FILTER1}\")) | select (.PolicyName |contains(\"${FILTER2}\")) |.PolicyName")
+    echo "# Total policies to be deleted: ${#RAM_POLICIES_TO_DELETE[@]}"
+    
+    for POL_NAME in ${RAM_POLICIES_TO_DELETE[@]}; do
+        echo "# Deleting policy [${POL_NAME}]..."
+        echo "### Deleting Custom Policy versions..."
+        for POL_VID in $(aliyun ram ListPolicyVersions --PolicyName ${POL_NAME} --PolicyType Custom |jq -r ".PolicyVersions.PolicyVersion[] | select(.IsDefaultVersion == false).VersionId" ); do
+            echo "### Deleting Custom Policy version=[${POL_VID}]..."  
+            aliyun ram DeletePolicyVersion \
+                --PolicyName ${POL_NAME} \
+                --VersionId ${POL_VID}
+        done
+        echo "### Deleting Custom Policy default version..."
+        aliyun ram DeletePolicy \
+            --PolicyName ${POL_NAME}
+    done
+} | tee -a aliyun-policy-cleaner.log
 ```
