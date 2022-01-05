@@ -29,7 +29,7 @@ Delete unused buckets prefixed with a string defined on `${FORCE_DELETE}`.
 ```bash
 
 {
-    FORCE_DELETE=true
+    FORCE_DELETE=false
     FILTER_PREFIX="test-"
     mapfile -t ALL_BUCKETS_REGION_NAME < <(aliyun oss ls --region us-east-1 |egrep ^'[0-9]{4}' |awk '{print$5";"$7}')
     echo "# Total buckets found: ${#ALL_BUCKETS_REGION_NAME[@]}"
