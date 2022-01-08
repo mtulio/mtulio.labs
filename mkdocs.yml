@@ -1,5 +1,5 @@
 site_name: "@mtulio labs | notes"
-site_url: https://notes.mtulio.eng.br
+site_url: https://mtulio.eng.br
 site_author: 'Marco Braga'
 site_description: >-
   Marco Braga | Playground
@@ -104,12 +104,15 @@ nav:
       - aws-network: notes/cloud/aws-network.md
       - aws-nlb: notes/cloud/aws-nlb.md
       - aws-s3: notes/cloud/aws-s3.md
+      - aws-eks: notes/cloud/aws-eks.md
       - azure-ha: notes/cloud/azure-ha.md
       - aliyun-cli: notes/cloud/aliyun-cli.md
       - aliyun-ecs: notes/cloud/aliyun-ecs.md
       - aliyun-oss: notes/cloud/aliyun-oss.md
       - aliyun-ram: notes/cloud/aliyun-ram.md
       - aliyun-vpc: notes/cloud/aliyun-vpc.md
+      - aliyun-slb: notes/cloud/aliyun-slb.md
+      - aliyun-kms: notes/cloud/aliyun-kms.md
       - cloud-init: notes/cloud/cloud-init.md
 
     - container:
@@ -123,6 +126,9 @@ nav:
         - pipelines: notes/container/openshift/pipelines.md
         - CVO: notes/container/openshift/cvo.md
         - Custom Image: notes/container/openshift/CVO.md
+        - ocp-user-monit: notes/container/openshift/ocp-user-monit.md
+        - ocp-idp: notes/container/openshift/ocp-idp.md
+      - alpine: notes/container/alpine.md
 
     - db:
       - elasticsearch: notes/db/elasticsearch/README.md
