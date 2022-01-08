@@ -15,8 +15,9 @@ oc create secret generic htpass-secret \
     -n openshift-config 
 ```
 
-- create the file `htpasswd-idp.yaml` with IdP object
-``` yaml
+- create IdP object
+``` shell
+cat <<EOF | oc apply -f -
 apiVersion: config.openshift.io/v1
 kind: OAuth
 metadata:
@@ -29,17 +30,21 @@ spec:
     htpasswd:
       fileData:
         name: htpass-secret 
+EOF
 ```
 
-- apply the config
-``` shell
-oc apply -f htpasswd-idp.yaml
+- create the user
+
+```shell
+oc create user user
 ```
 
 - grant permissions to the user
 ``` shell
 oc adm policy add-cluster-role-to-user admin user
 ```
+
+- Login to the cluster
 
 ## Reference
 
