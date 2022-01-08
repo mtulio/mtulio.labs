@@ -11,6 +11,17 @@ Types:
 - Passive
 
 
+## Common CLI actions
+
+### Get public NLB DNS for kube-apiserver on OpenShift cluster
+
+```bash
+CLUSTER_NAME=$(oc get infrastructure cluster -o jsonpath="{.status.infrastructureName}")
+
+NLB_NAME="${CLUSTER_NAME}-ext"
+
+KAS_NLB_EXT_DNS="$(aws elbv2 describe-load-balancers |jq -r ".LoadBalancers[] | select(.LoadBalancerName==\"${NLB_NAME}\").DNSName")"
+```
 
 ## References:
 
