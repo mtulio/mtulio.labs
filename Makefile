@@ -11,8 +11,8 @@ requirements: venv
 	$(VENV_PATH)/bin/pip3 install --upgrade pip
 	$(VENV_PATH)/bin/pip3 install -r $(VENV_REQ)
 
-mkdocs-serve:
+mkdocs-serve: requirements
 	$(VENV_PATH)/bin/mkdocs serve
 
-mkdocs-build:
+mkdocs-build: requirements
 	$(VENV_PATH)/bin/mkdocs build
