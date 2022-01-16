@@ -1,0 +1,52 @@
+---
+- hosts: localhost
+  connection: local
+
+  tasks:
+
+    - name: Create VPC
+      ali_vpc:
+        cidr_block: '{{ cidr_block }}'
+        vpc_name: new_vpc
+      register: created_vpc
+
+    - name: Create VSwitch
+      ali_vswitch:
+        alicloud_zone: '{{ alicloud_zone }}'
+        cidr_block: '{{ vsw_cidr }}'
+        vswitch_name: new_vswitch
+        vpc_id: '{{ created_vpc.vpc.id }}'
+      register: created_vsw
+
+    - name: Create security group
+      ali_security_group:
+        name: new_group
+        vpc_id: '{{ created_vpc.vpc.id }}'
+        rules:
+          - proto: tcp
+            port_range: 22/22
+            cidr_ip: 0.0.0.0/0
+            priority: 1
+        rules_egress:
+          - proto: tcp
+            port_range: 80/80
+            cidr_ip: 192.168.0.54/32
+            priority: 1
+      register: created_group
+
+    - name: Create a set of instances
+      ali_instance:
+         security_groups: '{{ created_group.group_id }}'
+         instance_type: ecs.n4.small
+         image_id: "{{ ami_id }}"
+         instance_name: "My-new-instance"
+         instance_tags:
+             Name: NewECS
+             Version: 0.0.1
+         count: 5
+         count_tag:
+             Name: NewECS
+         allocate_public_ip: true
+         max_bandwidth_out: 50
+         vswitch_id: '{{ created_vsw.vswitch.id}}'
+      register: create_instance
