@@ -1,6 +1,9 @@
-[submodule "labs/cloud-iac-ansible/roles_modules/mtulio.cloud-iam"]
+[submodule "labs/iac-ansible-cloud/roles_modules/mtulio.cloud-iam"]
 	path = labs/cloud-iac-ansible/roles_modules/mtulio.cloud-iam
 	url = git@github.com:mtulio/ansible-role-cloud-iam.git
 [submodule "labs/cloud-iac-ansible/roles_modules/mtulio.cloud-vpc"]
 	path = labs/cloud-iac-ansible/roles_modules/mtulio.cloud-vpc
 	url = git@github.com:mtulio/ansible-role-cloud-vpc.git
+[submodule "labs/cloud-iac-ansible/roles_modules/mtulio.cloud-compute"]
+	path = labs/cloud-iac-ansible/roles_modules/mtulio.cloud-compute
+	url = git@github.com:mtulio/ansible-role-cloud-compute.git
