@@ -2,50 +2,65 @@
 - hosts: localhost
   connection: local
 
-  tasks:
+  vars:
+    cidr_block: 10.0.0.0/16
+    region: us-east-1
+    alicloud_zone: us-east-1a
+    ami_id: fedora_34_1_x64_20G_alibase_20211028.vhd
 
+  tasks:
     - name: Create VPC
       ali_vpc:
         cidr_block: '{{ cidr_block }}'
         vpc_name: new_vpc
+        alicloud_region: "{{ region }}"
       register: created_vpc
+
+    - debug: var=created_vpc
 
     - name: Create VSwitch
       ali_vswitch:
         alicloud_zone: '{{ alicloud_zone }}'
-        cidr_block: '{{ vsw_cidr }}'
+        cidr_block: '{{ cidr_block  }}'
         vswitch_name: new_vswitch
-        vpc_id: '{{ created_vpc.vpc.id }}'
+        vpc_id: '{{ created_vpc.vpc.id |d(omit) }}'
+        alicloud_region: "{{ region }}"
       register: created_vsw
+      check_mode: no
+
+    - debug: var=created_vsw
 
     - name: Create security group
       ali_security_group:
         name: new_group
         vpc_id: '{{ created_vpc.vpc.id }}'
+        alicloud_region: "{{ region }}"
         rules:
-          - proto: tcp
+          - ip_protocol: tcp
             port_range: 22/22
-            cidr_ip: 0.0.0.0/0
+            source_cidr_ip: 0.0.0.0/0
             priority: 1
-        rules_egress:
-          - proto: tcp
+          - ip_protocol: tcp
             port_range: 80/80
-            cidr_ip: 192.168.0.54/32
+            source_cidr_ip: 0.0.0.0/0
             priority: 1
+        rules_egress: []
       register: created_group
+      check_mode: no
 
     - name: Create a set of instances
       ali_instance:
-         security_groups: '{{ created_group.group_id }}'
-         instance_type: ecs.n4.small
+         security_groups: '{{ created_group.group_id |d(omit) }}'
+         instance_type: ecs.g6.small
+         alicloud_region: "{{ region }}"
          image_id: "{{ ami_id }}"
          instance_name: "My-new-instance"
          instance_tags:
-             Name: NewECS
+             Name: lb-app
              Version: 0.0.1
-         count: 5
+         count: 1
          count_tag:
-             Name: NewECS
+             Name: lb-app
          allocate_public_ip: true
          max_bandwidth_out: 50
          vswitch_id: '{{ created_vsw.vswitch.id}}'
