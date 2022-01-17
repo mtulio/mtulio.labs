@@ -1,0 +1,41 @@
+---
+- hosts: lab-cloud-lb
+  connection: ssh
+
+  vars:
+    cidr_block: 10.0.0.0/16
+    region: us-east-1
+    alicloud_zone: us-east-1a
+    ami_id: 
+
+  tasks:
+    - name: install dependencies
+      package:
+        name:
+          #- epel-release
+          #- https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+          - nginx
+          - jq
+        state: present
+        disablerepo: '*'
+
+    #https://github.com/mtulio/go-labs/blob/main/examples/lab-webserver-healthcheck-https.md
+    - name: copy nginx config
+      copy:
+        state: present
+        dest: /etc/nginx/conf.d/lab.conf
+        mode: 0644
+        content: |-
+            server {
+                listen 6443;
+                listen [::]:6443;
+                location / {
+                    return 200 'ok';
+                }
+                location /readyz {
+                    return 200 'ok';
+                }
+                location /healthyz {
+                    return 200 'ok';
+                }
+            }
