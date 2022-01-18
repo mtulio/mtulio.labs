@@ -1,0 +1,93 @@
+- name: Create Azure VM
+  hosts: localhost
+  connection: local
+
+  vars:
+    resource_group_name: mrbrg
+    vpc_cidr: 10.0.0.0/16
+    vpc_name: mrbvpc01
+    vpc_subnets:
+      - name: mrbnet01
+        cidr: 10.0.0.0/24
+      - name: mrbnet02
+        cidr: 10.0.1.0/24
+    security_groups:
+      - name: mrbsg
+    region: eastus
+    instance__security_group_name: mrbsg
+    instance_name: mrb01
+    instance_type: Standard_DS1_v2
+    instance_image_id:
+      offer: CentOS
+      publisher: OpenLogic
+      sku: '7.5'
+      version: latest
+    os_user: azureuser
+    ssh_user: "{{os_user}}"
+    ssh_password_enabled: false
+    ssh_keys:
+      - path: "/home/{{ os_user }}/.ssh/authorized_keys"
+        key_data: "{{ lookup('file', '{{ ansible_env.HOME }}/.ssh/id_rsa.pub') }}"
+
+  tasks:
+  - name: Create resource group
+    azure_rm_resourcegroup:
+      name: "{{ resource_group_name }}"
+      location: "{{ region }}"
+
+  - name: Create virtual network
+    azure_rm_virtualnetwork:
+      resource_group: "{{ resource_group_name }}"
+      name: "{{ vpc_name }}"
+      address_prefixes: "{{ vpc_cidr }}"
+
+  - name: Add subnets
+    azure_rm_subnet:
+      resource_group: "{{ resource_group_name }}"
+      name: "{{ item.name }}"
+      address_prefix: "{{ item.cidr }}"
+      virtual_network: "{{ vpc_name }}"
+    with_items: "{{ vpc_subnets }}"
+
+  - name: Create public IP address
+    azure_rm_publicipaddress:
+      resource_group: "{{ resource_group_name }}"
+      allocation_method: Static
+      name: "{{ instance_name }}-pubip"
+    register: output_ip_address
+
+  - name: Public IP of VM
+    debug:
+      msg: "The public IP is {{ output_ip_address.state.ip_address }}."
+
+  - name: Create Network Security Group that allows SSH
+    azure_rm_securitygroup:
+      resource_group: "{{ resource_group_name }}"
+      name: "{{ interface_security_group_name }}"
+      rules:
+        - name: SSH
+          protocol: Tcp
+          destination_port_range: 22
+          access: Allow
+          priority: 1001
+          direction: Inbound
+
+  - name: Create virtual network interface card
+    azure_rm_networkinterface:
+      resource_group: "{{ resource_group_name }}"
+      name: "{{ instance_name }}-nic"
+      virtual_network: "{{ vpc_name }}"
+      subnet: "{{ item.name }}"
+      public_ip_name: "{{ instance_name }}-pubip"
+      security_group: "{{ instance__security_group_name }}"
+
+  - name: Create VM
+    azure_rm_virtualmachine:
+      resource_group: "{{ resource_group_name }}"
+      name: "{{ instance_name }}"
+      vm_size: "{{ instance_type }}"
+      admin_username: "{{ os_user }}"
+      ssh_password_enabled: "{{ ssh_password_enabled }}}}"
+      ssh_public_keys: "{{ ssh_keys }}"
+      network_interfaces: "{{ interface_name }}"
+      image: "{{ instance_image_id }}"
