@@ -5,8 +5,8 @@
   vars:
     cidr_block: 10.0.0.0/16
     region: us-east-1
-    alicloud_zone: us-east-1a
     ami_id: fedora_34_1_x64_20G_alibase_20211028.vhd
+    instance_type: ecs.t6-c2m1.large
 
   tasks:
     - name: Create VPC
@@ -20,7 +20,7 @@
 
     - name: Create VSwitch
       ali_vswitch:
-        alicloud_zone: '{{ alicloud_zone }}'
+        alicloud_zone: '{{ region }}'
         cidr_block: '{{ cidr_block  }}'
         vswitch_name: new_vswitch
         vpc_id: '{{ created_vpc.vpc.id |d(omit) }}'
@@ -51,7 +51,7 @@
     - name: Create a set of instances
       ali_instance:
          security_groups: '{{ created_group.group_id |d(omit) }}'
-         instance_type: ecs.g6.small
+         instance_type: "{{ instance_type }}"
          alicloud_region: "{{ region }}"
          image_id: "{{ ami_id }}"
          instance_name: "My-new-instance"

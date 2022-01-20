@@ -1,2 +1,19 @@
-ansible>=5
+# Base
+ansible==4.10
+packaging
+
+# Provider dependencies
+## Alibaba
 ansible_alicloud
+
+## Azure
+#ansible[azure]
+#msrestazure
+#azure>=2.0.0
+azure-mgmt-resource
+azure-mgmt-storage
+azure-mgmt-compute
+azure-mgmt-privatedns
+azure-storage-common
+azure-storage-blob
+azure-storage-file

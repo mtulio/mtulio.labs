@@ -30,7 +30,7 @@
                 listen 6443;
                 listen [::]:6443;
                 location / {
-                    return 200 'ok';
+                    return 200 'ok server[$host] client[$remote_addr]';
                 }
                 location /readyz {
                     return 200 'ok';
