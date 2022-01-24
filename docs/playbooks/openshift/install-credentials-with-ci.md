@@ -8,6 +8,8 @@ You can otain the pull-secret for free on Red Hat Portal using your RHNID.
 
 Visit the portal and get the credentials: [openshift.com/try](https://openshift.com/try)
 
+> 
+
 ## Getting credentials with CI Registry
 
 'CI registry' is a image registry that holds the most recent images from CI builds.
@@ -24,7 +26,7 @@ References:
 
 Steps:
 
-0. Set env vars
+- Set env vars
 
 ``` shell
 TS="$(date +%Y%m%d%H%M)"
@@ -32,44 +34,50 @@ BASE_DIR="${HOME}/.openshift"
 export PULL_SECRET_BKP="${BASE_DIR}/pull-secret-${TS}-bkp.json"
 export PULL_SECRET_CI="${BASE_DIR}/pull-secret-${TS}-ci.json"
 export PULL_SECRET="${BASE_DIR}/pull-secret-${TS}.json"
+export PULL_SECRET_LATEST_LINK="${BASE_DIR}/pull-secret-latest.json"
 mkdir -p ${BASE_DIR}
 ```
 
-1. Download the pull secret from portal and save it on `${PULL_SECRET_BKP}`
+- Download the pull secret from portal and save it on `${PULL_SECRET_BKP}`
 
-https://console.redhat.com/openshift/install/aws/installer-provisioned
+Direct link to [AWS IPI](https://console.redhat.com/openshift/install/aws/installer-provisioned)
 
+- [Login to CI Cluster to retrieve a token](https://oauth-openshift.apps.ci.l2s4.p1.openshiftapps.com/oauth/token/display)
 
-2. [Login to CI Cluster to retrieve a token](https://oauth-openshift.apps.ci.l2s4.p1.openshiftapps.com/oauth/token/display)
+- Login on CLI using the token provided
 
-3. Login on CLI using the token provided
-
+Example:
 ```bash
 oc login --token=<my token> --server=https://api.ci.l2s4.p1.openshiftapps.com:6443
 ```
 
-4. Get CI Credentials
+- Get CI Credentials
 
 ```bash
 cp ${PULL_SECRET_BKP} ${PULL_SECRET_CI}
 oc registry login --to=${PULL_SECRET_CI}
 ```
 
-5. Merge CI credentials
+- Merge CI credentials
 
 ```bash
 cat ${PULL_SECRET_CI} |awk -v ORS= -v OFS= '{$1=$1}1' > ${PULL_SECRET}
 ```
 
-6. Check your credentials
+- Check your credentials
 
-- Inspect
+Inspect
 ```bash
 jq . ${PULL_SECRET}
 ```
 
-- Use the credentials bundle on installer configuration:
-
+Use the credentials bundle on installer configuration:
 ```bash
 cat ${PULL_SECRET}
+```
+
+- Link to latest (optional)
+
+```bash
+ln -svf ${PULL_SECRET} ${PULL_SECRET_LATEST_LINK}
 ```
