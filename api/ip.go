@@ -11,5 +11,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, ip)
 		return
 	}
-	fmt.Fprintf(w, "pong", r)
+	ip = r.Header.Get("X-Forward-For")
+	if ip != "" {
+		fmt.Fprintf(w, ip)
+		return
+	}
+	fmt.Fprintf(w, r.RemoteAddr)
 }
