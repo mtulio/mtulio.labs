@@ -115,7 +115,9 @@ nav:
       - aws-nlb: notes/cloud/aws-nlb.md
       - aws-s3: notes/cloud/aws-s3.md
       - aws-eks: notes/cloud/aws-eks.md
+      - az-monitor: notes/cloud/az-montior.md
       - azure-ha: notes/cloud/azure-ha.md
+      - azure-network: notes/cloud/azure-network.md
       - aliyun-cli: notes/cloud/aliyun-cli.md
       - aliyun-ecs: notes/cloud/aliyun-ecs.md
       - aliyun-oss: notes/cloud/aliyun-oss.md
