@@ -8,7 +8,6 @@ You can otain the pull-secret for free on Red Hat Portal using your RHNID.
 
 Visit the portal and get the credentials: [openshift.com/try](https://openshift.com/try)
 
-> 
 
 ## Getting credentials with CI Registry
 
@@ -66,7 +65,7 @@ cat ${PULL_SECRET_CI} |awk -v ORS= -v OFS= '{$1=$1}1' > ${PULL_SECRET}
 
 - Check your credentials
 
-Inspect
+Inspect:
 ```bash
 jq . ${PULL_SECRET}
 ```

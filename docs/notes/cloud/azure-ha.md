@@ -3,14 +3,17 @@
 ## Availability Sets
 
 References:
+
 - [Regions and availability zones](https://docs.microsoft.com/en-us/azure/availability-zones/az-overview)
 - [Availability sets overview](https://docs.microsoft.com/en-us/azure/virtual-machines/availability-set-overview)
 
 Overview of Region:
+
 - Each Azure region features datacenters deployed within a latency-defined perimeter
 - They're connected through a dedicated regional low-latency network
 
 Overview of AZs:
+
 - Azure availability zones are physically separate locations within each Azure region that are **tolerant to local failures.**
 - Failures can range from software and hardware failures to events such as earthquakes, floods, and fires.
 - Tolerance to failures is achieved because of redundancy and logical isolation of Azure services.
@@ -21,6 +24,7 @@ Overview of AZs:
 - Availability zones are designed so that if one zone is affected, regional services, capacity, and high availability are supported by the remaining two zones.
 
 Overview Availability sets:
+
 - **Each virtual machine in your availability set is assigned an update domain and a fault domain**
 - Each availability set can be configured with up to **three fault domains and twenty update domains**
 - **Update domains indicate groups of virtual machines and underlying physical hardware** that can be rebooted at the same time
