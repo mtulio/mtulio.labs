@@ -247,7 +247,7 @@ NATGW_SNAT_TB_ID="$(aliyun vpc GetNatGatewayAttribute \
 ~~~bash
 aliyun vpc AssociateEipAddress \
   --RegionId "${REGION}" \
-  --AllocationId ${NATGW_EIP_ID} \
+  --AllocationId "${NATGW_EIP_ID}" \
   --InstanceType 'Nat' \
   --InstanceId "${NATGW_ID}"
 ~~~
@@ -257,8 +257,8 @@ aliyun vpc AssociateEipAddress \
 ~~~bash
 aliyun vpc CreateSnatEntry \
   --RegionId "${REGION}" \
-  --SnatIp ${NATGW_EIP_ADDR} \
-  --SnatTableId ${NATGW_SNAT_TB_ID} \
+  --SnatIp "${NATGW_EIP_ADDR}" \
+  --SnatTableId "${NATGW_SNAT_TB_ID}" \
   --SnatEntryName "SNAT-VSW-A" \
   --SourceVSwitchId "${VSW_A_ID}"
 
@@ -349,9 +349,16 @@ oc get machines -n openshift-machine-api
 oc get clusterversion
 ~~~
 
-## Destroy the cluster
+## Destroy the resources created
 
-### Remove CCO user
+### Destroy the cluster
+
+~~~bash
+./openshift-install destroy cluster \
+  --log-level debug --dir ${INSTALL_DIR}
+~~~
+
+### Remove RAM users created by CCO
 
 Remove AlibabaCloud RAM users created by CCO.
 
@@ -363,12 +370,77 @@ Remove AlibabaCloud RAM users created by CCO.
   --region=${REGION} 
 ~~~
 
-### Destroy the cluster
+### Remove Cloud Resources
+
+Release resources created by steps to setup custom network assets.
+
+- Remove SNAT tables
 
 ~~~bash
-./openshift-install destroy cluster \
-  --log-level debug --dir ${INSTALL_DIR}
+mapfile -t SNAT_ENTRIES < <(aliyun vpc DescribeSnatTableEntries \
+  --RegionId "${REGION}" \
+  --SnatTableId "${NATGW_SNAT_TB_ID}" \
+  | jq -r .SnatTableEntries.SnatTableEntry[].SnatEntryId)
+for SNAT_ENTRY in ${SNAT_ENTRIES[@]} ; do
+  aliyun vpc DeleteSnatEntry \
+    --RegionId "${REGION}" \
+    --SnatEntryId "${SNAT_ENTRY}" \
+    --SnatTableId "${NATGW_SNAT_TB_ID}"
+done
 ~~~
+
+- Unassociate EIP from Nat Gateway
+
+~~~bash
+aliyun vpc UnassociateEipAddress \
+  --RegionId "${REGION}" \
+  --AllocationId "${NATGW_EIP_ID}"
+~~~
+
+- Delete EIP for Nat Gateway
+
+~~~bash
+aliyun vpc ReleaseEipAddress \
+  --RegionId "${REGION}" \
+  --AllocationId "${NATGW_EIP_ID}"
+~~~
+
+- Delete the Nat Gateway
+
+~~~bash
+aliyun vpc DeleteNatGateway \
+  --RegionId "${REGION}" \
+  --NatGatewayId "${NATGW_ID}"
+~~~
+
+- Delete VSwitches
+
+> Wait a few time until Nat Gateway will be completed deleted
+
+Zone B:
+
+~~~bash
+aliyun vpc DeleteVSwitch \
+  --RegionId "${REGION}" \
+  --VSwitchId "${VSW_B_ID}"
+~~~
+
+Zone A:
+
+~~~bash
+aliyun vpc DeleteVSwitch \
+  --RegionId "${REGION}" \
+  --VSwitchId "${VSW_A_ID}"
+~~~
+
+- Delete VPC
+
+~~~bash
+aliyun vpc DeleteVpc \
+  --RegionId "${REGION}" \
+  --VpcId "${VPC_ID}"
+~~~
+
 
 ## References
 
