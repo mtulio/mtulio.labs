@@ -1,178 +1,208 @@
-# OCP IPI install on AlibabaCloud
+# Install OpenShift in AlibabaCloud in an existing VPC
 
-This article describe how to install OpenShift Countainer Platform in Alibaba Cloud (`alibabacloud`) provider using IPI.
+## Overview
 
-## Setup
+This article describes the steps to create the network resources (VPC and VSwitchs) to install OpenShift Container Platform 4.10+ in Alibaba Cloud (`alibabacloud`) provider using IPI.
 
-Accounts:
-- OpenShift 4.10+ (Tech-Preview)
-- OCP installer credentials ('pull-secret')
-- valid AlibabaCloud account
+---
+## Requirements
 
-Packages to be installed:
+You must have:
+
+- A valid AlibabaCloud account with a RAM User with valid Access Keys exported to [`~/.alibabacloud/credentials`](https://www.alibabacloud.com/help/en/doc-detail/311667.htm#h2-sls-mfm-3p3)
+- A valid OpenShift cloud credentials ('pull-secret')
+
+The following packages must be installed:
+
+- [AliCloud CLI (aliyun)](https://github.com/aliyun/aliyun-cli#installation)
 - OpenShift Installer (openshift-installer)
 - OpenShift client (oc)
-- jq/yq
-- ccoctl
+- OpenShift Cloud Credential Operator Utility (ccoctl)
+- [jq](https://stedolan.github.io/jq/download/)
+- [yq](https://github.com/mikefarah/yq)
 
-Environment variables should be set
+The steps described in this document was tested on the following versions:
 
-- `CLUSTER_NAME` : cluster name used when creating the install-config. It will be used to prefix resource names
+~~~bash
+$ ./openshift-install version
+./openshift-install 4.10.0-rc.0
+
+$ ./oc version
+Client Version: 4.10.0-rc.0
+Kubernetes Version: v1.22.3+fdba464
+
+$ aliyun version
+3.0.99
+
+$ jq --version
+jq-1.5
+
+$ yq --version
+yq 2.12.0
+~~~
+
+### Environment variables
+
+The following environment variables must be set:
+
+- `CLUSTER_NAME`: cluster name used when creating the install-config. It will be used to prefix resource names
 - `REGION` : AlibabaCloud region to setup resources. Should be the same used on install-config.
-- `PULL_SECRET` : path to credentials downloaded from Cloud Console.(ToDo provide a link)
-- `INSTALL_DIR` : installation directory
-- `ALIBABA_CLOUD_ACCESS_KEY_ID` : AlibabaCloud access key for programatic access
-- `ALIBABA_CLOUD_ACCESS_KEY_SECRET`: AlibabaCloud secret key for programatic access
+- `PULL_SECRET`: path to credentials downloaded from Cloud Console.
+- `INSTALL_DIR`: installation directory
+- `OCP_RELEASE`: OCP Release to be used. Example: `quay.io/openshift-release-dev/ocp-release:4.10.0-rc.0-x86_64`
 
-## create install config
+___
+## Create the install config
 
 - Create the base install-config
 
-```bash
+~~~bash
 ./openshift-install \
   create install-config --dir ${INSTALL_DIR}
-```
+~~~
 
 - Copy the base config to be customized
 
-```bash
+~~~bash
 cp ${INSTALL_DIR}/install-config.yaml ${PWD}/install-config-base.yaml
-```
+~~~
 
+___
 ## Customize the configuration
 
-You can skip this section if you don't want to customize the configuration
+Steps customize the OpenShift installation on AlibabaCloud creating the network resources, then updating the proper configuration on installer config.
+
+There are two network customizations described in this section:
+
+- Create a custom VPC
+- Create a custom VPC and VSwtiches
 
 ### Network customization: using existing VPC
+
+Steps to create a custom VPC using AlibabaCloud utility (aliyun), to be used on OpenShift installer.
 
 Installer option: `platform.alibabacloud.vpcID`
 
 - Set the env vars:
 
-```bash
+~~~bash
 VPC_NAME="${CLUSTER_NAME}-vpc"
 VPC_CIDR_BLOCK="10.0.0.0/16"
-```
+~~~
 
 - Create the VPC
 
-```bash
+~~~bash
 aliyun vpc CreateVpc \
     --RegionId "${REGION}" \
     --CidrBlock "${VPC_CIDR_BLOCK}" \
     --Description "OpenShift Cluster VPC" \
     --VpcName "${VPC_NAME}"
-```
+~~~
 
 - Get the VPC_ID
 
-```bash
+~~~bash
 VPC_ID="$(aliyun vpc DescribeVpcs \
     --RegionId "${REGION}" \
     --VpcName ${VPC_NAME} \
     |jq -r '.Vpcs.Vpc[].VpcId')"
 echo ${VPC_ID}
-```
+~~~
 
 - Update the installer-config with VPC_ID
 
-```bash
-# Update the config
+Update the config:
+
+~~~bash
 yq -y --in-place \
   ".platform.alibabacloud.vpcID=\"${VPC_ID}\"" \
   ${INSTALL_DIR}/install-config.yaml
+~~~
 
-# Check it
+Check the change:
+
+~~~bash
 yq .platform.alibabacloud.vpcID ${INSTALL_DIR}/install-config.yaml
-```
+~~~
+
+At this point, the VPC was created and the install-config is updated. The VSwitch creation is not required, you can move to section ["Run the installation"](#run-the-installation) if the goal is not to customize the VSwitches, then the installer will create the required network assets automatically.
 
 ### Network customization: using existing VSwitch
 
+Steps to create the custom VSwitchs into two Availability Zones in AlibabaCloud using the cli `aliyun`.
+
 Installer option: `platform.alibabacloud.vswitchIDs`
 
-- Create the VPC (section above)
+- Create the VPC: the section above is required to continue (section above)
 
 - Create the vSwitchs on zones A and B
 
-```bash
-# A
-ZONE_A_ID="${REGION}a"
-ZONE_A_CIDR="10.0.0.0/20"
+Zone A:
+
+~~~bash
+VSW_A_ZONE="${REGION}a"
+VSW_A_CIDR="10.0.0.0/20"
+VSW_A_NAME="${CLUSTER_NAME}-vsw-a"
+
 aliyun vpc CreateVSwitch \
   --RegionId "${REGION}"\
   --VpcId "${VPC_ID}" \
-  --CidrBlock "${ZONE_A_CIDR}"  \
-  --ZoneId "${ZONE_A_ID}" \
+  --CidrBlock "${VSW_A_CIDR}"  \
+  --ZoneId "${VSW_A_ZONE}" \
   --Description "vSwitch for cluster ${CLUSTER_NAME}"\
-  --VSwitchName "${CLUSTER_NAME}-vsw-a"
+  --VSwitchName "${VSW_A_NAME}"
+~~~
 
-# B
-ZONE_B_ID="${REGION}b"
-ZONE_B_CIDR="10.0.16.0/20"
+Zone B:
+
+~~~bash
+VSW_B_ZONE="${REGION}b"
+VSW_B_CIDR="10.0.16.0/20"
+VSW_B_NAME="${CLUSTER_NAME}-vsw-b"
+
 aliyun vpc CreateVSwitch \
   --RegionId "${REGION}"\
   --VpcId "${VPC_ID}" \
-  --CidrBlock "${ZONE_B_CIDR}"  \
-  --ZoneId "${ZONE_B_ID}" \
+  --CidrBlock "${VSW_B_CIDR}"  \
+  --ZoneId "${VSW_B_ZONE}" \
   --Description "vSwitch for cluster ${CLUSTER_NAME}"\
-  --VSwitchName "${CLUSTER_NAME}-vsw-b"
+  --VSwitchName "${VSW_B_NAME}"
+~~~
 
-# A2
-ZONE_A2_ID="${REGION}a"
-ZONE_A2_CIDR="10.0.32.0/20"
-aliyun vpc CreateVSwitch \
-  --RegionId "${REGION}"\
-  --VpcId "${VPC_ID}" \
-  --CidrBlock "${ZONE_A2_CIDR}"  \
-  --ZoneId "${ZONE_A2_ID}" \
-  --Description "vSwitch for cluster ${CLUSTER_NAME}"\
-  --VSwitchName "${CLUSTER_NAME}-vsw-a2"
+- Get the vSwitches IDs
 
-# B2
-ZONE_B2_ID="${REGION}b"
-ZONE_B2_CIDR="10.0.64.0/20"
-aliyun vpc CreateVSwitch \
-  --RegionId "${REGION}"\
-  --VpcId "${VPC_ID}" \
-  --CidrBlock "${ZONE_B2_CIDR}"  \
-  --ZoneId "${ZONE_B2_ID}" \
-  --Description "vSwitch for cluster ${CLUSTER_NAME}"\
-  --VSwitchName "${CLUSTER_NAME}-vsw-b2"
-```
-
-- Get the resources ID
-
-```bash
-# VSwitchs
-VSW_A=$(aliyun vpc DescribeVSwitches \
+~~~bash
+VSW_A_ID=$(aliyun vpc DescribeVSwitches \
   --RegionId "${REGION}"\
   --VSwitchName "${CLUSTER_NAME}-vsw-a" \
   | jq -r .VSwitches.VSwitch[].VSwitchId
 )
-VSW_B=$(aliyun vpc DescribeVSwitches \
+VSW_B_ID=$(aliyun vpc DescribeVSwitches \
   --RegionId "${REGION}"\
   --VSwitchName "${CLUSTER_NAME}-vsw-b" \
   | jq -r .VSwitches.VSwitch[].VSwitchId
 )
 
 echo "${VSW_A} ${VSW_B}"
-```
+~~~
 
 - Create EIP for NatGW
 
-```bash
+~~~bash
+OUT="out-eip-natgw.json"
 aliyun vpc AllocateEipAddress \
   --RegionId "${REGION}" \
   --Name "natgw" \
-  --InternetChargeType PayByTraffic > out.json
-eip_id=$(jq -r '.AllocationId' out.json)
-eip_addr=$(jq -r '.EipAddress' out.json)
-```
+  --InternetChargeType PayByTraffic > ${OUT}
 
-- Create the NatGW for each Zone (vSwitch) (ToDo]
+NATGW_EIP_ID=$(jq -r '.AllocationId' ${OUT})
+NATGW_EIP_ADDR=$(jq -r '.EipAddress' ${OUT})
+~~~
 
-```bash
-# AZ A
+- Create the Nat Gateway
+
+~~~bash
 aliyun vpc CreateNatGateway \
   --RegionId "${REGION}" \
   --VpcId "${VPC_ID}" \
@@ -184,373 +214,140 @@ aliyun vpc CreateNatGateway \
   --NatType "Enhanced" \
   --NetworkType "internet" \
   --SecurityProtectionEnabled false \
-  --VSwitchId ${VSW_A} \
+  --VSwitchId ${VSW_A_ID} \
   --Description "NatGW for VPC ${VPC_NAME}"
+~~~
 
-```
+- Get Nat Gateway resources identifiers
 
-- Get NatGW ID
-```bash
-# VSwitchs
-NGW=$(aliyun ecs DescribeNatGateways \
+Nat Gateway ID:
+
+~~~bash
+NATGW_ID=$(aliyun ecs DescribeNatGateways \
   --RegionId "${REGION}" \
   --VpcId "${VPC_ID}" |jq -r .NatGateways.NatGateway[].NatGatewayId
 )
 
-echo "${NGW}"
+echo "${NATGW_ID}"
+~~~
 
-NGW_SNAT_TB_ID="$(
-  aliyun vpc GetNatGatewayAttribute  --NatGatewayId $NGW |jq -r .SnatTable.SnatTableId
+Get the SNAT Table ID:
+
+~~~bash
+NATGW_SNAT_TB_ID="$(aliyun vpc GetNatGatewayAttribute \
+    --NatGatewayId $NATGW_ID |jq -r .SnatTable.SnatTableId
 )"
-```
+~~~
 
-- create eip
-```bash
+- Associate EIP to the Nat Gateway
+
+> You may need to wait for the Nat Gateway to finish the creation, otherwise, the following error message will be raised:
+> `NatGateway [$NATGW_ID] status is invalid.`
+
+~~~bash
 aliyun vpc AssociateEipAddress \
   --RegionId "${REGION}" \
-  --AllocationId ${eip_id} \
+  --AllocationId ${NATGW_EIP_ID} \
   --InstanceType 'Nat' \
-  --InstanceId "${NGW}"
-```
+  --InstanceId "${NATGW_ID}"
+~~~
 
-- associate SNAT entries for each vsw
+- Associate SNAT entries for each VSwitch
 
-```bash
+~~~bash
 aliyun vpc CreateSnatEntry \
   --RegionId "${REGION}" \
-  --SnatIp ${eip_addr} \
-  --SnatTableId ${NGW_SNAT_TB_ID} \
+  --SnatIp ${NATGW_EIP_ADDR} \
+  --SnatTableId ${NATGW_SNAT_TB_ID} \
   --SnatEntryName "SNAT-VSW-A" \
-  --SourceVSwitchId "${VSW_A}"
+  --SourceVSwitchId "${VSW_A_ID}"
 
 aliyun vpc CreateSnatEntry \
   --RegionId "${REGION}" \
-  --SnatIp ${eip_addr} \
-  --SnatTableId ${NGW_SNAT_TB_ID} \
+  --SnatIp ${NATGW_EIP_ADDR} \
+  --SnatTableId ${NATGW_SNAT_TB_ID} \
   --SnatEntryName "SNAT-VSW-B" \
-  --SourceVSwitchId "${VSW_B}"
-```
+  --SourceVSwitchId "${VSW_B_ID}"
+~~~
 
 
 - Update the installer-config with VPC_ID
 
-```bash
-# Update the config
+Update the config:
+
+~~~bash
 yq -y --in-place \
   ".platform.alibabacloud.vpcID=\"${VPC_ID}\"" \
   ${INSTALL_DIR}/install-config.yaml
 yq -y --in-place \
-  ".platform.alibabacloud.vswitchIDs=[\"${VSW_A}\",\"${VSW_B}\"]" \
+  ".platform.alibabacloud.vswitchIDs=[\"${VSW_A_ID}\",\"${VSW_B_ID}\"]" \
   ${INSTALL_DIR}/install-config.yaml
+~~~
 
-# Check it
+Check it:
+
+~~~bash
 yq .platform.alibabacloud ${INSTALL_DIR}/install-config.yaml
-```
+~~~
 
-### Restricted network customization
-
-Dependencies:
-
-- crete VPC with NatGW
-
-Steps:
-
-- Create SG
-
-```bash
-aliyun ecs CreateSecurityGroup \
-  --RegionId "${REGION}" \
-  --Description "mirror-registry" \
-  --SecurityGroupName "mirrorregistry" \
-  --VpcId "${VPC_ID}"
-
-SG_ID="$(
-  aliyun ecs DescribeSecurityGroups --SecurityGroupName "mirrorregistry" |jq -r .SecurityGroups.SecurityGroup[].SecurityGroupId
-)"
-
-aliyun ecs AuthorizeSecurityGroup \
-  --RegionId "${REGION}" \
-  --SecurityGroupId "${SG_ID}" \
-  --IpProtocol "tcp" \
-  --PortRange 22/22 \
-  --SourceCidrIp "0.0.0.0/0"
-
-# Quay
-aliyun ecs AuthorizeSecurityGroup \
-  --RegionId "${REGION}" \
-  --SecurityGroupId "${SG_ID}" \
-  --IpProtocol "tcp" \
-  --PortRange 8443/8443 \
-  --SourceCidrIp "0.0.0.0/0"
-
-# docker registry
-aliyun ecs AuthorizeSecurityGroup \
-  --RegionId "${REGION}" \
-  --SecurityGroupId "${SG_ID}" \
-  --IpProtocol "tcp" \
-  --PortRange 5000/5000 \
-  --SourceCidrIp "0.0.0.0/0"
-```
-
-- create key par
-
-```bash
-aliyun ecs ImportKeyPair \
-  --RegionId "${REGION}" \
-  --KeyPairName "$(whoami)" \
-  --PublicKeyBody "$(cat ${HOME}/.ssh/id_rsa.pub)"
-```
-
-- Create a mirror instance / local registry
-
-```bash
-# image: CentOS 8
-#image_id="m-0xi73vgiftq4g73n6vpl"
-# Fedora
-image_id="fedora_34_1_x64_20G_alibase_20211028.vhd"
-instance_name="mirror-registry2"
-aliyun ecs CreateInstance \
-  --InstanceType "ecs.g6.large" \
-  --RegionId "${REGION}" \
-  --Description "${instance_name}" \
-  --HostName "${instance_name}" \
-  --ImageId "${image_id}" \
-  --InstanceName "${instance_name}" \
-  --SecurityGroupId "${SG_ID}" \
-  --VSwitchId "${VSW_A}" \
-  --KeyPairName "$(whoami)" \
-  --SystemDisk.Size "1024G"
-
-IID=$(aliyun ecs DescribeInstances --InstanceName "${instance_name}"  |jq -r .Instances.Instance[].InstanceId)
-
-aliyun ecs StartInstance --InstanceId $IID
-
-aliyun vpc AllocateEipAddress \
-  --RegionId "${REGION}" \
-  --Name "${instance_name}" \
-  --InternetChargeType PayByTraffic > out_inst.json
-eip_inst_id=$(jq -r '.AllocationId' out_inst.json)
-eip_inst_addr=$(jq -r '.EipAddress' out_inst.json)
-
-aliyun ecs AssociateEipAddress \
-  --RegionId "${REGION}" \
-  --AllocationId ${eip_inst_id} \
-  --InstanceId "${IID}"
-```
-
-
-#### Install the local registry with "mirror-registry" tool
-
-> NOTE: this step is not working properly. Jump to use docker-registry tool
-
-Reference:
- - https://docs.openshift.com/container-platform/4.9/installing/installing-mirroring-installation-images.html#mirror-registry
- - https://docs.openshift.com/container-platform/4.9/installing/installing_aws/installing-restricted-networks-aws-installer-provisioned.html
-
-- Download the image-registry tool
-
-- Install dependences
-
-Fix Alibaba repos to use upstream (local repo is failing):
-
-```bash
-sed -i 's/^#mirror/mirror/' /etc/yum.repos.d/*.repo 
-sed -i 's/^baseurl/#baseurl/' /etc/yum.repos.d/*.repo 
-```
-
-- install dependencies and mirror-registry
-```
-sudo dnf install podman.x86_64
-sudo ./mirror-registry install -v
-```
-
-Download the OC cli:
-
-```bash
-wget https://openshift-release-artifacts.apps.ci.l2s4.p1.openshiftapps.com/4.10.0-rc.0/openshift-client-linux-4.10.0-rc.0.tar.gz
-tar xvfz openshift-client-linux-4.10.0-rc.0.tar.gz
-```
-
-Export release image:
-- from: https://openshift-release-artifacts.apps.ci.l2s4.p1.openshiftapps.com/4.10.0-rc.0/release.txt
-
-```bash
-export OCP_RELEASE="quay.io/openshift-release-dev/ocp-release@sha256:be7ff17230199b5c0ee9cd48a932ceb06145ced8fec1c7d31bfe2e1a36746830"
-export OCP_RELEASE_TAG="$(echo ${OCP_RELEASE} | cut -d: -f2)"
-
-#export OCP_LOCAL_RELEASE_BASE="${LOCAL_REGISTRY_IP}:8443/ocp/release"
-export REPO="${LOCAL_REGISTRY_IP}:8443/ocp"
-export OCP_LOCAL_RELEASE_BASE="${REPO}/release"
-export OCP_LOCAL_RELEASE_IMAGE="${OCP_LOCAL_RELEASE}:latest"
-
-export LOCAL_REGISTRY_PASS="<pass>"
-```
-
-Add the credentials to pull-secret.txt:
-
-```bash
-LOCAL_PASS=$(echo -n "init:<my-secret>" | base64 -w0)
-
-# add ${OCP_LOCAL_RELEASE} to pull-secret:
-"$OCP_LOCAL_RELEASE": {
-  "auth": "${LOCAL_PASS}"
-}
-```
-
-login to registry
-```bash
-podman login --authfile pull-secret.txt \
-  -u init \
-  -p ${LOCAL_REGISTRY_PASS} \
-  ${LOCAL_REGISTRY_IP}:8443 \
-  --tls-verify=false 
-```
-
-mirror the local release
-
-```bash
-./oc adm -a pull-secret.txt release mirror \
-  --insecure=true \
-  --from=${OCP_RELEASE} \
-  --to=${OCP_LOCAL_RELEASE_BASE}
-  | tee mirror.out
-```
-
-
-#### Install the local registry with "docker-registry" tool
-
-Install docker registry:
-
-```bash
-export LOCAL_REGISTRY_IP="$(nmcli d show eth0 |grep ^IP4.ADDRESS |awk '{print$2}' |sed 's/\/.*//')"
-
-CERT_PATH="/opt/registry/certs"
-mkdir -p ${CERT_PATH}
-
-CERT_KEY="${CERT_PATH}/server.key"
-CERT_CRT="${CERT_PATH}/server.crt"
-
-echo "Generating following cert files: "
-echo " - key : ${CERT_KEY}"
-echo " - cert: ${CERT_CRT}"
-
-openssl genrsa -out ${CERT_KEY} 2048
-
-openssl req -new -x509 -sha256 \
-    -key ${CERT_KEY} \
-    -out ${CERT_CRT} -days 3650
-
-
-# httpasswd
-sudo yum install httpd-tools -y
-AUTH_PATH="/opt/registry/auth"
-DATA_PATH="/opt/registry/data"
-mkdir -p $AUTH_PATH
-mkdir -p $DATA_PATH
-
-USER_NAME_REGISTRY="user"
-USER_PASS_REGISTRY="myp@ss"
-htpasswd -c -B -b ${AUTH_PATH}/htpasswd ${USER_NAME_REGISTRY} ${USER_PASS_REGISTRY}
-USER_ENC=$(echo -n "${USER_NAME_REGISTRY}:${USER_PASS_REGISTRY}" | base64 -w0)
-
-podman run \
-  --name docker-registry -p 5000:5000 \
-  -v /opt/registry/data:/var/lib/registry:z \
-  -v ${AUTH_PATH}:/auth \
-  -e "REGISTRY_AUTH=htpasswd" \
-  -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
-  -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
-  -v /opt/registry/certs:/certs:z \
-  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/server.crt \
-  -e REGISTRY_HTTP_TLS_KEY=/certs/server.key \
-  -d registry:2
-```
-
-Update the Pull secret with credentials
-```bash
-jq -r ".auths[\"${LOCAL_REGISTRY_IP}:5000\"]={\"auth\":\"$USER_ENC\"}" pull-secret.txt > pull-secret-new.txt
-```
-
-Test logging to the registry:
-```bash
-podman login --authfile pull-secret-new.txt -u ${USER_NAME_REGISTRY} -p ${USER_PASS_REGISTRY} --tls-verify=false ${LOCAL_REGISTRY_IP}:5000
-```
-
-Mirror to docker-registry:
-```
-./oc adm -a pull-secret-new.txt release mirror \
-  --insecure=true \
-  --from=${OCP_RELEASE} \
-  --to="${LOCAL_REGISTRY_IP}:5000/ocp"
-```
-
-To use the new mirrored repository to install, add the following section to the install-config.yaml:
-```yaml
-imageContentSources:
-- mirrors:
-  - 10.0.13.85:5000/ocp
-  source: quay.io/openshift-release-dev/ocp-release
-- mirrors:
-  - 10.0.13.85:5000/ocp
-  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
-
-```
-
-> ToDo setup a proxy
-
+___
 ## Run the installation
 
-### create manifests
+### Create manifests
 
-```bash
+~~~bash
 ./openshift-install create manifests \
   --log-level debug --dir ${INSTALL_DIR}
-```
+~~~
 
-### create RAM users for CCO
+### Create RAM users for CCO
+
+To setup CCO in manual mode, the Resource Access Management (RAM) Users need to be created and each Access Key ID will be created for each OpenShift component needs to interact with Cloud Provider.
+
+Those steps extract CredentialRequests from the release and process each one creating the required policy for each RAM User.
 
 - Extract credential requests from the release
 
-```bash
+~~~bash
 ./oc adm release extract \
   -a "${PULL_SECRET}" \
   --credentials-requests \
   --cloud=alibabacloud \
   --to="${PWD}/cco-credrequests" \
   "${OCP_RELEASE}"
-
-```
+~~~
 
 - Create the AlibabaCloud RAM Users for each component (CredentialRequest)
 
-```bash
+~~~bash
 ./ccoctl \
    alibabacloud \
    create-ram-users \
-  --region ${ALIBABA_REGION_ID} \
+  --region ${REGION} \
   --name $(awk '/infrastructureName:/{print $2}' ${INSTALL_DIR}/manifests/cluster-infrastructure-02-config.yml) \
   --credentials-requests-dir ${PWD}/cco-credrequests \
   --output-dir ${PWD}/cco-manifests
 
 cp -v ${PWD}/cco-manifests/manifests/* ${INSTALL_DIR}/manifests/
-```
+~~~
 
-### create cluster
+### Create cluster
 
-- Install the cluster
-```bash
+- Install the cluster:
+
+~~~bash
 ./openshift-install create cluster \
   --log-level debug --dir ${INSTALL_DIR}
-```
+~~~
 
-- Check the installation
+- Check the installation:
 
-```bash
+~~~bash
 oc get nodes
 oc get clusteroperators
 oc get machines -n openshift-machine-api
 oc get clusterversion
-```
+~~~
 
 ## Destroy the cluster
 
@@ -558,28 +355,20 @@ oc get clusterversion
 
 Remove AlibabaCloud RAM users created by CCO.
 
-- Get the cluster Id
+- Remove RAM users:
 
-
-```bash
-# Change to yours
-CLUSTER_ID="ocpte-85kdk"
-```
-
-- Remove RAM users
-
-```bash
+~~~bash
 ./ccoctl alibabacloud delete-ram-users \
-  --name=${CLUSTER_ID} \
+  --name=${CLUSTER_NAME} \
   --region=${REGION} 
-```
+~~~
 
 ### Destroy the cluster
 
-```bash
+~~~bash
 ./openshift-install destroy cluster \
   --log-level debug --dir ${INSTALL_DIR}
-```
+~~~
 
 ## References
 
