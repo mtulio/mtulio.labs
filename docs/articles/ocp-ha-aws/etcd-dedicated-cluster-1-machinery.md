@@ -41,6 +41,25 @@ metadata:
   uid:
 ```
 
+2. b: Remove the machine-config-daemon systemd units:
+
+- machine-config-daemon-firstboot.service
+- machine-config-daemon-pull.service
+```diff
+-       - contents: |
+-          [Unit]
+-          Description=Machine Config Daemon Firstboot
+[...]
+-        enabled: true
+-        name: machine-config-daemon-firstboot.service
+-
+-      - contents: |
+-          [Unit]
+[...]
+-        enabled: true
+-        name: machine-config-daemon-pull.service
+```
+
 3. Update the attributes from `master` to `etcd`:
 
 ```yaml
@@ -157,8 +176,7 @@ NAME              GENERATEDBYCONTROLLER   IGNITIONVERSION   AGE
 1. Create the MachineConfig manifest for ImageRegistry
 
 ```bash
-oc get machineconfig 99-master-generated-registries -o yaml > mc-99-master-generated-registries.yaml
-cp mc-99-master-generated-registries.yaml mc-99-etcd-generated-registries.yaml
+oc get machineconfig 99-master-generated-registries -o yaml > mc-99-etcd-generated-registries.yaml
 ```
 
 2. Edit the manifest and remove the attributes:
@@ -333,7 +351,8 @@ rendered-etcd-0073a8d93ab97875b0b98e6dc9e82277     14a1ca2cb91ff7e0faf9146b21ba1
 1. Create the machine manifest based on the current master
 
 ```
-oc get machine lab-x99n4-master-0 -o yaml > machine-lab-x99n4-etcd-0.yaml
+CLUSTER_ID="$(oc get infrastructure cluster -o jsonpath="{.status.infrastructureName}")"
+oc get machine ${CLUSTER_ID}-master-0 -o yaml > machine-${CLUSTER_ID}-etcd-0.yaml
 ```
 
 2. Edit the manifest and remove the attributes:
@@ -389,7 +408,7 @@ spec:
             arn: ""
           volumeType: gp3
           volumeSize: 64
-status: *
+
 ```
 
 Notes: 
@@ -435,7 +454,7 @@ jq -r '.ignition.config.merge[].source="https://api-int.lab.devcluster.openshift
 
 Make sure the URL was updated:
 ```
-$ jq .ignition.config.merge[].source etcd-userData-raw-with-etcd.json 
+$ jq -r .ignition.config.merge[].source etcd-userData-raw-with-etcd.json 
 "https://api-int.lab.devcluster.openshift.com:22623/config/etcd"
 
 ```
@@ -459,11 +478,17 @@ $ jq -r .userData etcd-userData-secret-with-etcd.json |base64 -d |jq .ignition.c
 
 Create the secret `etcd-user-data`
 
-```
+```bash
 oc create secret generic etcd-user-data \
     --from-literal=userData=$(awk -v ORS= -v OFS= '{$1=$1}1' ./etcd-userData-raw-with-etcd.json) \
     --from-literal=disableTemplating=$(jq -r .disableTemplating etcd-userData-secret.json |base64 -d) \
     -n openshift-machine-api
+```
+
+Check if the endpoint is correct on the secret: 
+
+```bash
+oc get secrets -n openshift-machine-api etcd-user-data -o json |jq -r .data.userData |base64 -d |jq .ignition.config.merge
 ```
 
 5. Create MachineConfig to mount the new block device on etcd path
@@ -506,26 +531,60 @@ spec:
             [Install]
             WantedBy=local-fs.target
 EOF
-
-
-oc create -f mc-00-etcd.yaml -n openshift-machine-api
-oc create -f mc-01-etcd-container-runtime.yaml
-oc create -f mc-01-etcd-kubelet.yaml
-oc create -f mc-99-etcd-generated-registries.yaml
-oc create -f mc-99-etcd-ssh.yaml
-oc create -f mcp-etcd.yaml
 ```
 
 Check it:
 
 ```
 $ oc get mc 00-etcd-disk --show-labels
-``'
-
-Create the MachineConfig:
-```yaml
-oc create -f mc-99-etcd-disk.yaml
 ```
+
+Create the Machine
+
+```bash
+oc create -f machine-${CLUSTER_ID}-etcd-0.yaml
+```
+
+Follow the Machine creation:
+
+```
+ $ oc get machines -l machine.openshift.io/cluster-api-machine-role=etcd -w
+NAME               PHASE         TYPE         REGION      ZONE         AGE
+lab-mh2g5-etcd-0   Provisioned   c5n.xlarge   us-east-1   us-east-1a   31s
+lab-mh2g5-etcd-0   Running       c5n.xlarge   us-east-1   us-east-1a   3m32s
+```
+
+Check if the Node is Ready:
+
+```bash
+$ oc get node -l node-role.kubernetes.io/etcd= -w
+
+NAME                          STATUS     ROLES   AGE   VERSION
+ip-10-0-140-17.ec2.internal   NotReady   etcd    0s    v1.23.3+2e8bad7
+ip-10-0-140-17.ec2.internal   Ready      etcd    20s   v1.23.3+2e8bad7
+```
+
+Create the second node manifest:
+
+```bash
+sed 's/etcd-0/etcd-1/' machine-${CLUSTER_ID}-etcd-0.yaml > machine-${CLUSTER_ID}-etcd-1.yaml
+```
+
+Adjust the config:
+- Zone ID
+
+```bash
+sed -i 's/us-east-1a/us-east-1b/g' machine-${CLUSTER_ID}-etcd-1.yaml
+```
+
+OR just creaete without saving the manifest:
+```bash
+oc create -f machine-${CLUSTER_ID}-etcd-1.yaml
+```
+
+
+ToDo pods should be removed:
+- machine-config-daemon-755t9
 
 
 
