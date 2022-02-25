@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-lb
+spec:
+  type: LoadBalancer
+  ports:
+    - name: hello-lb-tcp
+      port: 80
+      targetPort: 8080
+    # - name: hello-lb-udp
+    #   port: 81
+    #   targetPort: 8081
+    #   protocol: UDP
+  selector:
+    app: hello1
