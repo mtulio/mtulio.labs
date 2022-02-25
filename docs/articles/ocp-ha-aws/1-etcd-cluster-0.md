@@ -1,6 +1,8 @@
 ## Deploying High Scale OpenShift Cluster on AWS | etcd offload from Control Plane
 
 <!---
+State: WIP
+
 Goals:
 
 - Offload etcd cluster to dedicated nodes
@@ -43,3 +45,5 @@ Link references should be here
 [k8s-ha-kubeadm]: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
 [kas-cli-doc]: https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
 [aws-design-az-affinity]: [https://aws.amazon.com/blogs/architecture/improving-performance-and-reducing-cost-using-availability-zone-affinity/]
+
+[rke-ha]: https://www.rancher.co.jp/learning-paths/building-a-highly-available-kubernetes-cluster/

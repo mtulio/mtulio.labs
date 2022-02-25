@@ -1,6 +1,8 @@
 ## Deploying High Scale OpenShift Cluster on AWS | etcd cluster offload from Control Plane | Machinery
 
 <!---
+State: WIP
+
 Goals:
 
 - Describe steps to create the MAPI objects: MachineConfig, MachineConfigPool and Machine
@@ -21,6 +23,105 @@ Steps:
   - Create a second disk for etcd
   - Create systemd unit files to mount etcd
   - Create two machines which will initially join to the existing cluster
+
+#### MachineConfigPool for etcd cluster
+
+> Note: the MCP could be created after MCs, but there's some events on MCO which did not found MCs. So I created this before all MCs
+
+1. Create the MachineConfig manifest for SSH
+
+```bash
+oc get machineconfigpool master -o yaml > mcp-etcd.yaml
+```
+
+2. Edit the manifest and remove the attributes:
+
+```yaml
+metadata:
+  creationTimestamp:
+  generation:
+  resourceVersion:
+  uid:
+spec:
+  configuration:
+status: *
+```
+
+3. On `mcp-etcd.yaml`, update to `etcd` role:
+
+```yaml
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  labels:
+    machineconfiguration.openshift.io/mco-built-in: ""
+    operator.machineconfiguration.openshift.io/required-for-upgrade: ""
+    pools.operator.machineconfiguration.openshift.io/etcd: ""
+  name: etcd
+spec:
+  machineConfigSelector:
+    matchLabels:
+      machineconfiguration.openshift.io/role: etcd
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/etcd: ""
+  paused: false
+
+```
+
+4. Create the MachineConfigPool:
+
+```
+$ oc create -f mcp-etcd.yaml
+
+$ oc get mcp etcd
+NAME   CONFIG                                           UPDATED   UPDATING   DEGRADED   MACHINECOUNT   READYMACHINECOUNT   UPDATEDMACHINECOUNT   DEGRADEDMACHINECOUNT   AGE
+etcd   rendered-etcd-c1baf9f5d09a1f8068a5171c7a907d35   True      False      False      0              0                   0                     0                      22s
+```
+
+<!-- 5. Make sure that the MachineConfig previously will be discovered and the rendered MachineConfig will be created
+
+Check the MachineConfigPool configuration:
+```
+$ oc get mcp etcd  -o json |jq .spec.configuration
+{
+  "name": "rendered-etcd-0073a8d93ab97875b0b98e6dc9e82277",
+  "source": [
+    {
+      "apiVersion": "machineconfiguration.openshift.io/v1",
+      "kind": "MachineConfig",
+      "name": "00-etcd"
+    },
+    {
+      "apiVersion": "machineconfiguration.openshift.io/v1",
+      "kind": "MachineConfig",
+      "name": "01-etcd-container-runtime"
+    },
+    {
+      "apiVersion": "machineconfiguration.openshift.io/v1",
+      "kind": "MachineConfig",
+      "name": "01-etcd-kubelet"
+    },
+    {
+      "apiVersion": "machineconfiguration.openshift.io/v1",
+      "kind": "MachineConfig",
+      "name": "99-etcd-generated-registries"
+    },
+    {
+      "apiVersion": "machineconfiguration.openshift.io/v1",
+      "kind": "MachineConfig",
+      "name": "99-etcd-ssh"
+    }
+  ]
+}
+```
+
+Rendered MachineConfig for etcd:
+
+```
+$ oc get mc |grep ^rendered-etcd
+rendered-etcd-0073a8d93ab97875b0b98e6dc9e82277     14a1ca2cb91ff7e0faf9146b21ba12cd6c652d22   3.2.0             4m53s
+``` -->
 
 #### MachineConfig base
 
@@ -215,8 +316,7 @@ NAME                           GENERATEDBYCONTROLLER   IGNITIONVERSION   AGE
 1. Create the MachineConfig manifest for SSH
 
 ```bash
-oc get machineconfig 99-master-ssh -o yaml > mc-99-master-ssh.yaml
-cp mc-99-master-ssh.yaml mc-99-etcd-ssh.yaml
+oc get machineconfig 99-master-ssh -o yaml > mc-99-etcd-ssh.yaml
 ```
 
 2. Edit the manifest and remove the attributes:
@@ -249,102 +349,7 @@ NAME          GENERATEDBYCONTROLLER   IGNITIONVERSION   AGE
 99-etcd-ssh                           3.2.0             12s
 ```
 
-#### MachineConfigPool for etcd cluster
 
-1. Create the MachineConfig manifest for SSH
-
-```bash
-oc get machineconfigpool master -o yaml > mcp-etcd.yaml
-```
-
-2. Edit the manifest and remove the attributes:
-
-```yaml
-metadata:
-  creationTimestamp:
-  generation:
-  resourceVersion:
-  uid:
-spec:
-  configuration:
-status: *
-```
-
-3. On `mcp-etcd.yaml`, update to `etcd` role:
-
-```yaml
-apiVersion: machineconfiguration.openshift.io/v1
-kind: MachineConfigPool
-metadata:
-  labels:
-    machineconfiguration.openshift.io/mco-built-in: ""
-    operator.machineconfiguration.openshift.io/required-for-upgrade: ""
-    pools.operator.machineconfiguration.openshift.io/etcd: ""
-  name: etcd
-spec:
-  machineConfigSelector:
-    matchLabels:
-      machineconfiguration.openshift.io/role: etcd
-  nodeSelector:
-    matchLabels:
-      node-role.kubernetes.io/etcd: ""
-  paused: false
-
-```
-
-4. Create the MachineConfigPool:
-
-```
-$ oc create -f mcp-etcd.yaml
-
-$ oc get mcp etcd
-NAME   CONFIG                                           UPDATED   UPDATING   DEGRADED   MACHINECOUNT   READYMACHINECOUNT   UPDATEDMACHINECOUNT   DEGRADEDMACHINECOUNT   AGE
-etcd   rendered-etcd-c1baf9f5d09a1f8068a5171c7a907d35   True      False      False      0              0                   0                     0                      22s
-```
-
-5. Make sure that the MachineConfig previously will be discovered and the rendered MachineConfig will be created
-
-Check the MachineConfigPool configuration:
-```
-$ oc get mcp etcd  -o json |jq .spec.configuration
-{
-  "name": "rendered-etcd-0073a8d93ab97875b0b98e6dc9e82277",
-  "source": [
-    {
-      "apiVersion": "machineconfiguration.openshift.io/v1",
-      "kind": "MachineConfig",
-      "name": "00-etcd"
-    },
-    {
-      "apiVersion": "machineconfiguration.openshift.io/v1",
-      "kind": "MachineConfig",
-      "name": "01-etcd-container-runtime"
-    },
-    {
-      "apiVersion": "machineconfiguration.openshift.io/v1",
-      "kind": "MachineConfig",
-      "name": "01-etcd-kubelet"
-    },
-    {
-      "apiVersion": "machineconfiguration.openshift.io/v1",
-      "kind": "MachineConfig",
-      "name": "99-etcd-generated-registries"
-    },
-    {
-      "apiVersion": "machineconfiguration.openshift.io/v1",
-      "kind": "MachineConfig",
-      "name": "99-etcd-ssh"
-    }
-  ]
-}
-```
-
-Rendered MachineConfig for etcd:
-
-```
-$ oc get mc |grep ^rendered-etcd
-rendered-etcd-0073a8d93ab97875b0b98e6dc9e82277     14a1ca2cb91ff7e0faf9146b21ba12cd6c652d22   3.2.0             4m53s
-```
 
 #### Machine for etcd cluster
 
@@ -352,7 +357,7 @@ rendered-etcd-0073a8d93ab97875b0b98e6dc9e82277     14a1ca2cb91ff7e0faf9146b21ba1
 
 ```
 CLUSTER_ID="$(oc get infrastructure cluster -o jsonpath="{.status.infrastructureName}")"
-oc get machine ${CLUSTER_ID}-master-0 -o yaml > machine-${CLUSTER_ID}-etcd-0.yaml
+oc get machine ${CLUSTER_ID}-master-0 -o yaml -n openshift-machine-api > machine-${CLUSTER_ID}-etcd-0.yaml
 ```
 
 2. Edit the manifest and remove the attributes:
@@ -437,7 +442,7 @@ This is the endpoint of MachineConfigServer which should be poiting to `etcd` re
 Extract the master's userData secret:
 
 ```
-$ oc get secrets -n openshift-machine-api master-user-data -o jsonpath="{.data}"  > etcd-userData-secret.json
+oc get secrets -n openshift-machine-api master-user-data -o jsonpath="{.data}"  > etcd-userData-secret.json
 ```
 
 Extract the userData payload:
@@ -460,7 +465,7 @@ $ jq -r .ignition.config.merge[].source etcd-userData-raw-with-etcd.json
 ```
 
 Update the secret data
-```
+```bash
 USER_DATA_ENC=$(cat etcd-userData-raw-with-etcd.json |base64 --wrap=0)
 jq -r ".userData=\"${USER_DATA_ENC}\"" etcd-userData-secret.json > etcd-userData-secret-with-etcd.json
 ```
@@ -542,13 +547,13 @@ $ oc get mc 00-etcd-disk --show-labels
 Create the Machine
 
 ```bash
-oc create -f machine-${CLUSTER_ID}-etcd-0.yaml
+oc create -f machine-${CLUSTER_ID}-etcd-0.yaml -n openshift-machine-api
 ```
 
 Follow the Machine creation:
 
 ```
- $ oc get machines -l machine.openshift.io/cluster-api-machine-role=etcd -w
+ $ oc get machines -l machine.openshift.io/cluster-api-machine-role=etcd -w -n openshift-machine-api
 NAME               PHASE         TYPE         REGION      ZONE         AGE
 lab-mh2g5-etcd-0   Provisioned   c5n.xlarge   us-east-1   us-east-1a   31s
 lab-mh2g5-etcd-0   Running       c5n.xlarge   us-east-1   us-east-1a   3m32s
@@ -564,7 +569,7 @@ ip-10-0-140-17.ec2.internal   NotReady   etcd    0s    v1.23.3+2e8bad7
 ip-10-0-140-17.ec2.internal   Ready      etcd    20s   v1.23.3+2e8bad7
 ```
 
-Create the second node manifest:
+Create the second machine manifest:
 
 ```bash
 sed 's/etcd-0/etcd-1/' machine-${CLUSTER_ID}-etcd-0.yaml > machine-${CLUSTER_ID}-etcd-1.yaml
@@ -577,15 +582,14 @@ Adjust the config:
 sed -i 's/us-east-1a/us-east-1b/g' machine-${CLUSTER_ID}-etcd-1.yaml
 ```
 
-OR just creaete without saving the manifest:
+Create the machine:
 ```bash
 oc create -f machine-${CLUSTER_ID}-etcd-1.yaml
 ```
 
 
-ToDo pods should be removed:
+ToDos pods should be removed:
 - machine-config-daemon-755t9
-
 
 
 [cluster-api-machine]: https://cluster-api.sigs.k8s.io/developer/architecture/controllers/machine.html

@@ -1,6 +1,8 @@
 ## Deploying High Scale OpenShift Cluster on AWS | Workload Groups
 
 <!---
+State: WIP
+
 Goals:
 
 - Share what is the idea of Workload Groups[1], why use it instead of
@@ -25,4 +27,19 @@ References:
 [aws-eks-asg-guide]: https://docs.aws.amazon.com/eks/latest/userguide/autoscaling.html
 [aws-blog-k8s-asg]: https://aws.amazon.com/blogs/containers/amazon-eks-cluster-multi-zone-auto-scaling-groups/
 [karpenter]: https://karpenter.sh/v0.6.1/
+
+
+## Steps
+
+- Deploy ClusterAutoScaler
+
+- Deploy Karpenter
+
+- EKS notes
+
+## OpenShift Cluster AutoScaler
+
+- It's limited to one CA by cluster, named "default"
+- It's linked to one MachineAutoScaler, which is linked to one MachineSet, which is linked to only one InstanceType or AZ
+
 

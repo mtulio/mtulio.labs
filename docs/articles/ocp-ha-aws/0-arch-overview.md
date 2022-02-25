@@ -2,6 +2,8 @@
 
 
 <!---
+State: WIP
+
 Goals:
 
 - Describe the architecture from original and target cluster
