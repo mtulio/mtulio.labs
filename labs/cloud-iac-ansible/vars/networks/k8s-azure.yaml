@@ -1,0 +1,234 @@
+################################
+# AWS Networks
+# AWS us-east-1: 10.82.0.0/16 (to 10.82.255.255/16)
+# AWS <unassigned>: 10.23.0.0/16 (to 10.23.255.255/19)
+
+################
+## AWS us-east-1:
+##> Public NAT GW
+### 10.82.0.0/28 : k8s-net-public-natgw-use1-1a
+### 10.82.0.16/28 : k8s-net-public-natgw-use1-1b (Not created)
+### 10.82.0.32/28 : k8s-net-public-natgw-use1-1c (Not created)
+### 10.82.0.48/28 : k8s-net-public-natgw-use1-1d (Not created)
+### 10.82.0.64/28 : k8s-net-public-natgw-use1-1e (Not created)
+### 10.82.0.80/28 : k8s-net-public-natgw-use1-1f (Not created)
+### 10.82.0.96-242/27: Spare subnet capacity (Not created)
+
+##> Public LB
+### 10.82.1.0/24 : k8s-net-public-lb-use1-1a
+### 10.82.2.0/24 : k8s-net-public-lb-use1-1b
+### 10.82.3.0/24 : k8s-net-public-lb-use1-1c
+### 10.82.4.0/24 : k8s-net-public-lb-use1-1d
+### 10.82.5.0/24 : k8s-net-public-lb-use1-1e
+### 10.82.6.0/24 : k8s-net-public-lb-use1-1f
+### 10.82.7.0/24 : Spare subnet capacity (Not created)
+
+##> Private LB
+### 10.82.8.0/24  : k8s-net-private-lb-use1-1a
+### 10.82.9.0/24  : k8s-net-private-lb-use1-1b
+### 10.82.10.0/24 : k8s-net-private-lb-use1-1c
+### 10.82.11.0/24 : k8s-net-private-lb-use1-1d
+### 10.82.12.0/24 : k8s-net-private-lb-use1-1e
+### 10.82.13.0/24 : k8s-net-private-lb-use1-1f
+### 10.82.14-15.0/24: Spare subnet capacity (Not created)
+
+##> Public Nodes
+### 10.82.16.0/22 : k8s-net-public-nodes-use1-1a
+### 10.82.20.0/22 : k8s-net-public-nodes-use1-1b
+### 10.82.24.0/22 : k8s-net-public-nodes-use1-1c
+### 10.82.28.0/22 : k8s-net-public-nodes-use1-1d
+### 10.82.32.0/22 : k8s-net-public-nodes-use1-1e
+### 10.82.36.0/22 : k8s-net-public-nodes-use1-1f
+### 10.82.40-44.0/22: Spare subnet capacity: 4 net /22 (Not created)
+
+##> Private Nodes
+### 10.82.48.0/22 : k8s-net-private-nodes-use1-1a
+### 10.82.52.0/22 : k8s-net-private-nodes-use1-1b
+### 10.82.56.0/22 : k8s-net-private-nodes-use1-1c
+### 10.82.60.0/22 : k8s-net-private-nodes-use1-1d
+### 10.82.64.0/22 : k8s-net-private-nodes-use1-1e
+### 10.82.68.0/22 : k8s-net-private-nodes-use1-1f
+### 10.82.72-76.0/22: Spare subnet capacity: 4 net /22 (Not created)
+
+#########################
+cloud_vpc:
+  ## AWS South East 1
+  - name: k8s-vpc-use1
+    block: 10.82.0.0/16
+    provider: aws
+    region: us-east-1
+    igw: yes
+    nat_gw: yes
+    nat_gw_subnet: k8s-net-public-natgw-use1-1a
+    nat_gw_name: search-natgw-1a
+    security_groups: "{{ security_groups | d([]) }}"
+    routes:
+      - name: k8s-rt-private
+        table:
+          - dest: 0.0.0.0/0
+            gateway_id: natgw
+          # - dest: 10.50.0.0/16
+          #   peering: k8s-vpc-use1-to-core-vpc
+          # - dest: 172.28.0.0/16
+          #   peering: k8s-vpc-use1-to-plat-prod-us-east-1
+      - name: k8s-rt-public
+        table:
+          - dest: 0.0.0.0/0
+            gateway_id: igw
+          # - dest: 10.50.0.0/16
+          #   peering: k8s-vpc-use1-to-core-vpc
+          # - dest: 172.28.0.0/16
+          #   peering: k8s-vpc-use1-to-plat-prod-us-east-1
+      - name: k8s-rt-natgw
+        table:
+          - dest: 0.0.0.0/0
+            gateway_id: igw
+    subnets:
+      - name: k8s-net-public-natgw-use1-1a
+        az: us-east-1a
+        cidr: 10.82.0.0/28
+        route: k8s-rt-natgw
+        public_ip: true
+
+      - name: k8s-net-public-lb-use1-1a
+        az: us-east-1a
+        cidr: 10.82.1.0/24
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-lb-use1-1b
+        az: us-east-1b
+        cidr: 10.82.2.0/24
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-lb-use1-1c
+        az: us-east-1c
+        cidr: 10.82.3.0/24
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-lb-use1-1d
+        az: us-east-1d
+        cidr: 10.82.4.0/24
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-lb-use1-1e
+        az: us-east-1e
+        cidr: 10.82.5.0/24
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-lb-use1-1f
+        az: us-east-1f
+        cidr: 10.82.6.0/24
+        route: k8s-rt-public
+        public_ip: true
+
+      - name: k8s-net-private-lb-use1-1a
+        az: us-east-1a
+        cidr: 10.82.8.0/24
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-lb-use1-1b
+        az: us-east-1b
+        cidr: 10.82.9.0/24
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-lb-use1-1c
+        az: us-east-1c
+        cidr: 10.82.10.0/24
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-lb-use1-1d
+        az: us-east-1d
+        cidr: 10.82.11.0/24
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-lb-use1-1e
+        az: us-east-1e
+        cidr: 10.82.12.0/24
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-lb-use1-1f
+        az: us-east-1f
+        cidr: 10.82.13.0/24
+        route: k8s-rt-private
+        public_ip: false
+
+      - name: k8s-net-public-nodes-use1-1a
+        az: us-east-1a
+        cidr: 10.82.16.0/22
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-nodes-use1-1b
+        az: us-east-1b
+        cidr: 10.82.20.0/22
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-nodes-use1-1c
+        az: us-east-1c
+        cidr: 10.82.24.0/22
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-nodes-use1-1d
+        az: us-east-1d
+        cidr: 10.82.28.0/22
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-nodes-use1-1e
+        az: us-east-1e
+        cidr: 10.82.32.0/22
+        route: k8s-rt-public
+        public_ip: true
+      - name: k8s-net-public-nodes-use1-1f
+        az: us-east-1f
+        cidr: 10.82.36.0/22
+        route: k8s-rt-public
+        public_ip: true
+
+      - name: k8s-net-private-nodes-use1-1a
+        az: us-east-1a
+        cidr: 10.82.48.0/22
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-nodes-use1-1b
+        az: us-east-1b
+        cidr: 10.82.52.0/22
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-nodes-use1-1c
+        az: us-east-1c
+        cidr: 10.82.56.0/22
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-nodes-use1-1d
+        az: us-east-1d
+        cidr: 10.82.60.0/22
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-nodes-use1-1e
+        az: us-east-1e
+        cidr: 10.82.64.0/22
+        route: k8s-rt-private
+        public_ip: false
+      - name: k8s-net-private-nodes-use1-1f
+        az: us-east-1f
+        cidr: 10.82.68.0/22
+        route: k8s-rt-private
+        public_ip: false
+
+    # peers:
+    #   - peer_owner_id: 123456789
+    #     peer_vpc_id: vpc-a321
+    #     peer_region: us-east-1
+    #     tags:
+    #       Name: k8s-vpc-use1-to-core-vpc
+    #   - peer_owner_id: 123456789
+    #     peer_vpc_id: vpc-a123
+    #     peer_region: us-east-1
+    #     tags:
+    #       Name: k8s-vpc-use1-to-plat-prod-us-east-1
+
+    # >=2.4
+    # endpoint_services:
+    #  - name: com.amazonaws.us-east-1.s3
+    #    route_table_names:
+    #      - k8s-rt-public
+    #      - k8s-rt-private
