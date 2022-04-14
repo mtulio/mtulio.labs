@@ -51,7 +51,7 @@
 ### 10.82.72-76.0/22: Spare subnet capacity: 4 net /22 (Not created)
 
 #########################
-cloud_vpc:
+cloud_networks:
   ## AWS South East 1
   - name: k8s-vpc-use1
     block: 10.82.0.0/16
@@ -88,131 +88,131 @@ cloud_vpc:
         az: us-east-1a
         cidr: 10.82.0.0/28
         route: k8s-rt-natgw
-        public_ip: true
+        map_public: yes
 
       - name: k8s-net-public-lb-use1-1a
         az: us-east-1a
         cidr: 10.82.1.0/24
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-lb-use1-1b
         az: us-east-1b
         cidr: 10.82.2.0/24
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-lb-use1-1c
         az: us-east-1c
         cidr: 10.82.3.0/24
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-lb-use1-1d
         az: us-east-1d
         cidr: 10.82.4.0/24
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-lb-use1-1e
         az: us-east-1e
         cidr: 10.82.5.0/24
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-lb-use1-1f
         az: us-east-1f
         cidr: 10.82.6.0/24
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
 
       - name: k8s-net-private-lb-use1-1a
         az: us-east-1a
         cidr: 10.82.8.0/24
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-lb-use1-1b
         az: us-east-1b
         cidr: 10.82.9.0/24
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-lb-use1-1c
         az: us-east-1c
         cidr: 10.82.10.0/24
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-lb-use1-1d
         az: us-east-1d
         cidr: 10.82.11.0/24
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-lb-use1-1e
         az: us-east-1e
         cidr: 10.82.12.0/24
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-lb-use1-1f
         az: us-east-1f
         cidr: 10.82.13.0/24
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
 
       - name: k8s-net-public-nodes-use1-1a
         az: us-east-1a
         cidr: 10.82.16.0/22
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-nodes-use1-1b
         az: us-east-1b
         cidr: 10.82.20.0/22
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-nodes-use1-1c
         az: us-east-1c
         cidr: 10.82.24.0/22
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-nodes-use1-1d
         az: us-east-1d
         cidr: 10.82.28.0/22
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-nodes-use1-1e
         az: us-east-1e
         cidr: 10.82.32.0/22
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
       - name: k8s-net-public-nodes-use1-1f
         az: us-east-1f
         cidr: 10.82.36.0/22
         route: k8s-rt-public
-        public_ip: true
+        map_public: yes
 
       - name: k8s-net-private-nodes-use1-1a
         az: us-east-1a
         cidr: 10.82.48.0/22
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-nodes-use1-1b
         az: us-east-1b
         cidr: 10.82.52.0/22
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-nodes-use1-1c
         az: us-east-1c
         cidr: 10.82.56.0/22
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-nodes-use1-1d
         az: us-east-1d
         cidr: 10.82.60.0/22
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-nodes-use1-1e
         az: us-east-1e
         cidr: 10.82.64.0/22
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
       - name: k8s-net-private-nodes-use1-1f
         az: us-east-1f
         cidr: 10.82.68.0/22
         route: k8s-rt-private
-        public_ip: false
+        map_public: no
 
     # peers:
     #   - peer_owner_id: 123456789
@@ -226,9 +226,9 @@ cloud_vpc:
     #     tags:
     #       Name: k8s-vpc-use1-to-plat-prod-us-east-1
 
-    # >=2.4
-    # endpoint_services:
-    #  - name: com.amazonaws.us-east-1.s3
-    #    route_table_names:
-    #      - k8s-rt-public
-    #      - k8s-rt-private
+    endpoint_services:
+      - name: s3
+        service: com.amazonaws.us-east-1.s3
+        route_table_names:
+          - k8s-rt-public
+          - k8s-rt-private
