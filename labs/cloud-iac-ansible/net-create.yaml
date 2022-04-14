@@ -1,0 +1,17 @@
+---
+- hosts: localhost
+  
+  # To skip prompt, define the extra-arg 'name'
+  vars_prompt:
+    - name: provider
+      prompt: What is the cloud provider name?
+      private: no
+    - name: name
+      prompt: What is the network name?
+      private: no
+
+  pre_tasks:
+    - include_vars: "vars/networks/{{ name }}-{{ provider }}.yaml"
+
+  roles:
+    - role: mtulio.cloud-vpc
