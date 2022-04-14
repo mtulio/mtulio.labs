@@ -1,11 +1,11 @@
 ---
 - hosts: localhost
   
+  # To skip prompt, define the extra-arg 'name'
   vars_prompt:
     - name: name
       prompt: What network name?
       private: no
-      when: 'name is not defined'
 
   pre_tasks:
     - include_vars: "vars/networks/{{ name }}-aws.yaml"
