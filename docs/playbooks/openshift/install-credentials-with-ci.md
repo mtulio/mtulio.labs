@@ -27,7 +27,7 @@ Steps:
 
 - Set env vars
 
-``` shell
+```bash
 TS="$(date +%Y%m%d%H%M)"
 BASE_DIR="${HOME}/.openshift"
 export PULL_SECRET_BKP="${BASE_DIR}/pull-secret-${TS}-bkp.json"
@@ -39,7 +39,7 @@ mkdir -p ${BASE_DIR}
 
 - Download the pull secret from portal and save it on `${PULL_SECRET_BKP}`
 
-Direct link to [AWS IPI](https://console.redhat.com/openshift/install/aws/installer-provisioned)
+> Direct link to [AWS IPI](https://console.redhat.com/openshift/install/aws/installer-provisioned)
 
 - [Login to CI Cluster to retrieve a token](https://oauth-openshift.apps.ci.l2s4.p1.openshiftapps.com/oauth/token/display)
 
