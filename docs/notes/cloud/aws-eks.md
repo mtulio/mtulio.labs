@@ -23,7 +23,14 @@ eksctl create cluster \
 
 ```bash
 eksctl create cluster \
-    --name mrb-oidc \
+    --name mrb-c2 \
     --version 1.21 \
     --with-oidc
+```
+
+
+## Destroy a cluster
+
+```bash
+eksctl delete cluster --name mrb-c1
 ```

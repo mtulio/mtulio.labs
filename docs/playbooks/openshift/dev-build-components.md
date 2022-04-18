@@ -67,3 +67,19 @@ podman build \
     -t quay.io/${QUAY_USER}/${REPO_NAME}:latest \
     && podman push quay.io/${QUAY_USER}/${REPO_NAME}:latest
 ```
+
+
+## origin
+
+### Container build
+
+1. Get CI credentials and concat to pull secret
+1. Connect to VPN: the rhel container will fallback to local repo when building locally, which depends on private net
+1. Run the build:
+
+```bash
+podman build \
+    --authfile ~/.openshift/pull-secret-latest.json \
+    -t quay.io/${QUAY_USER}/openshift-tests:latest \
+    -f images/tests/Dockerfile.rhel .
+``'
