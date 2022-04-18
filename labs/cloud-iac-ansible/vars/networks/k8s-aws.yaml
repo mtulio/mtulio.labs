@@ -52,7 +52,7 @@
 
 #########################
 cloud_networks:
-  ## AWS South East 1
+  # ## AWS US East 1
   - name: k8s-vpc-use1
     block: 10.82.0.0/16
     provider: aws
@@ -60,25 +60,23 @@ cloud_networks:
     igw: yes
     nat_gw: yes
     nat_gw_subnet: k8s-net-public-natgw-use1-1a
-    nat_gw_name: search-natgw-1a
+    nat_gw_name: k8s-natgw-1a
     security_groups: "{{ security_groups | d([]) }}"
     routes:
       - name: k8s-rt-private
         table:
           - dest: 0.0.0.0/0
             gateway_id: natgw
+          # When peer is enabbled:
           # - dest: 10.50.0.0/16
           #   peering: k8s-vpc-use1-to-core-vpc
-          # - dest: 172.28.0.0/16
-          #   peering: k8s-vpc-use1-to-plat-prod-us-east-1
       - name: k8s-rt-public
         table:
           - dest: 0.0.0.0/0
             gateway_id: igw
+          # When peer is enabbled:
           # - dest: 10.50.0.0/16
           #   peering: k8s-vpc-use1-to-core-vpc
-          # - dest: 172.28.0.0/16
-          #   peering: k8s-vpc-use1-to-plat-prod-us-east-1
       - name: k8s-rt-natgw
         table:
           - dest: 0.0.0.0/0
@@ -214,17 +212,12 @@ cloud_networks:
         route: k8s-rt-private
         map_public: no
 
-    # peers:
-    #   - peer_owner_id: 123456789
-    #     peer_vpc_id: vpc-a321
-    #     peer_region: us-east-1
-    #     tags:
-    #       Name: k8s-vpc-use1-to-core-vpc
-    #   - peer_owner_id: 123456789
-    #     peer_vpc_id: vpc-a123
-    #     peer_region: us-east-1
-    #     tags:
-    #       Name: k8s-vpc-use1-to-plat-prod-us-east-1
+      # When Local Zone is enabled on Account:
+      # - name: k8s-net-private-nodes-use1bos-1a
+      #   az: us-east-1-bos-1a
+      #   cidr: 10.82.72.0/22
+      #   route: k8s-rt-public
+      #   map_public: yes
 
     endpoint_services:
       - name: s3
@@ -232,3 +225,10 @@ cloud_networks:
         route_table_names:
           - k8s-rt-public
           - k8s-rt-private
+
+    # peers:
+    #   - peer_owner_id: 123456789
+    #     peer_vpc_id: vpc-a321
+    #     peer_region: us-east-1
+    #     tags:
+    #       Name: k8s-vpc-use1-to-core-vpc
