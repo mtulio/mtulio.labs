@@ -1,0 +1,76 @@
+################################
+# AWS Networks
+#
+# Features:
+# - Extend VPC subnets to LAX Local Zones
+# - no dedicated LB nor NatGW subnets
+#########################
+cloud_networks:
+  ## AWS US West 2
+  - name: k8s-vpc-usw2
+    block: 10.100.0.0/16
+    provider: aws
+    region: us-west-2
+    igw: yes
+    nat_gw: yes
+    nat_gw_subnet: k8s-net-public-usw2-2a
+    nat_gw_name: k8s-natgw-usw2-2a
+    security_groups: "{{ security_groups | d([]) }}"
+    routes:
+      - name: k8s-rt-private
+        table:
+          - dest: 0.0.0.0/0
+            gateway_id: natgw
+      - name: k8s-rt-public
+        table:
+          - dest: 0.0.0.0/0
+            gateway_id: igw
+      # - name: k8s-rt-natgw
+      #   table:
+      #     - dest: 0.0.0.0/0
+      #       gateway_id: igw
+    subnets:
+      - name: k8s-net-public-usw2-2a
+        az: us-west-2a
+        cidr: 10.100.16.0/22
+        route: k8s-rt-public
+        map_public: yes
+      - name: k8s-net-public-usw2-2b
+        az: us-west-2b
+        cidr: 10.100.20.0/22
+        route: k8s-rt-public
+        map_public: yes
+      - name: k8s-net-public-usw2-2c
+        az: us-west-2c
+        cidr: 10.100.24.0/22
+        route: k8s-rt-public
+        map_public: yes
+
+      - name: k8s-net-private-usw2-2a
+        az: us-west-2a
+        cidr: 10.100.48.0/22
+        route: k8s-rt-private
+        map_public: no
+      - name: k8s-net-private-usw2-2b
+        az: us-west-2b
+        cidr: 10.100.52.0/22
+        route: k8s-rt-private
+        map_public: no
+      - name: k8s-net-private-usw2-2c
+        az: us-west-2c
+        cidr: 10.100.56.0/22
+        route: k8s-rt-private
+        map_public: no
+      
+      # Local Zones: Los Angeles
+      - name: k8s-net-public-usw2-2lax1a
+        az: us-west-2-lax-1a
+        cidr: 10.100.72.0/22
+        route: k8s-rt-public
+        map_public: yes
+
+      - name: k8s-net-public-usw2-2lax1b
+        az: us-west-2-lax-1b
+        cidr: 10.100.76.0/22
+        route: k8s-rt-public
+        map_public: yes
