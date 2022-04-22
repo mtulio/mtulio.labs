@@ -1,0 +1,16 @@
+---
+- include: openshift_bootstrap_setup.yaml
+
+- name: OpenShift Bootstrap Setup
+  hosts: localhost
+  connection: local
+
+  vars:
+    bucket_name: "{{ ocp_install_infraID }}-infra"
+
+  pre_tasks:
+    - include_vars: "vars/compute/ocp-bootstrap-aws.yaml"
+
+  roles:
+    - role: mtulio.cloud-compute
+

@@ -1,0 +1,6 @@
+---
+ocp_config_baseDomain: "'{{ lookup('env', 'CONFIG_BASE_DOMAIN') }}'"
+ocp_config_name: "'{{ lookup('env', 'CONFIG_CLUSTER_NAME') }}'"
+ocp_config_region: "'{{ lookup('env', 'CONFIG_REGION') }}'"
+ocp_config_pullSecret_file: "{{ lookup('env', 'CONFIG_PULL_SECRET_FILE') }}"
+ocp_config_sshKey: "{{ lookup('env', 'CONFIG_SSH_KEY') }}"

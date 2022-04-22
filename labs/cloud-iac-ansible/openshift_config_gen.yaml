@@ -1,0 +1,39 @@
+---
+- name: OpenShift Config Generator
+  hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: install_dir
+      prompt: What is the Installation Directory?
+      private: no
+    - name: name
+      prompt: What is the cluster name?
+      private: no
+
+  vars_files:
+    - vars/openshift.yaml
+
+  tasks:
+    - name: create install dir
+      file:
+        state: directory
+        path: "{{ install_dir }}"
+        recurse: yes
+
+    - stat:
+        path: "{{ install_dir }}/metadata.json"
+      register: st_out
+    
+    - debug: var=st_out
+
+    - name: Create the install config
+      template:
+        src: ocp-install-config.yaml.j2
+        dest: "{{ install_dir }}/install-config.yaml"
+      when: not(st_out.stat.exists)
+
+    - name: create ignitions
+      shell: |
+        openshift-install create ignition-configs --dir {{ install_dir }}
+      when: not(st_out.stat.exists)

@@ -26,3 +26,39 @@ k8s-create-master-aws:
 	$(VENV)/bin/ansible-playbook run-instance.yaml \
 		-e provider=aws -e name=k8s-masters
 .PHONY: k8s-create-master-aws
+
+gen-fcos-userdata:
+	$(VENV)/bin/ansible-playbook fcos_config_gen.yaml \
+		-e install_dir=$(PWD)/.install-dir-fcos
+.PHONY: gen-fcos-userdata
+machine-create-fcos-aws:
+	$(VENV)/bin/ansible-playbook run-instance.yaml -vvv \
+		-e provider=aws -e name=fcos \
+		-e install_dir=$(PWD)/.install-dir-fcos
+.PHONY: machine-create-fcos-aws
+
+
+BOOTSTRAP_NAME ?= ocp-bootstrap
+openshift-config:
+	$(VENV)/bin/ansible-playbook openshift_config_gen.yaml -vvv \
+		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
+		-e install_dir=$(PWD)/.install-dir-ocp
+.PHONY: openshift-config
+
+openshift-setup:
+	$(VENV)/bin/ansible-playbook openshift_bootstrap_setup.yaml -vvv \
+		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
+		-e install_dir=$(PWD)/.install-dir-ocp
+.PHONY: openshift-setup
+
+openshift-bootstrap-launch:
+	$(VENV)/bin/ansible-playbook openshift_bootstrap_run.yaml -vvv \
+		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
+		-e install_dir=$(PWD)/.install-dir-ocp
+.PHONY: openshift-bootstrap-launch
+
+get-console-output:
+	aws ec2 get-console-output \
+		--instance-id $(INSTANCE_ID) \
+		| jq -r .Output |tee /tmp/console.log
+.PHONY: get-console-output
