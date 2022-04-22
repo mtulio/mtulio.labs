@@ -51,6 +51,36 @@
 ### 10.82.72-76.0/22: Spare subnet capacity: 4 net /22 (Not created)
 
 #########################
+security_groups:
+  - name: k8s-sg-default-public
+    description: Base Security group for K8s nodes on Public networks
+    purge_rules: yes
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+    purge_rules_egress: yes
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+
+  - name: k8s-sg-controlplane-private
+    description: Control Plane Security group for K8s nodes on Private networks
+    purge_rules: yes
+    rules:
+      - proto: tcp
+        from_port: 6443
+        to_port: 6443
+        group_name: k8s-sg-compute-private
+        group_desc: Compute Security group for K8s nodes on Private networks
+
+    purge_rules_egress: yes
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+
+
 cloud_networks:
   # ## AWS US East 1
   - name: k8s-vpc-use1

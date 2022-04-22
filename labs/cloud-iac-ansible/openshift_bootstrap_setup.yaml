@@ -1,0 +1,30 @@
+---
+- include: openshift_config_load.yaml
+
+- name: OpenShift Bootstrap Setup
+  hosts: localhost
+  connection: local
+
+  vars:
+    openshift_bootstrap_bucket: "{{ ocp_install_infraID }}-infra"
+
+  vars_prompt:
+    - name: install_dir
+      prompt: What is the Installation Directory?
+      private: no
+
+  pre_tasks:
+    # create bucket
+    - name: create bucket
+      s3_bucket:
+        name: "{{ openshift_bootstrap_bucket }}"
+        state: present
+
+      # upload ignition
+    - name: Upload bootstrap.ign
+      amazon.aws.aws_s3:
+        bucket: "{{ openshift_bootstrap_bucket }}"
+        object: /bootstrap.ign
+        src: "{{ install_dir + '/bootstrap.ign' }}"
+        mode: put
+

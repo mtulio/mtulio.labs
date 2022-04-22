@@ -1,0 +1,23 @@
+---
+- name: OpenShift Config Load
+  hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: install_dir
+      prompt: What is the Installation Directory?
+      private: no
+
+  tasks:
+    - name: load envs
+      set_fact:
+          _ocp_install_state: "{{ lookup('file', install_dir + '/.openshift_install_state.json') }}"
+          _ocp_metadata: "{{ lookup('file', install_dir + '/metadata.json') }}"
+
+    - name: get names
+      set_fact:
+          ocp_install_image: "{{ _ocp_install_state[\"*rhcos.Image\"] }}"
+          ocp_install_infraID: "{{ _ocp_metadata.infraID }}"
+
+    - debug: var=ocp_install_image
+    - debug: var=ocp_install_infraID
