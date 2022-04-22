@@ -1,0 +1,8 @@
+---
+variant: fcos
+version: 1.4.0
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - "{{ custom_ssh_key_pub |d(ansible_ssh_host_key_rsa_public) }}"

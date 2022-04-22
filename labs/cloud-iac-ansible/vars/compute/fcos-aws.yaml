@@ -1,0 +1,47 @@
+---
+
+machine_base_name: fcos
+machine_user_data_file: "{{ install_dir }}/config.ign"
+
+_def:
+  detailed_monitoring: yes
+  ebs_optimized: no
+  image_id: ami-0389fff7e72ebe8e0
+  instance_role: "instance-role-{{ machine_base_name }}"
+  instance_type: t3.small
+  security_groups:
+    - sg-03906bc5a79e10a36
+  state: present
+  tags:
+    machine_group: "{{ machine_base_name }}"
+  termination_protection: no
+  #volumes: []
+  vpc_subnet_id: subnet-0b4006f726f93ca95
+  wait: yes
+  wait_timeout: 500
+
+# https://docs.ansible.com/ansible/latest/collections/amazon/aws/ec2_instance_module.html
+compute_resources:
+    # Module 'machine' options:
+    # https://docs.ansible.com/ansible/latest/collections/amazon/aws/ec2_instance_module.html
+    - provider: aws
+      type: machine
+      name: "{{ machine_base_name }}"
+      filters:
+        tag:Name: "{{ machine_base_name }}"
+      tags: "{% set x=_def.tags.__setitem__('Name',machine_base_name) %}{{ _def.tags }}"
+
+      detailed_monitoring: "{{ _def.detailed_monitoring }}"
+      ebs_optimized: "{{ _def.ebs_optimized }}"
+      image_id: "{{ _def.image_id }}"
+      instance_role: "{{ _def.instance_role }}"
+      instance_type: "{{ _def.instance_type }}"
+      security_groups: "{{ _def.security_groups }}"
+      state: "{{ _def.state }}"
+
+      termination_protection: "{{ _def.termination_protection }}"
+      user_data: "{{ lookup('file', machine_user_data_file) | string }}"
+      #volumes: []
+      vpc_subnet_id: "{{ _def.vpc_subnet_id }}"
+      wait: "{{ _def.wait }}"
+      wait_timeout: "{{ _def.wait_timeout }}"

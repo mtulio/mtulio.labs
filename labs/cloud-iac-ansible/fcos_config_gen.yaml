@@ -1,0 +1,53 @@
+---
+- name: FCOS Config Generator
+  hosts: localhost
+  connection: local
+
+  vars:
+    custom_ssh_key_pub: "{{ lookup('file', '/home/mtulio/.ssh/id_rsa.pub') }}"
+
+  vars_prompt:
+    - name: install_dir
+      prompt: What is the Installation Directory?
+      private: no
+
+  tasks:
+    - name: create install dir
+      file:
+        state: directory
+        path: "{{ install_dir }}"
+        recurse: yes
+
+    - stat:
+        path: "{{ install_dir }}/config.ign"
+      register: st_out
+    
+    - debug: var=st_out
+
+    - name: Create the install config
+      template:
+        src: fcos/basic-ssh.bu.j2
+        dest: "{{ install_dir }}/config.bu"
+      when: not(st_out.stat.exists)
+
+    # https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/
+    - name: create ignitions
+      shell: |
+        podman run \
+          --interactive --rm --security-opt label=disable \
+          --volume {{ install_dir }}:/pwd \
+          --workdir /pwd quay.io/coreos/butane:release \
+          --pretty --strict config.bu > "{{ install_dir }}/config.ign"
+      when: not(st_out.stat.exists)
+
+    - set_fact:
+        user_data: "{{ lookup('file', install_dir+'/config.ign')|from_json }}"
+    - debug: var=user_data
+    - debug: var=user_data
+    - debug: var=user_data|to_json
+    - copy:
+        dest: "{{ install_dir }}/config.ign-data"
+        content: |
+          {{ lookup('file', install_dir+'/config.ign')|from_json|to_nice_json }}
+
+#- include: openshift_config_load.yaml
