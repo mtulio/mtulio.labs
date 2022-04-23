@@ -1,0 +1,33 @@
+---
+iam_roles:
+- name: "{{ bootstrap_iam_role_name }}"
+  providers:
+    - aws
+  assume_doc_type: file
+  assume_doc_name: "aws-ec2-assume.json"
+  #managed_policies: []
+  #policy_document: {}
+  tags: "{{ ocp_cluster_tags }}"
+  custom_policies:
+    - name: s3-ro-bootstrap
+      file_type: template
+      file_path: aws-s3-policy-ro.json.j2
+      bucket: "{{ ocp_install_infraID }}-infra"
+    - name: ocp-bootstrap
+      policy_json: |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "VisualEditor0",
+                    "Effect": "Allow",
+                    "Action": [
+                        "ec2:Describe*",
+                        "ec2:AttachVolume",
+                        "ec2:DetachVolume",
+                        "s3:GetObject"
+                    ],
+                    "Resource": "*"
+                }
+            ]
+          }
