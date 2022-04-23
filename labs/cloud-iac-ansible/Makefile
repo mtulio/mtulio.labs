@@ -37,25 +37,48 @@ machine-create-fcos-aws:
 		-e install_dir=$(PWD)/.install-dir-fcos
 .PHONY: machine-create-fcos-aws
 
-
+#### OPENSHIFT
+INSTALL_DIR ?= $(PWD)/.install-dir-ocp
 BOOTSTRAP_NAME ?= ocp-bootstrap
 openshift-config:
 	$(VENV)/bin/ansible-playbook openshift_config_gen.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
-		-e install_dir=$(PWD)/.install-dir-ocp
+		-e install_dir=$(INSTALL_DIR)
 .PHONY: openshift-config
 
+# Network stack
+# - VPC
+# - SG
+# - NLB
+# - DNS
+
+
+# IAM
+
+openshift-stack-iam:
+	$(VENV)/bin/ansible-playbook openshift_stack_iam.yaml -vvv \
+		-e provider=aws -e name=ocp \
+		-e install_dir=$(INSTALL_DIR)
+.PHONY: openshift-stack-iam
+# S3 Bucket
+
+# EC2: Bootstrap
 openshift-setup:
 	$(VENV)/bin/ansible-playbook openshift_bootstrap_setup.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
-		-e install_dir=$(PWD)/.install-dir-ocp
+		-e install_dir=$(INSTALL_DIR)
 .PHONY: openshift-setup
 
 openshift-bootstrap-launch:
 	$(VENV)/bin/ansible-playbook openshift_bootstrap_run.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
-		-e install_dir=$(PWD)/.install-dir-ocp
+		-e install_dir=$(INSTALL_DIR)
 .PHONY: openshift-bootstrap-launch
+
+# EC2: Control Plane
+
+# EC2: Compute
+
 
 get-console-output:
 	aws ec2 get-console-output \
