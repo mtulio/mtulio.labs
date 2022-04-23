@@ -49,17 +49,39 @@ openshift-config:
 # Network stack
 # - VPC
 # - SG
+openshift-stack-network:
+	$(VENV)/bin/ansible-playbook net-create.yaml \
+		-e provider=aws -e name=ocp \
+		-e region=default \
+		-e install_dir=$(INSTALL_DIR) \
+		-e security_groups=[]
+.PHONY: openshift-stack-network
+
+openshift-stack-securitygroups:
+	$(VENV)/bin/ansible-playbook net-create.yaml -vvv \
+		-e provider=aws -e name=ocp \
+		-e region=default \
+		-e install_dir=$(INSTALL_DIR)
+.PHONY: openshift-stack-securitygroups
+
 # - NLB
+openshift-stack-loadbalancers:
+	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
+		-e provider=aws -e name=ocp \
+		-e install_dir=$(INSTALL_DIR)
+.PHONY: openshift-stack-loadbalancers
+
+
 # - DNS
 
 
 # IAM
-
 openshift-stack-iam:
 	$(VENV)/bin/ansible-playbook openshift_stack_iam.yaml -vvv \
 		-e provider=aws -e name=ocp \
 		-e install_dir=$(INSTALL_DIR)
 .PHONY: openshift-stack-iam
+
 # S3 Bucket
 
 # EC2: Bootstrap

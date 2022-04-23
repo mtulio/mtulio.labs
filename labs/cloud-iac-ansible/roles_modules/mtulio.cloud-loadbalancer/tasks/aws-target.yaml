@@ -1,0 +1,38 @@
+---
+
+- amazon.aws.ec2_vpc_net_info:
+    filters:
+      "tag:Name": "{{ target.vpc_name }}"
+  when: target.vpc_name is defined
+  register: vpc_info
+
+- debug: var=vpc_info
+
+- set_fact:
+    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+  when:
+    - target.vpc_name is defined
+    - vpc_info.vpcs|length > 0
+
+- set_fact:
+    vpc_id: "{{ target.vpc_id }}"
+  when: target.vpc_id is defined
+
+- name: Modify the target group with a custom health check
+  elb_target_group:
+    name: "{{ target.name }}"
+    protocol: "{{ target.protocol }}"
+    port: "{{ target.port }}"
+    vpc_id: "{{ vpc_id }}"
+    health_check_protocol: "{{ target.health_check_protocol }}"
+    health_check_path: "{{ target.health_check_path }}"
+    health_check_port: "{{ target.health_check_port }}"
+    successful_response_codes: "{{ target.successful_response_codes }}"
+    health_check_interval: "{{ target.health_check_interval }}"
+    health_check_timeout: "{{ target.health_check_timeout |d(omit) }}"
+    healthy_threshold_count: "{{ target.healthy_threshold_count }}"
+    unhealthy_threshold_count: "{{ target.unhealthy_threshold_count }}"
+    state: present
+  register: tg_out
+
+- debug: var=tg_out

@@ -31,6 +31,5 @@
           controlplane_iam_role_name: "{{ ocp_install_infraID }}-instance-controlplane"
           compute_iam_role_name: "{{ ocp_install_infraID }}-instance-compute"
 
-
     - debug: var=ocp_install_image
     - debug: var=ocp_install_infraID
