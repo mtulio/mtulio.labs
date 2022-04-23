@@ -9,15 +9,28 @@
       private: no
 
   tasks:
-    - name: load envs
+    - name: OpenShift Config Load | Get Installer Meta
       set_fact:
           _ocp_install_state: "{{ lookup('file', install_dir + '/.openshift_install_state.json') }}"
           _ocp_metadata: "{{ lookup('file', install_dir + '/metadata.json') }}"
+      no_log: yes
 
-    - name: get names
+    - name: OpenShift Config Load | Set Defaults
       set_fact:
           ocp_install_image: "{{ _ocp_install_state[\"*rhcos.Image\"] }}"
           ocp_install_infraID: "{{ _ocp_metadata.infraID }}"
+          ocp_cluster_tags: {}
+
+    - name: OpenShift Config Load | Set Default tags
+      set_fact:
+          ocp_cluster_tags: "{% set x=ocp_cluster_tags.__setitem__('kubernetes.io/cluster/'+ocp_install_infraID, 'owned' ) %}{{ ocp_cluster_tags }}"
+
+    - name: OpenShift Config Load | Set Default Resource Names
+      set_fact:
+          bootstrap_iam_role_name: "{{ ocp_install_infraID }}-instance-bootstrap"
+          controlplane_iam_role_name: "{{ ocp_install_infraID }}-instance-controlplane"
+          compute_iam_role_name: "{{ ocp_install_infraID }}-instance-compute"
+
 
     - debug: var=ocp_install_image
     - debug: var=ocp_install_infraID
