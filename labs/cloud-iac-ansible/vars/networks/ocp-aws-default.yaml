@@ -1,0 +1,118 @@
+################################
+# AWS Networks
+# AWS us-east-1: 10.82.0.0/16 (to 10.82.255.255/16)
+# AWS <unassigned>: 10.23.0.0/16 (to 10.23.255.255/19)
+
+#########################
+security_groups:
+  - name: ocp-sg-bootstrap
+    description: Bootstrap Security Group
+    purge_rules: yes
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+    purge_rules_egress: yes
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+
+  - name: ocp-sg-controlplane
+    description: Security Group for Control Plane nodes
+    purge_rules: yes
+    rules:
+      - proto: all
+        group_name: ocp-sg-controlplane
+      - proto: all
+        group_name: ocp-sg-compute
+        group_desc: Security Group for Compute nodes
+
+    purge_rules_egress: yes
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+
+  - name: ocp-sg-compute
+    description: Security Group for Compute nodes
+    purge_rules: yes
+    rules:
+      - proto: all
+        group_name: ocp-sg-controlplane
+        group_desc: Security Group for Control Plane nodes
+      - proto: all
+        group_name: ocp-sg-compute
+
+    purge_rules_egress: yes
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+
+
+cloud_networks:
+  # ## AWS US East 1
+  - name: ocp-vpc-use1
+    block: 10.82.0.0/16
+    provider: aws
+    region: us-east-1
+    igw: yes
+    nat_gw: yes
+    nat_gw_subnet: ocp-net-public-use1-1a
+    nat_gw_name: ocp-natgw-1a
+    security_groups: "{{ security_groups | d([]) }}"
+    routes:
+      - name: ocp-rt-private
+        table:
+          - dest: 0.0.0.0/0
+            gateway_id: natgw
+      - name: ocp-rt-public
+        table:
+          - dest: 0.0.0.0/0
+            gateway_id: igw
+
+    subnets:
+      - name: ocp-net-public-use1-1a
+        az: us-east-1a
+        cidr: 10.82.16.0/22
+        route: ocp-rt-public
+        map_public: yes
+      - name: ocp-net-public-use1-1b
+        az: us-east-1b
+        cidr: 10.82.20.0/22
+        route: ocp-rt-public
+        map_public: yes
+      - name: ocp-net-public--use1-1c
+        az: us-east-1c
+        cidr: 10.82.24.0/22
+        route: ocp-rt-public
+        map_public: yes
+
+      - name: ocp-net-private-use1-1a
+        az: us-east-1a
+        cidr: 10.82.48.0/22
+        route: ocp-rt-private
+        map_public: no
+      - name: ocp-net-private-use1-1b
+        az: us-east-1b
+        cidr: 10.82.52.0/22
+        route: ocp-rt-private
+        map_public: no
+      - name: ocp-net-private-use1-1c
+        az: us-east-1c
+        cidr: 10.82.56.0/22
+        route: ocp-rt-private
+        map_public: no
+
+      # When Local Zone is enabled on Account:
+      # - name: ocp-net-private-nodes-use1bos-1a
+      #   az: us-east-1-bos-1a
+      #   cidr: 10.82.72.0/22
+      #   route: ocp-rt-public
+      #   map_public: yes
+
+    endpoint_services:
+      - name: s3
+        service: com.amazonaws.us-east-1.s3
+        route_table_names:
+          - ocp-rt-public
+          - ocp-rt-private

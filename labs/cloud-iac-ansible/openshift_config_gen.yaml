@@ -37,3 +37,15 @@
       shell: |
         openshift-install create ignition-configs --dir {{ install_dir }}
       when: not(st_out.stat.exists)
+
+    - name: create install dir
+      file:
+        state: absent
+        path: "{{ item }}"
+      with_items:
+        - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-1.yaml"
+        - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-2.yaml"
+        - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-3.yaml"
+        - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-1.yaml"
+        - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-2.yaml"
+        - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-3.yaml"

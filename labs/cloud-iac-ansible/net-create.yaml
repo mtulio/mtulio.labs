@@ -11,7 +11,7 @@
       private: no
 
   pre_tasks:
-    - include_vars: "vars/networks/{{ name }}-{{ provider }}.yaml"
+    - include_vars: "vars/networks/{{ name }}-{{ provider }}-{{ region }}.yaml"
 
   roles:
     - role: mtulio.cloud-vpc

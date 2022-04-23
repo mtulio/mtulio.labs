@@ -1,0 +1,17 @@
+---
+- include: openshift_config_load.yaml
+
+- name: OpenShift Stack Create Load Balancer
+  hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: install_dir
+      prompt: What is the Installation Directory?
+      private: no
+
+  vars_files:
+    - "vars/loadbalancers/ocp-{{ provider }}.yaml"
+
+  roles:
+    - mtulio.cloud-loadbalancer

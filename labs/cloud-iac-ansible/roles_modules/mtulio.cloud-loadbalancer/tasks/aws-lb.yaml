@@ -1,0 +1,60 @@
+---
+
+- amazon.aws.ec2_vpc_net_info:
+    filters:
+      "tag:Name": "{{ target.vpc_name }}"
+  when: target.vpc_name is defined
+  register: vpc_info
+
+- debug: var=vpc_info
+
+- set_fact:
+    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+  when:
+    - target.vpc_name is defined
+    - vpc_info.vpcs|length > 0
+
+- set_fact:
+    vpc_id: "{{ target.vpc_id }}"
+  when: target.vpc_id is defined
+
+- ec2_vpc_subnet_info:
+    filters:
+      vpc-id: "{{ vpc_id }}"
+      "tag:Name": "{{ item }}"
+  with_items: "{{ lb.subnets_names }}"
+  when: lb.subnets_discovery 
+  register: subnet_facts
+
+- debug: var=subnet_facts
+- set_fact:
+    subnet_ids: []
+  when: lb.subnets_discovery 
+
+- name: "AWS | RT map Peerings to it's ID"
+  set_fact:
+    subnet_ids: "{{ subnet_ids + [item] }}"
+  with_items: "{{ subnet_facts.results | json_query(rt_query) }}"
+  vars:
+    rt_query: "[].subnets[?vpc_id=='{{ vpc_id }}'].subnet_id"
+  when: lb.subnets_discovery
+
+- debug: var=subnet_ids
+
+- name: Create an internal ELB with a specified IP address
+  community.aws.elb_network_lb:
+    name: "{{ lb.name }}"
+    scheme: "{{ lb.scheme }}"
+    subnet_mappings: "{{ lb.subnet_mappings |d(omit) }}"
+    subnets: "{{ subnet_ids | d(omit) }}"
+    listeners: "{{ lb.listeners |d(omit) }}"
+    purge_listeners: "{{ lb.purge_listeners |d('no') }}"
+    cross_zone_load_balancing: "{{ lb.cross_zone_load_balancing |d(omit) }}"
+    deletion_protection: "{{ lb.deletion_protection |d(omit) }}"
+    ip_address_type: "{{ lb.ip_address_type |d(omit) }}"
+    tags: "{{ lb.tags |d(omit) }}"
+    purge_tags: "{{ lb.purge_tags |d('no') }}"
+    wait: "{{ lb.wait |d('no') }}"
+    state: present
+
+- debug: var=tg_out

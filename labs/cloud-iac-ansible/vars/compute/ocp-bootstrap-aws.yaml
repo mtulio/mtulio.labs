@@ -2,11 +2,12 @@
 
 openshift_bootstrap_bucket: "{{ ocp_install_infraID }}-infra"
 openshift_instance_type: m6i.xlarge
-openshift_instance_profile: k8s-bootstrap
-openshift_subnet_id: subnet-0b4006f726f93ca95
+openshift_instance_profile: ocp-bootstrap
+#openshift_subnet_id: subnet-0b4006f726f93ca95
+openshift_subnet_name: ocp-net-public-use1-1a
 openshift_security_groups:
-  - k8s-sg-default-public
-  - k8s-sg-controlplane-private
+  - ocp-sg-bootstrap
+  - ocp-sg-controlplane
 
 _def:
   name: "{{ ocp_install_infraID }}-bootstrap"

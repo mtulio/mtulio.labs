@@ -1,0 +1,43 @@
+---
+
+cloud_loadbalancer_targets:
+  - name: "{{ ocp_install_infraID }}-aext"
+    # https://docs.ansible.com/ansible/latest/collections/community/aws/elb_target_group_module.html
+    provider: aws
+    protocol: tcp
+    port: 6443
+    vpc_name: ocp-vpc-use1
+    health_check_protocol: https
+    health_check_path: /readyz
+    health_check_port: 6443
+    successful_response_codes: "200-399"
+    health_check_interval: 10
+    #health_check_timeout: 2
+    healthy_threshold_count: 2
+    unhealthy_threshold_count: 2
+    state: present
+
+cloud_loadbalancers:
+  - name: "{{ ocp_install_infraID }}-ext"
+    # https://docs.ansible.com/ansible/latest/collections/community/aws/elb_network_lb_module.html
+    provider: aws
+    type: network
+    scheme: internet-facing
+    state: present
+    tags: {}
+    #subnet_mappings:
+    #subnets: []
+    subnets_discovery: yes
+    vpc_name: ocp-vpc-use1
+    subnets_names:
+      - ocp-net-public-use1-1a
+      - ocp-net-public-use1-1b
+      - ocp-net-public-use1-1c
+    cross_zone_load_balancing: yes
+    ip_address_type: ipv4
+    listeners:
+      - Protocol: TCP
+        Port: 6443
+        DefaultActions:
+          - Type: forward
+            TargetGroupName: "{{ ocp_install_infraID }}-aext"
