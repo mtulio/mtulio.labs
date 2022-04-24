@@ -31,7 +31,7 @@
     subnet_ids: []
   when: lb.subnets_discovery 
 
-- name: "AWS | Discovery subnet IDs"
+- name: "AWS | RT map Peerings to it's ID"
   set_fact:
     subnet_ids: "{{ subnet_ids + [item] }}"
   with_items: "{{ subnet_facts.results | json_query(rt_query) }}"
@@ -56,42 +56,5 @@
     purge_tags: "{{ lb.purge_tags |d('no') }}"
     wait: "{{ lb.wait |d('no') }}"
     state: present
-  register: lb_out
 
-- name: Register DNS
-  community.aws.route53:
-    state: present
-    zone: "{{ rec.zone }}"
-    record: "{{ rec.record }}"
-    type: "{{ rec.record_type |d('A') }}"
-    value: "{{ lb_out.dns_name }}."
-    alias: "{{ rec.alias |d('yes') }}"
-    alias_hosted_zone_id: "{{ lb_out.canonical_hosted_zone_id }}"
-    private_zone: "{{ rec.private_zone |d(false) }}"
-    overwrite: "{{ rec.overwrite |d(false) }}"
-  when: lb.register_dns is defined
-  with_items: "{{ lb.register_dns }}"
-  loop_control:
-    loop_var: rec
-  register: rec_out
-
-- name: Load Balancer | Save config | Name
-  set_fact:
-    ocp_cluster: "{% set x=ocp_cluster.loadbalancers.__setitem__(lb.openshift_id+'_name', lb_out.load_balancer_name) %}{{ ocp_cluster }}"
-  when: lb.openshift_id is defined
-
-- name: Load Balancer | Save config | Provider's DNS record
-  set_fact:
-    ocp_cluster: "{% set x=ocp_cluster.loadbalancers.__setitem__(lb.openshift_id+'_dns_provider', lb_out.dns_name) %}{{ ocp_cluster }}"
-  when: lb.openshift_id is defined
-
-- name: Load Balancer | Set config | Custom DNS record
-  set_fact:
-    ocp_cluster: "{% set x=ocp_cluster.loadbalancers.__setitem__(lb.openshift_id+'_dns', lb.register_dns[0].record) %}{{ ocp_cluster }}"
-  when:
-    - lb.openshift_id is defined
-    - lb.register_dns is defined
-    - lb.register_dns | length > 0
-
-- debug: var=lb_out
-- debug: var=rec_out
+- debug: var=tg_out

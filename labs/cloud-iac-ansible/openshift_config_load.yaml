@@ -11,14 +11,15 @@
   tasks:
     - name: OpenShift Config Load | Get Installer Meta
       set_fact:
-          _ocp_install_state: "{{ lookup('file', install_dir + '/.openshift_install_state.json') }}"
-          _ocp_metadata: "{{ lookup('file', install_dir + '/metadata.json') }}"
+          ocp_installer_state: "{{ lookup('file', install_dir + '/.openshift_install_state.json') }}"
+          ocp_installer_metadata: "{{ lookup('file', install_dir + '/metadata.json') }}"
       no_log: yes
 
     - name: OpenShift Config Load | Set Defaults
       set_fact:
-          ocp_install_image: "{{ _ocp_install_state[\"*rhcos.Image\"] }}"
-          ocp_install_infraID: "{{ _ocp_metadata.infraID }}"
+          ocp_install_image: "{{ ocp_installer_state[\"*rhcos.Image\"] }}"
+          ocp_install_infraID: "{{ ocp_installer_metadata.infraID }}"
+          ocp_config_baseDomain: "{{ ocp_installer_state[\"*installconfig.InstallConfig\"][\"config\"][\"baseDomain\"] }}"
           ocp_cluster_tags: {}
 
     - name: OpenShift Config Load | Set Default tags
@@ -30,6 +31,23 @@
           bootstrap_iam_role_name: "{{ ocp_install_infraID }}-instance-bootstrap"
           controlplane_iam_role_name: "{{ ocp_install_infraID }}-instance-controlplane"
           compute_iam_role_name: "{{ ocp_install_infraID }}-instance-compute"
+
+    - name: Create Runtime config
+      set_fact:
+        cluster_state: "{{ lookup('file', install_dir + '/cluster_state.json', errors='ignore') }}"
+    - set_fact:
+        cluster_state:
+          tags: "{{ ocp_cluster_tags }}"
+          zones:
+            base: "{{ ocp_config_baseDomain }}"
+            base_id: ''
+            cluster: "{{ ocp_install_infraID }}.{{ ocp_config_baseDomain }}"
+            cluster_id: ''
+          infra_id: "{{ ocp_install_infraID }}"
+          network:
+            vpc_id: ''
+          loadbalancers: {}
+      when: cluster_state | length <= 0
 
     - debug: var=ocp_install_image
     - debug: var=ocp_install_infraID
