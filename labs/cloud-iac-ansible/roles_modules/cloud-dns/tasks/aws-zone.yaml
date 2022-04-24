@@ -1,0 +1,41 @@
+---
+
+- set_fact:
+    zone: "{{ item_zone }}"
+- debug: var=zone
+
+- amazon.aws.ec2_vpc_net_info:
+    filters:
+      "tag:Name": "{{ zone.vpc_name }}"
+  when: zone.vpc_name is defined
+  register: vpc_info
+
+- debug: var=vpc_info
+
+- set_fact:
+    zone: "{{ zone | combine ({ 'vpc_id' : vpc_info.vpcs[0].vpc_id }) }}"
+    cluster_state: "{{ cluster_state | combine ({ 'network': {'vpc_id' : vpc_info.vpcs[0].vpc_id  }}) }}"
+  when:
+    - zone.vpc_name is defined
+    - vpc_info.vpcs|length > 0
+
+- debug: var=zone
+
+# - set_fact:
+#     vpc_id: "{{ zone.vpc_id }}"
+#   when: zone.vpc_id is defined
+
+- name: DNS | AWS | Create zone
+  community.aws.route53_zone:
+    zone: "{{ zone.zone }}"
+    vpc_id: "{{ zone.vpc_id | d(omit) }}"
+    vpc_region: "{{ zone.vpc_region | d(omit) }}"
+    comment: "{{ zone.comment | d(omit) }}"
+    state: present
+  register: z_out
+
+- debug: var=z_out
+
+- set_fact:
+    cluster_state: "{% set x=cluster_state.zones.__setitem__(zone.openshift_type+'_id', z_out.zone_id) %}{{ cluster_state }}"
+  when: zone.openshift_type is defined

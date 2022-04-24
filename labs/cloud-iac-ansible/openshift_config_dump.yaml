@@ -1,0 +1,13 @@
+---
+- name: OpenShift Config Load
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Show Current Config
+      debug:
+        var: cluster_state
+
+    - copy:
+        dest: "{{ install_dir }}/cluster_state.json"
+        content: "{{ cluster_state }}"

@@ -73,7 +73,11 @@ openshift-stack-loadbalancers:
 
 
 # - DNS
-
+openshift-stack-dns:
+	$(VENV)/bin/ansible-playbook openshift_stack_dns.yaml -vvv \
+		-e provider=aws -e name=ocp \
+		-e install_dir=$(INSTALL_DIR)
+.PHONY: openshift-stack-dns
 
 # IAM
 openshift-stack-iam:
