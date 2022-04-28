@@ -38,7 +38,7 @@ compute_resources:
       name: "{{ _def.name }}"
       filters:
         tag:Name: "{{ _def.name }}"
-      tags: "{% set x=_def.tags.__setitem__('Name', _def.name ) %}{{ _def.tags }}"
+      tags: "{% set x=cluster_state.tags.__setitem__('Name', _def.name ) %}{{ cluster_state.tags }}"
       detailed_monitoring: "{{ _def.detailed_monitoring }}"
       ebs_optimized: "{{ _def.ebs_optimized }}"
       image_id: "{{ _def.image_id }}"
@@ -57,26 +57,7 @@ compute_resources:
       # Advanced IAM
       instance_role: "{{ _def.instance_role }}"
       # https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-aws-ami-stream-metadata_installing-aws-user-infra
-      iam_policy_name: "{{ _def.instance_role }}"
-      instance_policy_spec:
-        tags: "{{ _def.tags }}"
-        policy_json: |
-          {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "VisualEditor0",
-                    "Effect": "Allow",
-                    "Action": [
-                        "ec2:Describe*",
-                        "ec2:AttachVolume",
-                        "ec2:DetachVolume",
-                        "s3:GetObject"
-                    ],
-                    "Resource": "*"
-                }
-            ]
-          }
+
       register_resources:
         - service: loadbalancer
           service_type: nlb

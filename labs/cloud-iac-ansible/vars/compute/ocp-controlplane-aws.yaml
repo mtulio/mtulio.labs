@@ -1,0 +1,148 @@
+---
+
+openshift_bootstrap_bucket: "{{ cluster_state.infra_id }}-infra"
+openshift_instance_type: m6i.xlarge
+openshift_instance_profile: "{{ ocp_iam_profile_controlplane }}"
+#openshift_subnet_id: subnet-0bb0fac816ad8df29
+#openshift_subnet_name: ocp-net-private-use1-1a
+openshift_security_groups:
+  - ocp-sg-bootstrap
+  - ocp-sg-controlplane
+
+_def:
+  detailed_monitoring: yes
+  ebs_optimized: no
+  
+  image_id: "{{ ocp_install_image }}"
+  instance_role: "{{ openshift_instance_profile }}"
+  instance_type: "{{ openshift_instance_type }}"
+  security_groups: "{{ openshift_security_groups }}"
+  state: present
+  tags:
+    "kubernetes.io/cluster/{{ ocp_install_infraID }}": owned
+  termination_protection: no
+
+
+# https://docs.ansible.com/ansible/latest/collections/amazon/aws/ec2_instance_module.html
+compute_resources:
+    # Module 'machine' options:
+    # https://docs.ansible.com/ansible/latest/collections/amazon/aws/ec2_instance_module.html
+    - provider: aws
+      type: machine
+      name: "{{ cluster_state.infra_id }}-master-1"
+      filters:
+        tag:Name: "{{ cluster_state.infra_id }}-master-1"
+      tags: "{% set x=_def.tags.__setitem__('Name', cluster_state.infra_id+'-master-1' ) %}{{ _def.tags }}"
+      vpc_subnet_name: "ocp-net-private-use1-1a"
+
+      detailed_monitoring: "{{ _def.detailed_monitoring }}"
+      ebs_optimized: "{{ _def.ebs_optimized }}"
+      image_id: "{{ _def.image_id }}"
+      instance_type: "{{ _def.instance_type }}"
+      security_groups: "{{ _def.security_groups }}"
+      state: "{{ _def.state }}"
+      termination_protection: "{{ _def.termination_protection }}"
+      user_data: "{{ lookup('template', 'ocp-bootstrap-user-data.j2') |to_nice_json | string }}"
+      volumes: "{{ _def.volumes | d([]) }}"
+      wait: no
+
+      # Advanced IAM
+      instance_role: "{{ _def.instance_role }}"
+      # https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-aws-ami-stream-metadata_installing-aws-user-infra
+
+      register_resources:
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}-aint"
+          resource_type: ip
+          #resource_id: private_ip
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}-aext"
+          resource_type: ip
+          #resource_id: private_ip
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}-sint"
+          resource_type: ip
+          #resource_id: private_ip
+
+    - provider: aws
+      type: machine
+      name: "{{ ocp_install_infraID }}-master-2"
+      filters:
+        tag:Name: "{{ ocp_install_infraID }}-master-2"
+      tags: "{% set x=_def.tags.__setitem__('Name', ocp_install_infraID+'-master-2' ) %}{{ _def.tags }}"
+      vpc_subnet_name: "ocp-net-private-use1-1b"
+
+      detailed_monitoring: "{{ _def.detailed_monitoring }}"
+      ebs_optimized: "{{ _def.ebs_optimized }}"
+      image_id: "{{ _def.image_id }}"
+      instance_type: "{{ _def.instance_type }}"
+      security_groups: "{{ _def.security_groups }}"
+      state: "{{ _def.state }}"
+      termination_protection: "{{ _def.termination_protection }}"
+      user_data: "{{ lookup('template', 'ocp-bootstrap-user-data.j2') |to_nice_json | string }}"
+      volumes: "{{ _def.volumes | d([]) }}"
+      wait: no
+
+      # Advanced IAM
+      instance_role: "{{ _def.instance_role }}"
+      # https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-aws-ami-stream-metadata_installing-aws-user-infra
+
+      register_resources:
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}-aint"
+          resource_type: ip
+          #resource_id: private_ip
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}aext"
+          resource_type: ip
+          #resource_id: private_ip
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}sint"
+          resource_type: ip
+          #resource_id: private_ip
+
+    - provider: aws
+      type: machine
+      name: "{{ cluster_state.infra_id }}-master-3"
+      filters:
+        tag:Name: "{{ cluster_state.infra_id }}-master-3"
+      tags: "{% set x=_def.tags.__setitem__('Name', cluster_state.infra_id+'-master-3' ) %}{{ _def.tags }}"
+      vpc_subnet_name: "ocp-net-private-use1-1c"
+
+      detailed_monitoring: "{{ _def.detailed_monitoring }}"
+      ebs_optimized: "{{ _def.ebs_optimized }}"
+      image_id: "{{ _def.image_id }}"
+      instance_type: "{{ _def.instance_type }}"
+      security_groups: "{{ _def.security_groups }}"
+      state: "{{ _def.state }}"
+      termination_protection: "{{ _def.termination_protection }}"
+      user_data: "{{ lookup('template', 'ocp-bootstrap-user-data.j2') |to_nice_json | string }}"
+      volumes: "{{ _def.volumes | d([]) }}"
+      wait: no
+
+      # Advanced IAM
+      instance_role: "{{ _def.instance_role }}"
+      # https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-aws-ami-stream-metadata_installing-aws-user-infra
+
+      register_resources:
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}-aint"
+          resource_type: ip
+          #resource_id: private_ip
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}-aext"
+          resource_type: ip
+          #resource_id: private_ip
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ cluster_state.infra_id }}-sint"
+          resource_type: ip
+          #resource_id: private_ip

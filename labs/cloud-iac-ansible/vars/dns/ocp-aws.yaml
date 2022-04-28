@@ -14,7 +14,7 @@ cloud_dns_zones:
     #     alias: yes
 
   # private
-  - zone: "{{ ocp_install_infraID }}.{{ ocp_config_baseDomain }}"
+  - zone: "{{ ocp_install_clusterName }}.{{ ocp_config_baseDomain }}"
     openshift_type: cluster
     provider: aws
     vpc_name: ocp-vpc-use1
