@@ -19,6 +19,7 @@
       set_fact:
           ocp_install_image: "{{ ocp_installer_state[\"*rhcos.Image\"] }}"
           ocp_install_infraID: "{{ ocp_installer_metadata.infraID }}"
+          ocp_install_clusterName: "{{ ocp_installer_metadata.clusterName }}"
           ocp_config_baseDomain: "{{ ocp_installer_state[\"*installconfig.InstallConfig\"][\"config\"][\"baseDomain\"] }}"
           ocp_cluster_tags: {}
 
@@ -28,9 +29,9 @@
 
     - name: OpenShift Config Load | Set Default Resource Names
       set_fact:
-          bootstrap_iam_role_name: "{{ ocp_install_infraID }}-instance-bootstrap"
-          controlplane_iam_role_name: "{{ ocp_install_infraID }}-instance-controlplane"
-          compute_iam_role_name: "{{ ocp_install_infraID }}-instance-compute"
+          ocp_iam_profile_bootstrap: "{{ ocp_install_infraID }}-instance-bootstrap"
+          ocp_iam_profile_controlplane: "{{ ocp_install_infraID }}-instance-controlplane"
+          ocp_iam_profile_compute: "{{ ocp_install_infraID }}-instance-compute"
 
     - name: Create Runtime config
       set_fact:
@@ -41,9 +42,11 @@
           zones:
             base: "{{ ocp_config_baseDomain }}"
             base_id: ''
-            cluster: "{{ ocp_install_infraID }}.{{ ocp_config_baseDomain }}"
+            cluster: "{{ ocp_install_clusterName }}.{{ ocp_config_baseDomain }}"
             cluster_id: ''
           infra_id: "{{ ocp_install_infraID }}"
+          cluster_id: "{{ ocp_installer_metadata.clusterID }}"
+          cluster_name: "{{ ocp_installer_metadata.clusterName }}"
           network:
             vpc_id: ''
           loadbalancers: {}

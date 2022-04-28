@@ -1,10 +1,11 @@
 ---
 iam_roles:
-- name: "{{ bootstrap_iam_role_name }}"
+- name: "{{ ocp_iam_profile_bootstrap }}"
   providers:
     - aws
   assume_doc_type: file
   assume_doc_name: "aws-ec2-assume.json"
+  # TODO fix it:
   managed_policies:
     - arn:aws:iam::aws:policy/AdministratorAccess
   #policy_document: {}
@@ -32,3 +33,15 @@ iam_roles:
                 }
             ]
           }
+
+- name: "{{ ocp_iam_profile_controlplane }}"
+  providers:
+    - aws
+  assume_doc_type: file
+  assume_doc_name: "aws-ec2-assume.json"
+  # TODO fix it:
+  managed_policies:
+    - arn:aws:iam::aws:policy/AdministratorAccess
+  #policy_document: {}
+  tags: "{{ cluster_state.tags }}"
+  custom_policies: []

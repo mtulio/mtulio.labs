@@ -2,7 +2,7 @@
 
 #AWS: https://docs.ansible.com/ansible/latest/collections/community/aws/elb_target_group_module.html
 cloud_loadbalancer_targets:
-  - name: "{{ ocp_install_infraID }}-aext"
+  - name: "{{ cluster_state.infra_id }}-aext"
     provider: aws
     protocol: tcp
     port: 6443
@@ -19,8 +19,7 @@ cloud_loadbalancer_targets:
     state: present
     tags: {}
 
-
-  - name: "{{ ocp_install_infraID }}-aint"
+  - name: "{{ cluster_state.infra_id }}-aint"
     provider: aws
     protocol: tcp
     port: 6443
@@ -36,7 +35,7 @@ cloud_loadbalancer_targets:
     unhealthy_threshold_count: 2
     state: present
 
-  - name: "{{ ocp_install_infraID }}-sint"
+  - name: "{{ cluster_state.infra_id }}-sint"
     provider: aws
     protocol: tcp
     port: 22623
@@ -54,7 +53,7 @@ cloud_loadbalancer_targets:
 
 # AWS: https://docs.ansible.com/ansible/latest/collections/community/aws/elb_network_lb_module.html
 cloud_loadbalancers:
-  - name: "{{ ocp_install_infraID }}-ext"
+  - name: "{{ cluster_state.infra_id }}-ext"
     openshift_id: public
     provider: aws
     type: network
@@ -76,7 +75,7 @@ cloud_loadbalancers:
         Port: 6443
         DefaultActions:
           - Type: forward
-            TargetGroupName: "{{ ocp_install_infraID }}-aext"
+            TargetGroupName: "{{ cluster_state.infra_id }}-aext"
     register_dns:
       - zone: "{{ cluster_state.zones.base }}"
         record: "api.{{ cluster_state.zones.cluster }}"
@@ -86,7 +85,7 @@ cloud_loadbalancers:
         private_zone: yes
         overwrite: yes
 
-  - name: "{{ ocp_install_infraID }}-int"
+  - name: "{{ cluster_state.infra_id }}-int"
     openshift_id: private
     provider: aws
     type: network
@@ -108,12 +107,12 @@ cloud_loadbalancers:
         Port: 6443
         DefaultActions:
           - Type: forward
-            TargetGroupName: "{{ ocp_install_infraID }}-aint"
+            TargetGroupName: "{{ cluster_state.infra_id }}-aint"
       - Protocol: TCP
         Port: 22623
         DefaultActions:
           - Type: forward
-            TargetGroupName: "{{ ocp_install_infraID }}-sint"
+            TargetGroupName: "{{ cluster_state.infra_id }}-sint"
     register_dns:
       - zone: "{{ cluster_state.zones.base }}"
         record: "api-int.{{ cluster_state.zones.cluster }}"
