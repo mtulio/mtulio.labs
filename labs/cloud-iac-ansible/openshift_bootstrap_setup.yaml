@@ -22,9 +22,10 @@
 
       # upload ignition
     - name: Upload bootstrap.ign
-      amazon.aws.aws_s3:
+      community.aws.s3_sync:
         bucket: "{{ openshift_bootstrap_bucket }}"
-        object: /bootstrap.ign
-        src: "{{ install_dir + '/bootstrap.ign' }}"
-        mode: put
+        key_prefix: /bootstrap.ign
+        file_root: "{{ install_dir + '/bootstrap.ign' }}"
+        #mode: put
+        file_change_strategy: checksum
 

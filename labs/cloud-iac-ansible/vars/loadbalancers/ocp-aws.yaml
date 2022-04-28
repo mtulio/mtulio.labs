@@ -6,6 +6,7 @@ cloud_loadbalancer_targets:
     provider: aws
     protocol: tcp
     port: 6443
+    target_type: ip
     vpc_name: ocp-vpc-use1
     health_check_protocol: https
     health_check_path: /readyz
@@ -16,11 +17,14 @@ cloud_loadbalancer_targets:
     healthy_threshold_count: 2
     unhealthy_threshold_count: 2
     state: present
+    tags: {}
+
 
   - name: "{{ ocp_install_infraID }}-aint"
     provider: aws
     protocol: tcp
     port: 6443
+    target_type: ip
     vpc_name: ocp-vpc-use1
     health_check_protocol: https
     health_check_path: /readyz
@@ -36,6 +40,7 @@ cloud_loadbalancer_targets:
     provider: aws
     protocol: tcp
     port: 22623
+    target_type: ip
     vpc_name: ocp-vpc-use1
     health_check_protocol: https
     health_check_path: /healthz
@@ -73,11 +78,11 @@ cloud_loadbalancers:
           - Type: forward
             TargetGroupName: "{{ ocp_install_infraID }}-aext"
     register_dns:
-      - zone: "{{ ocp_cluster.zones.base }}"
-        record: "api.{{ ocp_cluster.zones.cluster }}"
+      - zone: "{{ cluster_state.zones.base }}"
+        record: "api.{{ cluster_state.zones.cluster }}"
         overwrite: yes
-      - zone: "{{ ocp_cluster.zones.cluster }}"
-        record: "api.{{ ocp_cluster.zones.cluster }}"
+      - zone: "{{ cluster_state.zones.cluster }}"
+        record: "api.{{ cluster_state.zones.cluster }}"
         private_zone: yes
         overwrite: yes
 
@@ -87,7 +92,7 @@ cloud_loadbalancers:
     type: network
     scheme: internal
     state: present
-    tags: "{{ ocp_cluster.tags }}"
+    tags: "{{ cluster_state.tags }}"
     #subnet_mappings:
     #subnets: []
     subnets_discovery: yes
@@ -110,10 +115,10 @@ cloud_loadbalancers:
           - Type: forward
             TargetGroupName: "{{ ocp_install_infraID }}-sint"
     register_dns:
-      - zone: "{{ ocp_cluster.zones.base }}"
-        record: "api-int.{{ ocp_cluster.zones.cluster }}"
+      - zone: "{{ cluster_state.zones.base }}"
+        record: "api-int.{{ cluster_state.zones.cluster }}"
         overwrite: yes
-      - zone: "{{ ocp_cluster.zones.cluster }}"
-        record: "api-int.{{ ocp_cluster.zones.cluster }}"
+      - zone: "{{ cluster_state.zones.cluster }}"
+        record: "api-int.{{ cluster_state.zones.cluster }}"
         private_zone: yes
         overwrite: yes
