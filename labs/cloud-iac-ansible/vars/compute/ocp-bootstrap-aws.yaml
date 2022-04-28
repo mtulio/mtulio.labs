@@ -3,7 +3,7 @@
 openshift_bootstrap_bucket: "{{ ocp_install_infraID }}-infra"
 openshift_instance_type: m6i.xlarge
 openshift_instance_profile: ocp-bootstrap
-#openshift_subnet_id: subnet-0b4006f726f93ca95
+#openshift_subnet_id: subnet-0bb0fac816ad8df29
 openshift_subnet_name: ocp-net-public-use1-1a
 openshift_security_groups:
   - ocp-sg-bootstrap
@@ -24,7 +24,8 @@ _def:
   termination_protection: no
 
   #volumes: []
-  vpc_subnet_id: "{{ openshift_subnet_id }}"
+  #vpc_subnet_id: "{{ openshift_subnet_id }}"
+  vpc_subnet_name: "{{ openshift_subnet_name }}"
   wait: yes
   wait_timeout: 500
 
@@ -48,7 +49,8 @@ compute_resources:
       termination_protection: "{{ _def.termination_protection }}"
       user_data: "{{ lookup('template', 'ocp-bootstrap-user-data.j2') |to_nice_json | string }}"
       volumes: "{{ _def.volumes | d([]) }}"
-      vpc_subnet_id: "{{ _def.vpc_subnet_id }}"
+      #vpc_subnet_id: "{{ _def.vpc_subnet_id }}"
+      vpc_subnet_name: "{{ _def.vpc_subnet_name }}"
       wait: "{{ _def.wait }}"
       wait_timeout: "{{ _def.wait_timeout }}"
 
@@ -75,3 +77,19 @@ compute_resources:
                 }
             ]
           }
+      register_resources:
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ ocp_install_infraID }}-aint"
+          resource_type: ip
+          #resource_id: private_ip
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ ocp_install_infraID }}-aext"
+          resource_type: ip
+          #resource_id: private_ip
+        - service: loadbalancer
+          service_type: nlb
+          resource_name: "{{ ocp_install_infraID }}-sint"
+          resource_type: ip
+          #resource_id: private_ip

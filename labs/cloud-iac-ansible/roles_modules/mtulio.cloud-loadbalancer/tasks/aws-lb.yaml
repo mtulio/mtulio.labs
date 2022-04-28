@@ -77,17 +77,17 @@
 
 - name: Load Balancer | Save config | Name
   set_fact:
-    ocp_cluster: "{% set x=ocp_cluster.loadbalancers.__setitem__(lb.openshift_id+'_name', lb_out.load_balancer_name) %}{{ ocp_cluster }}"
+    cluster_state: "{% set x=cluster_state.loadbalancers.__setitem__(lb.openshift_id+'_name', lb_out.load_balancer_name) %}{{ cluster_state }}"
   when: lb.openshift_id is defined
 
 - name: Load Balancer | Save config | Provider's DNS record
   set_fact:
-    ocp_cluster: "{% set x=ocp_cluster.loadbalancers.__setitem__(lb.openshift_id+'_dns_provider', lb_out.dns_name) %}{{ ocp_cluster }}"
+    cluster_state: "{% set x=cluster_state.loadbalancers.__setitem__(lb.openshift_id+'_dns_provider', lb_out.dns_name) %}{{ cluster_state }}"
   when: lb.openshift_id is defined
 
 - name: Load Balancer | Set config | Custom DNS record
   set_fact:
-    ocp_cluster: "{% set x=ocp_cluster.loadbalancers.__setitem__(lb.openshift_id+'_dns', lb.register_dns[0].record) %}{{ ocp_cluster }}"
+    cluster_state: "{% set x=cluster_state.loadbalancers.__setitem__(lb.openshift_id+'_dns', lb.register_dns[0].record) %}{{ cluster_state }}"
   when:
     - lb.openshift_id is defined
     - lb.register_dns is defined

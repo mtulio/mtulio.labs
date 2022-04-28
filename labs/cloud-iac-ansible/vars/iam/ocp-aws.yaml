@@ -5,9 +5,10 @@ iam_roles:
     - aws
   assume_doc_type: file
   assume_doc_name: "aws-ec2-assume.json"
-  #managed_policies: []
+  managed_policies:
+    - arn:aws:iam::aws:policy/AdministratorAccess
   #policy_document: {}
-  tags: "{{ ocp_cluster_tags }}"
+  tags: "{{ cluster_state.tags }}"
   custom_policies:
     - name: s3-ro-bootstrap
       file_type: template

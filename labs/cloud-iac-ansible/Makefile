@@ -64,20 +64,19 @@ openshift-stack-securitygroups:
 		-e install_dir=$(INSTALL_DIR)
 .PHONY: openshift-stack-securitygroups
 
-# - NLB
-openshift-stack-loadbalancers:
-	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
-		-e provider=aws -e name=ocp \
-		-e install_dir=$(INSTALL_DIR)
-.PHONY: openshift-stack-loadbalancers
-
-
 # - DNS
 openshift-stack-dns:
 	$(VENV)/bin/ansible-playbook openshift_stack_dns.yaml -vvv \
 		-e provider=aws -e name=ocp \
 		-e install_dir=$(INSTALL_DIR)
 .PHONY: openshift-stack-dns
+
+# - NLB
+openshift-stack-loadbalancers:
+	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
+		-e provider=aws -e name=ocp \
+		-e install_dir=$(INSTALL_DIR)
+.PHONY: openshift-stack-loadbalancers
 
 # IAM
 openshift-stack-iam:
@@ -89,13 +88,13 @@ openshift-stack-iam:
 # S3 Bucket
 
 # EC2: Bootstrap
-openshift-setup:
+openshift-bootstrap-setup:
 	$(VENV)/bin/ansible-playbook openshift_bootstrap_setup.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR)
-.PHONY: openshift-setup
+.PHONY: openshift-bootstrap-setup
 
-openshift-bootstrap-launch:
+openshift-bootstrap-launch: openshift-bootstrap-setup
 	$(VENV)/bin/ansible-playbook openshift_bootstrap_run.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR)
@@ -105,6 +104,9 @@ openshift-bootstrap-launch:
 
 # EC2: Compute
 
+# All
+openshift-install: openshift-install openshift-stack-iam openshift-stack-network openshift-stack-securitygroups openshift-stack-dns openshift-stack-loadbalancers openshift-bootstrap-launch
+.PHONY: openshift-install
 
 get-console-output:
 	aws ec2 get-console-output \
