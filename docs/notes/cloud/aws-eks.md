@@ -28,9 +28,12 @@ eksctl create cluster \
     --with-oidc
 ```
 
-
 ## Destroy a cluster
 
 ```bash
 eksctl delete cluster --name mrb-c1
 ```
+
+## References:
+
+- [EKS Control Planes](https://aws.github.io/aws-eks-best-practices/reliability/docs/controlplane/)

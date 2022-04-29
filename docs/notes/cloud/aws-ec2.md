@@ -1,5 +1,23 @@
 # EC2
 
+## Simple run instance (FCOS)
+
+```bash
+NAME='fcos-instance'
+IMAGE='ami-0389fff7e72ebe8e0'
+REGION='us-east-1'
+TYPE='m5.large'
+SUBNET='subnet-XX'
+SECURITY_GROUPS='sg-XX'
+
+aws ec2 run-instances                     \
+    --region $REGION                      \
+    --image-id $IMAGE                     \
+    --instance-type $TYPE                 \
+    --subnet-id $SUBNET                   \
+    --security-group-ids $SECURITY_GROUPS
+```
+
 ## Instance offering by Region
 
 Query instance type offerings for each available region that has EC2 service.
