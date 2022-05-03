@@ -117,6 +117,16 @@ openshift-stack-compute-controlplane: openshift-bootstrap-setup
 openshift-install: openshift-config openshift-stack-iam openshift-stack-network openshift-stack-securitygroups openshift-stack-dns openshift-stack-loadbalancers openshift-stack-compute-controlplane openshift-stack-compute-bootstrap
 .PHONY: openshift-install
 
+## Infra
+openshift-create-infra: openshift-config openshift-stack-iam openshift-stack-network openshift-stack-securitygroups openshift-stack-dns openshift-stack-loadbalancers
+.PHONY: openshift-create-infra
+
+
+clean:
+	rm -rvf $(INSTALL_DIR)
+.PHONY: clean
+
+# Extra
 get-console-output:
 	aws ec2 get-console-output \
 		--instance-id $(INSTANCE_ID) \

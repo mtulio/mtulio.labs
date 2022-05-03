@@ -14,38 +14,5 @@
   vars_files:
     - vars/openshift.yaml
 
-  tasks:
-    - name: create install dir
-      file:
-        state: directory
-        path: "{{ install_dir }}"
-        recurse: yes
-
-    - stat:
-        path: "{{ install_dir }}/metadata.json"
-      register: st_out
-    
-    - debug: var=st_out
-
-    - name: Create the install config
-      template:
-        src: ocp-install-config.yaml.j2
-        dest: "{{ install_dir }}/install-config.yaml"
-      when: not(st_out.stat.exists)
-
-    - name: create ignitions
-      shell: |
-        openshift-install create ignition-configs --dir {{ install_dir }}
-      when: not(st_out.stat.exists)
-
-    - name: create install dir
-      file:
-        state: absent
-        path: "{{ item }}"
-      with_items:
-        - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-1.yaml"
-        - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-2.yaml"
-        - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-3.yaml"
-        - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-1.yaml"
-        - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-2.yaml"
-        - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-3.yaml"
+  roles:
+    - installer-config

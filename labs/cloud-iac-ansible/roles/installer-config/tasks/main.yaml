@@ -1,0 +1,48 @@
+- name: create the install dir
+  file:
+    state: directory
+    path: "{{ install_dir }}"
+    recurse: yes
+
+- name: Look for metadata.json on install-dir
+  stat:
+    path: "{{ install_dir }}/metadata.json"
+  register: st_out
+
+- debug: var=st_out
+
+- name: create the install config
+  template:
+    src: ocp-install-config.yaml.j2
+    dest: "{{ install_dir }}/install-config.yaml"
+  when: not(st_out.stat.exists)
+
+- name: backup the install config
+  template:
+    src: ocp-install-config.yaml.j2
+    dest: "{{ install_dir }}/install-config-bkp.yaml"
+  when: not(st_out.stat.exists)
+
+- name: create manifests
+  shell: |
+    openshift-install create manifests --dir {{ install_dir }}
+  when: not(st_out.stat.exists)
+
+- name: remote machine related manifests
+  file:
+    state: absent
+    path: "{{ item }}"
+  with_items:
+    - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-1.yaml"
+    - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-2.yaml"
+    - "{{ install_dir }}/openshift/99_openshift-cluster-api_master-machines-3.yaml"
+    - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-1.yaml"
+    - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-2.yaml"
+    - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-3.yaml"
+  when: not(st_out.stat.exists)
+
+- name: create ignition configs
+  shell: |
+    openshift-install create ignition-configs --dir {{ install_dir }}
+  when: not(st_out.stat.exists)
+

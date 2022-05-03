@@ -1,0 +1,58 @@
+---
+# metadata.name should be defined by caller
+#config_metadata_name: ''
+
+# Defaults
+config_default_architecture: amd64
+config_default_hyperthreading: Enabled
+
+# Compute
+config_compute_replicas: 3
+config_compute_platform: {}
+config_compute:
+- name: worker
+  replicas: "{{ config_compute_replicas }}"
+  platform: "{{ config_compute_platform }}"
+  architecture: "{{ config_compute_architecture | d(config_default_architecture) }}"
+  hyperthreading: "{{ config_compute_hyperthreading | d(config_default_hyperthreading) }}"
+
+# Control Plane
+config_controlplane_replicas: 3
+config_controlplane_platform: {}
+config_controlplane:
+  name: master
+  platform: "{{ config_controlplane_platform }}"
+  replicas: "{{ config_controlplane_replicas }}"
+  architecture: "{{ config_controlplane_architecture | d(config_default_architecture) }}"
+  hyperthreading: "{{ config_controlplane_hyperthreading | d(config_default_hyperthreading) }}"
+
+# Network
+## Non-mandatory
+config_networking: no
+
+config_networking_clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+
+config_networking_machineNetwork:
+  - cidr: 10.0.0.0/16
+
+config_networking_networkType: OpenShiftSDN
+
+config_networking_serviceNetwork:
+  - 172.30.0.0/16
+
+# Platform
+config_platform:
+  none: {}
+
+# Publish
+config_publish: External
+
+# PullSecret (Should be defined)
+## NOTE: This should be a path on your file system
+## containing the pull secret
+#config_pullSecret_file: ''
+
+# SSH
+config_sshKey: ''
