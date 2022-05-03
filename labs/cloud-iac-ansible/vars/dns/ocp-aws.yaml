@@ -3,7 +3,7 @@
 #AWS: https://docs.ansible.com/ansible/latest/collections/community/aws/route53_module.html
 cloud_dns_zones:
   # public
-  - zone: "{{ ocp_config_baseDomain }}"
+  - zone: "{{ cluster_state.zones.base }}"
     openshift_type: base
     provider: aws
 
@@ -14,7 +14,7 @@ cloud_dns_zones:
     #     alias: yes
 
   # private
-  - zone: "{{ ocp_install_clusterName }}.{{ ocp_config_baseDomain }}"
+  - zone: "{{ cluster_state.zones.cluster }}"
     openshift_type: cluster
     provider: aws
     vpc_name: ocp-vpc-use1
