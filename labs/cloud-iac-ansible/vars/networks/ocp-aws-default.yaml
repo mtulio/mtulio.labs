@@ -13,6 +13,8 @@ security_groups:
         from_port: 22
         to_port: 22
         cidr_ip: 0.0.0.0/0
+      - proto: all
+        cidr_ip: 10.0.0.0/8
     purge_rules_egress: yes
     rules_egress:
       - proto: all
@@ -27,6 +29,8 @@ security_groups:
       - proto: all
         group_name: ocp-sg-compute
         group_desc: Security Group for Compute nodes
+      - proto: all
+        cidr_ip: 10.0.0.0/8
 
     purge_rules_egress: yes
     rules_egress:
@@ -42,6 +46,8 @@ security_groups:
         group_desc: Security Group for Control Plane nodes
       - proto: all
         group_name: ocp-sg-compute
+      - proto: all
+        cidr_ip: 10.0.0.0/8
 
     purge_rules_egress: yes
     rules_egress:
