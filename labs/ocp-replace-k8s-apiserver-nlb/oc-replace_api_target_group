@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 
 #
 # Switch NLB's listeners to target group type 'instnace' on
@@ -10,21 +10,25 @@ set -o nounset
 set -o errexit
 
 set_defaults() {
-    declare -g INFRA_NAME=$(oc get infrastructures \
+    declare -g INFRA_NAME
+    INFRA_NAME=$(oc get infrastructures \
         -o jsonpath='{.items[*].status.infrastructureName}')
 
-    declare -g VPC_ID=$(aws ec2 describe-vpcs \
+    declare -g VPC_ID
+    VPC_ID=$(aws ec2 describe-vpcs \
         --filters Name=tag-key,Values=kubernetes.io/cluster/${INFRA_NAME} \
         --query 'Vpcs[].VpcId' --output text)
 
-    declare -g INSTANCE_IDS=$(oc get machines \
+    declare -g INSTANCE_IDS
+    INSTANCE_IDS=$(oc get machines \
         -n openshift-machine-api \
         -l machine.openshift.io/cluster-api-machine-role=master \
         -o json \
         | jq -r '.items[]| ( "Id="+ .status.providerStatus.instanceId)' \
         | tr '\n' ' ')
 
-    declare -g INSTANCE_IPS=$(oc get machines \
+    declare -g INSTANCE_IPS
+    INSTANCE_IPS=$(oc get machines \
         -n openshift-machine-api \
         -l machine.openshift.io/cluster-api-machine-role=master \
         -o json \
@@ -32,25 +36,50 @@ set_defaults() {
         | tr '\n' ' ')
 
 
-    declare -g NLB_INT="${INFRA_NAME}-int"
-    declare -g NLB_EXT="${INFRA_NAME}-ext"
+    declare -g NLB_INT
+    declare -g NLB_EXT
+    NLB_INT="${INFRA_NAME}-int"
+    NLB_EXT="${INFRA_NAME}-ext"
 
-    declare -g TG_NAME_SINT="${INFRA_NAME}-sint"
-    declare -g TG_NAME_AINT="${INFRA_NAME}-aint"
-    declare -g TG_NAME_AEXT="${INFRA_NAME}-aext"
+    declare -g TG_NAME_SINT
+    declare -g TG_NAME_AINT
+    declare -g TG_NAME_AEXT
+    TG_NAME_SINT="${INFRA_NAME}-sint"
+    TG_NAME_AINT="${INFRA_NAME}-aint"
+    TG_NAME_AEXT="${INFRA_NAME}-aext"
 
-    declare -g TG_PORT_SINT=22623
-    declare -g TG_PORT_API=6443
+    declare -g VPC_CIDR
+    VPC_CIDR="10.0.0.0/16"
+
+    declare -g TG_HC_PROTO
+    TG_HC_PROTO="HTTPS"
+
+    declare -g TG_PORT_SINT
+    declare -g TG_PORT_API
+    declare -g TG_PORT_SINT_HC
+    declare -g TG_PORT_API_HC
+    declare -g TG_PORT_SINT_HC_HTTPS
+    declare -g TG_PORT_API_HC_HTTPS
+    declare -g TG_PORT_SINT_HC_HTTP
+    declare -g TG_PORT_API_HC_HTTP
+    TG_PORT_SINT=22623
+    TG_PORT_API=6443
+    TG_PORT_SINT_HC_HTTPS=22623
+    TG_PORT_API_HC_HTTPS=6443
+    TG_PORT_SINT_HC_HTTP=22624
+    TG_PORT_API_HC_HTTP=6080
+    TG_PORT_SINT_HC="${TG_PORT_SINT_HC_HTTPS}"
+    TG_PORT_API_HC="${TG_PORT_API_HC_HTTPS}"
 
     echo -e "infra\t\t: ${INFRA_NAME}"
     echo -e "vpc\t\t: ${VPC_ID}"
     echo -e "instanceIds\t: ${INSTANCE_IDS}"
     echo -e "instanceIps\t: ${INSTANCE_IPS}"
-
 }
 
 patch_security_group() {
-    local master_sg=${INFRA_NAME}-master-sg
+    local master_sg
+    master_sg="${INFRA_NAME}-master-sg"
 
     local master_sg_id=$(aws ec2 describe-security-groups \
         --filters Name=tag:Name,Values=${master_sg} \
@@ -63,12 +92,35 @@ patch_security_group() {
         --port 6443 \
         --cidr 0.0.0.0/0
 
-    # don't need as i's already exists on current IPI
-    # aws ec2 authorize-security-group-ingress \
-    # --group-id ${master_sg_id} \
-    #     --protocol tcp \
-    #     --port 22623 \
-    #     --cidr 10.0.0.0/16
+    # MCS (22623/tcp) don't need to create rule as i's already exists on current IPI
+}
+
+patch_security_group_insecure() {
+    local action="${1:-authorize}"
+    local master_sg
+    master_sg="${INFRA_NAME}-master-sg"
+
+    local master_sg_id
+    master_sg_id=$(aws ec2 describe-security-groups \
+        --filters "Name=tag:Name,Values=${master_sg}" \
+        --query 'SecurityGroups[].GroupId' \
+        --output text)
+
+    aws ec2 "${action}-security-group-ingress" \
+        --group-id "${master_sg_id}" \
+        --protocol tcp \
+        --port "${TG_PORT_API_HC_HTTPS}" \
+        --cidr "${VPC_CIDR}"
+
+    aws ec2 "${action}-security-group-ingress" \
+        --group-id "${master_sg_id}" \
+        --protocol tcp \
+        --port "${TG_PORT_SINT_HC_HTTPS}" \
+        --cidr "${VPC_CIDR}"
+}
+
+patch_security_group_insecure_revoke() {
+    patch_security_group_insecure "revoke"
 }
 
 #
@@ -80,6 +132,7 @@ create_target_group() {
     local tg_suffix="${2}"
     local tg_port="${3}"
     local tg_hc_path="${4}"
+    local tg_hc_port="${5}"
 
     local tg_name="${INFRA_NAME}-${tg_suffix}"
     local tg_file="/tmp/${tg_name}.json"
@@ -90,12 +143,11 @@ create_target_group() {
     "Protocol": "TCP",
     "Port": ${tg_port},
     "VpcId": "${VPC_ID}",
-    "HealthCheckProtocol": "HTTPS",
-    "HealthCheckPort": "${tg_port}",
+    "HealthCheckProtocol": "${TG_HC_PROTO}",
+    "HealthCheckPort": "${tg_hc_port}",
     "HealthCheckEnabled": true,
     "HealthCheckPath": "${tg_hc_path}",
     "HealthCheckIntervalSeconds": 10,
-    "HealthCheckTimeoutSeconds": 10,
     "HealthyThresholdCount": 2,
     "UnhealthyThresholdCount": 2,
     "Matcher": {
@@ -142,15 +194,15 @@ create_tg_ip() {
 }
 
 create_tg_inst_aint_tmpId() {
-    create_tg_instance "aint-tmpId" ${TG_PORT_API} "/readyz"
+    create_tg_instance "aint-tmpId" "${TG_PORT_API}" "/readyz" "${TG_PORT_API_HC}"
 }
 
 create_tg_inst_aext_tmpId() {
-    create_tg_instance "aext-tmpId" ${TG_PORT_API} "/readyz"
+    create_tg_instance "aext-tmpId" "${TG_PORT_API}" "/readyz" "${TG_PORT_API_HC}"
 }
 
 create_tg_inst_sint_tmpId() {
-    create_tg_instance "sint-tmpId" ${TG_PORT_SINT} "/healthz"
+    create_tg_instance "sint-tmpId" "${TG_PORT_SINT}" "/healthz" "${TG_PORT_SINT_HC}"
 }
 
 create_kubeapi_targets_tmp_instance() {
@@ -160,15 +212,15 @@ create_kubeapi_targets_tmp_instance() {
 }
 
 create_tg_inst_aint_tmpIp() {
-    create_tg_ip "aint-tmpIp" ${TG_PORT_API} "/readyz"
+    create_tg_ip "aint-tmpIp" "${TG_PORT_API}" "/readyz" "${TG_PORT_API_HC}"
 }
 
 create_tg_inst_aext_tmpIp() {
-    create_tg_ip "aext-tmpIp" ${TG_PORT_API} "/readyz"
+    create_tg_ip "aext-tmpIp" "${TG_PORT_API}" "/readyz" "${TG_PORT_API_HC}"
 }
 
 create_tg_inst_sint_tmpIp() {
-    create_tg_ip "sint-tmpIp" ${TG_PORT_SINT} "/healthz"
+    create_tg_ip "sint-tmpIp" "${TG_PORT_SINT}" "/healthz" "${TG_PORT_SINT_HC}"
 }
 
 create_kubeapi_targets_tmp_ip() {
@@ -178,15 +230,15 @@ create_kubeapi_targets_tmp_ip() {
 }
 
 create_tg_inst_aint_default() {
-    create_tg_${1} "aint" ${TG_PORT_API} "/readyz"
+    create_tg_${1} "aint" "${TG_PORT_API}" "/readyz" "${TG_PORT_API_HC}"
 }
 
 create_tg_inst_aext_default() {
-    create_tg_${1} "aext" ${TG_PORT_API} "/readyz"
+    create_tg_${1} "aext" "${TG_PORT_API}" "/readyz" "${TG_PORT_API_HC}"
 }
 
 create_tg_inst_sint_default() {
-    create_tg_${1} "sint" ${TG_PORT_SINT} "/healthz"
+    create_tg_${1} "sint" "${TG_PORT_SINT}" "/healthz" "${TG_PORT_SINT_HC}"
 }
 
 create_kubeapi_targets_default_ip() {
@@ -210,17 +262,17 @@ replace_nlb_listener() {
     local target_name="${3}"
 
     load_balancer_arn=$(aws elbv2 describe-load-balancers \
-        --names ${nlb_name} \
+        --names "${nlb_name}" \
         --query 'LoadBalancers[].LoadBalancerArn' \
         --output text)
 
     listener_arn=$(aws elbv2 describe-listeners \
-        --load-balancer-arn ${load_balancer_arn} \
+        --load-balancer-arn "${load_balancer_arn}" \
         --query "Listeners[?Port == \`${listener_port}\`].ListenerArn" \
         --output text)
 
     target_group_arn=$(aws elbv2 describe-target-groups \
-        --names ${target_name} \
+        --names "${target_name}" \
         |jq -r '.TargetGroups[].TargetGroupArn')
 
     echo -e "load_balancer_arn\t: ${load_balancer_arn}"
@@ -228,22 +280,22 @@ replace_nlb_listener() {
     echo -e "target_group_arn\t: ${target_group_arn}"
 
     aws elbv2 modify-listener \
-        --listener-arn ${listener_arn} \
-        --default-actions Type=forward,TargetGroupArn=${target_group_arn}
+        --listener-arn "${listener_arn}" \
+        --default-actions "Type=forward,TargetGroupArn=${target_group_arn}"
 
 }
 
 # default targets
 replace_nlb_listener_sint_to_default() {
-    replace_nlb_listener "${NLB_INT}" ${TG_PORT_SINT} "${TG_NAME_SINT}"
+    replace_nlb_listener "${NLB_INT}" "${TG_PORT_SINT}" "${TG_NAME_SINT}"
 }
 
 replace_nlb_listener_aint_to_default() {
-    replace_nlb_listener "${NLB_INT}" ${TG_PORT_API} "${TG_NAME_AINT}"
+    replace_nlb_listener "${NLB_INT}" "${TG_PORT_API}" "${TG_NAME_AINT}"
 }
 
 replace_nlb_listener_aext_to_default() {
-    replace_nlb_listener "${NLB_EXT}" ${TG_PORT_API} "${TG_NAME_AEXT}"
+    replace_nlb_listener "${NLB_EXT}" "${TG_PORT_API}" "${TG_NAME_AEXT}"
 }
 
 replace_nlb_listeners_to_default() {
@@ -254,15 +306,15 @@ replace_nlb_listeners_to_default() {
 
 # tmpId targets
 replace_nlb_listener_sint_to_tmpId() {
-    replace_nlb_listener "${NLB_INT}" ${TG_PORT_SINT} "${TG_NAME_SINT}-tmpId"
+    replace_nlb_listener "${NLB_INT}" "${TG_PORT_SINT}" "${TG_NAME_SINT}-tmpId"
 }
 
 replace_nlb_listener_aint_to_tmpId() {
-    replace_nlb_listener "${NLB_INT}" ${TG_PORT_API} "${TG_NAME_AINT}-tmpId"
+    replace_nlb_listener "${NLB_INT}" "${TG_PORT_API}" "${TG_NAME_AINT}-tmpId"
 }
 
 replace_nlb_listener_aext_to_tmpId() {
-    replace_nlb_listener "${NLB_EXT}" ${TG_PORT_API} "${TG_NAME_AEXT}-tmpId"
+    replace_nlb_listener "${NLB_EXT}" "${TG_PORT_API}" "${TG_NAME_AEXT}-tmpId"
 }
 
 replace_nlb_listeners_to_tmpId() {
@@ -273,15 +325,15 @@ replace_nlb_listeners_to_tmpId() {
 
 # tmpIp targets
 replace_nlb_listener_sint_to_tmpIp() {
-    replace_nlb_listener "${NLB_INT}" ${TG_PORT_SINT} "${TG_NAME_SINT}-tmpIp"
+    replace_nlb_listener "${NLB_INT}" "${TG_PORT_SINT}" "${TG_NAME_SINT}-tmpIp"
 }
 
 replace_nlb_listener_aint_to_tmpIp() {
-    replace_nlb_listener "${NLB_INT}" ${TG_PORT_API} "${TG_NAME_AINT}-tmpIp"
+    replace_nlb_listener "${NLB_INT}" "${TG_PORT_API}" "${TG_NAME_AINT}-tmpIp"
 }
 
 replace_nlb_listener_aext_to_tmpIp() {
-    replace_nlb_listener "${NLB_EXT}" ${TG_PORT_API} "${TG_NAME_AEXT}-tmpIp"
+    replace_nlb_listener "${NLB_EXT}" "${TG_PORT_API}" "${TG_NAME_AEXT}-tmpIp"
 }
 
 replace_nlb_listeners_to_tmpIp() {
@@ -311,6 +363,15 @@ delete_targets_default() {
     delete_tg_sint_default
     delete_tg_aint_default
     delete_tg_aext_default
+}
+
+delete_tg_sint_tmpIp() { delete_target_group_by_name "${TG_NAME_SINT}-tmpIp"; }
+delete_tg_aint_tmpIp() { delete_target_group_by_name "${TG_NAME_AINT}-tmpIp"; }
+delete_tg_aext_tmpIp() { delete_target_group_by_name "${TG_NAME_AEXT}-tmpIp"; }
+delete_targets_tmpIp() {
+    delete_tg_sint_tmpIp
+    delete_tg_aint_tmpIp
+    delete_tg_aext_tmpIp
 }
 
 #
@@ -388,32 +449,64 @@ cmd_replace_to_ip() {
     replace_nlb_listeners_to_default
 }
 
+# REPLACE Health Check commands
 
+# replace to HTTP
+cmd_replace_hc_http() {
+    delete_targets_tmpIp || true
+    # Ensure global vars
+    TG_HC_PROTO="HTTP"
+    TG_PORT_SINT_HC=${TG_PORT_SINT_HC_HTTP}
+    TG_PORT_API_HC=${TG_PORT_API_HC_HTTP}
+
+    # currently the default target type is IP:
+    patch_security_group_insecure || true
+    cmd_replace_to_ip
+    delete_targets_tmpIp || true
+}
+
+cmd_replace_hc_https() {
+    delete_targets_tmpIp || true
+    # HTTPS is the default behavior.
+    # currently the default target type is IP:
+    patch_security_group_insecure || true
+    cmd_replace_to_ip
+    #patch_security_group_insecure_revoke
+    delete_targets_tmpIp || true
+}
+
+# Helper
 helpme() {
     cat <<-EOF
 Usage: ${0} command
 
 Available commands:
+    # To modify target type
     "to-target-instance"     : Rollout to targets type Instance, and remove original
     "to-target-ip"           : Rollout to targets type IP, and remove original
     "to-target-tmp-instance" : Rollout to targets type Instance, and keep original
     "to-target-tmp-ip"       : Rollout to targets type Instance, and keep original
-    "create-targets-instance": Create target groups type Instance only (do not replace)
-    "create-targets-ip"      : Create target groups type IP only (do not replace)
+    "create-targets-instance": Only create the target groups type Instance (do not replace)
+    "create-targets-ip"      : Only create the target groups type IP (do not replace)
 
+    # To modify Target Group Health Check Protocol
+    "to-http-health-check"   : Replace target groups to use HTTP Health Checks
+    "to-https-health-check"  : Replace target groups to use HTTPS Health Checks (default)
 EOF
     exit 0
 }
 
 main() {
     case "${1:-}" in
+        "create-targets-instance"   ) CMD="cmd_create_tmp_instance" ;;
+        "create-targets-ip"         ) CMD="cmd_create_tmp_ip" ;;
+        "patch-security-group"      ) CMD="cmd_patch_sg" ;;
         "to-target-instance"        ) CMD="cmd_replace_to_instance" ;;
         "to-target-ip"              ) CMD="cmd_replace_to_ip" ;;
         "to-target-tmp-instance"    ) CMD="cmd_replace_tmp_instance" ;;
         "to-target-tmp-ip"          ) CMD="cmd_replace_tmp_ip" ;;
-        "create-targets-instance"   ) CMD="cmd_create_tmp_instance" ;;
-        "create-targets-ip"         ) CMD="cmd_create_tmp_ip" ;;
-        "patch-security-group"      ) CMD="cmd_patch_sg" ;;
+        "to-http-health-check"      ) CMD="cmd_replace_hc_http" ;;
+        "to-https-health-check"     ) CMD="cmd_replace_hc_https" ;;
         *) helpme ;;
     esac
 
