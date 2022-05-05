@@ -1,26 +1,25 @@
 ---
-
-openshift_bootstrap_bucket: "{{ ocp_install_infraID }}-infra"
+openshift_prefix: "{{ cluster_state.infra_id }}"
+openshift_bootstrap_bucket: "{{ openshift_prefix }}-infra"
 openshift_instance_type: m6i.xlarge
-openshift_instance_profile: ocp-bootstrap
-#openshift_subnet_id: subnet-0bb0fac816ad8df29
-openshift_subnet_name: ocp-net-public-use1-1a
+openshift_instance_profile: "{{ cluster_state.compute.iam_profile_bootstrap }}"
+openshift_image_id: "{{ cluster_state.compute.image_id }}"
+openshift_subnet_name: "{{ openshift_prefix }}-net-public-use1-1a"
 openshift_security_groups:
-  - ocp-sg-bootstrap
-  - ocp-sg-controlplane
+  - "{{ openshift_prefix }}-bootstrap-sg"
+  - "{{ openshift_prefix }}-controlplane-sg"
+openshift_tags: "{{ cluster_state.tags }}"
 
 _def:
-  name: "{{ ocp_install_infraID }}-bootstrap"
+  name: "{{ openshift_prefix }}-bootstrap"
   detailed_monitoring: yes
   ebs_optimized: no
-  
-  image_id: "{{ ocp_install_image }}"
+  image_id: "{{ openshift_image_id }}"
   instance_role: "{{ openshift_instance_profile }}"
   instance_type: "{{ openshift_instance_type }}"
   security_groups: "{{ openshift_security_groups }}"
   state: present
-  tags:
-    "kubernetes.io/cluster/{{ ocp_install_infraID }}": owned
+  tags: "{{ openshift_tags }}"
   termination_protection: no
 
   #volumes: []
@@ -49,7 +48,6 @@ compute_resources:
       termination_protection: "{{ _def.termination_protection }}"
       user_data: "{{ lookup('template', 'ocp-bootstrap-user-data.j2') |to_nice_json | string }}"
       volumes: "{{ _def.volumes | d([]) }}"
-      #vpc_subnet_id: "{{ _def.vpc_subnet_id }}"
       vpc_subnet_name: "{{ _def.vpc_subnet_name }}"
       wait: "{{ _def.wait }}"
       wait_timeout: "{{ _def.wait_timeout }}"
@@ -61,16 +59,16 @@ compute_resources:
       register_resources:
         - service: loadbalancer
           service_type: nlb
-          resource_name: "{{ ocp_install_infraID }}-aint"
+          resource_name: "{{ openshift_prefix }}-aint"
           resource_type: ip
           #resource_id: private_ip
         - service: loadbalancer
           service_type: nlb
-          resource_name: "{{ ocp_install_infraID }}-aext"
+          resource_name: "{{ openshift_prefix}}-aext"
           resource_type: ip
           #resource_id: private_ip
         - service: loadbalancer
           service_type: nlb
-          resource_name: "{{ ocp_install_infraID }}-sint"
+          resource_name: "{{ openshift_prefix }}-sint"
           resource_type: ip
           #resource_id: private_ip

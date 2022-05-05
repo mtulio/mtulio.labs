@@ -7,7 +7,7 @@ cloud_loadbalancer_targets:
     protocol: tcp
     port: 6443
     target_type: ip
-    vpc_name: ocp-vpc-use1
+    vpc_name: "{{ cluster_state.infra_id }}-vpc"
     health_check_protocol: https
     health_check_path: /readyz
     health_check_port: 6443
@@ -17,14 +17,15 @@ cloud_loadbalancer_targets:
     healthy_threshold_count: 2
     unhealthy_threshold_count: 2
     state: present
-    tags: {}
+    modify_targets: no
+    tags: "{{ cluster_state.tags | d({}) }}"
 
   - name: "{{ cluster_state.infra_id }}-aint"
     provider: aws
     protocol: tcp
     port: 6443
     target_type: ip
-    vpc_name: ocp-vpc-use1
+    vpc_name: "{{ cluster_state.infra_id }}-vpc"
     health_check_protocol: https
     health_check_path: /readyz
     health_check_port: 6443
@@ -34,13 +35,15 @@ cloud_loadbalancer_targets:
     healthy_threshold_count: 2
     unhealthy_threshold_count: 2
     state: present
+    modify_targets: no
+    tags: "{{ cluster_state.tags | d({}) }}"
 
   - name: "{{ cluster_state.infra_id }}-sint"
     provider: aws
     protocol: tcp
     port: 22623
     target_type: ip
-    vpc_name: ocp-vpc-use1
+    vpc_name: "{{ cluster_state.infra_id }}-vpc"
     health_check_protocol: https
     health_check_path: /healthz
     health_check_port: 22623
@@ -50,6 +53,45 @@ cloud_loadbalancer_targets:
     healthy_threshold_count: 2
     unhealthy_threshold_count: 2
     state: present
+    modify_targets: no
+    tags: "{{ cluster_state.tags | d({}) }}"
+
+  # - name: "{{ cluster_state.infra_id }}-ic-pub-80"
+  #   provider: aws
+  #   protocol: tcp
+  #   port: 30425
+  #   target_type: ip
+  #   vpc_name: "{{ cluster_state.infra_id }}-vpc"
+  #   health_check_protocol: http
+  #   health_check_path: /healthz
+  #   health_check_port: 31476
+  #   successful_response_codes: "200-399"
+  #   health_check_interval: 10
+  #   #health_check_timeout: 2
+  #   healthy_threshold_count: 2
+  #   unhealthy_threshold_count: 2
+  #   state: present
+  #   modify_targets: no
+  #   tags: "{{ cluster_state.tags | d({}) }}"
+
+  # - name: "{{ cluster_state.infra_id }}-ic-pub-443"
+  #   provider: aws
+  #   protocol: tcp
+  #   port: 31466
+  #   target_type: ip
+  #   vpc_name: "{{ cluster_state.infra_id }}-vpc"
+  #   health_check_protocol: http
+  #   health_check_path: /healthz
+  #   health_check_port: 31476
+  #   successful_response_codes: "200-399"
+  #   health_check_interval: 10
+  #   #health_check_timeout: 2
+  #   healthy_threshold_count: 2
+  #   unhealthy_threshold_count: 2
+  #   state: present
+  #   modify_targets: no
+  #   tags: "{{ cluster_state.tags | d({}) }}"
+
 
 # AWS: https://docs.ansible.com/ansible/latest/collections/community/aws/elb_network_lb_module.html
 cloud_loadbalancers:
@@ -59,15 +101,15 @@ cloud_loadbalancers:
     type: network
     scheme: internet-facing
     state: present
-    tags: {}
+    tags: "{{ cluster_state.tags | d({}) }}"
     #subnet_mappings:
     #subnets: []
     subnets_discovery: yes
-    vpc_name: ocp-vpc-use1
+    vpc_name: "{{ cluster_state.infra_id }}-vpc"
     subnets_names:
-      - ocp-net-public-use1-1a
-      - ocp-net-public-use1-1b
-      - ocp-net-public-use1-1c
+      - "{{ cluster_state.infra_id }}-net-public-use1-1a"
+      - "{{ cluster_state.infra_id }}-net-public-use1-1b"
+      - "{{ cluster_state.infra_id }}-net-public-use1-1c"
     cross_zone_load_balancing: yes
     ip_address_type: ipv4
     listeners:
@@ -91,15 +133,15 @@ cloud_loadbalancers:
     type: network
     scheme: internal
     state: present
-    tags: "{{ cluster_state.tags }}"
+    tags: "{{ cluster_state.tags | d({}) }}"
     #subnet_mappings:
     #subnets: []
     subnets_discovery: yes
-    vpc_name: ocp-vpc-use1
+    vpc_name: "{{ cluster_state.infra_id }}-vpc"
     subnets_names:
-      - ocp-net-private-use1-1a
-      - ocp-net-private-use1-1b
-      - ocp-net-private-use1-1c
+      - "{{ cluster_state.infra_id }}-net-private-use1-1a"
+      - "{{ cluster_state.infra_id }}-net-private-use1-1b"
+      - "{{ cluster_state.infra_id }}-net-private-use1-1c"
     cross_zone_load_balancing: yes
     ip_address_type: ipv4
     listeners:
@@ -121,3 +163,36 @@ cloud_loadbalancers:
         record: "api-int.{{ cluster_state.zones.cluster }}"
         private_zone: yes
         overwrite: yes
+
+  # - name: "{{ cluster_state.infra_id }}-ic-public"
+  #   openshift_id: public
+  #   provider: aws
+  #   type: network
+  #   scheme: internet-facing
+  #   state: present
+  #   tags: "{{ cluster_state.tags | d({}) }}"
+  #   #subnet_mappings:
+  #   #subnets: []
+  #   subnets_discovery: yes
+  #   vpc_name: "{{ cluster_state.infra_id }}-vpc"
+  #   subnets_names:
+  #     - "{{ cluster_state.infra_id }}-net-public-use1-1a"
+  #     - "{{ cluster_state.infra_id }}-net-public-use1-1b"
+  #     - "{{ cluster_state.infra_id }}-net-public-use1-1c"
+  #   cross_zone_load_balancing: yes
+  #   ip_address_type: ipv4
+  #   listeners:
+  #     - Protocol: TCP
+  #       Port: 80
+  #       DefaultActions:
+  #         - Type: forward
+  #           TargetGroupName: "{{ cluster_state.infra_id }}-ic-pub-80"
+  #     - Protocol: TCP
+  #       Port: 443
+  #       DefaultActions:
+  #         - Type: forward
+  #           TargetGroupName: "{{ cluster_state.infra_id }}-ic-pub-443"
+  #   register_dns:
+  #     - zone: "{{ cluster_state.zones.base }}"
+  #       record: "*.apps.{{ cluster_state.zones.cluster }}"
+  #       overwrite: yes

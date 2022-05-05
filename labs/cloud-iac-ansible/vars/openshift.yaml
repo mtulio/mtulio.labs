@@ -12,9 +12,9 @@ config_baseDomain: "{{ ocp_config_baseDomain }}"
 config_metadata_name: "{{ ocp_config_name }}"
 config_networking: yes
 
-# config_platform:
-#   aws:
-#     region: "{{ ocp_config_region }}"
+config_platform:
+  aws:
+    region: "{{ ocp_config_region }}"
 
 config_pullSecret_file: "{{ lookup('env', 'CONFIG_PULL_SECRET_FILE') }}"
 config_sshKey: "{{ ocp_config_sshKey }}"
