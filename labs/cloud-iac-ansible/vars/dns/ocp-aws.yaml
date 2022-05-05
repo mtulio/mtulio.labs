@@ -17,7 +17,7 @@ cloud_dns_zones:
   - zone: "{{ cluster_state.zones.cluster }}"
     openshift_type: cluster
     provider: aws
-    vpc_name: ocp-vpc-use1
+    vpc_name: "{{ cluster_state.infra_id }}-vpc"
     vpc_region: us-east-1
 
     # records:

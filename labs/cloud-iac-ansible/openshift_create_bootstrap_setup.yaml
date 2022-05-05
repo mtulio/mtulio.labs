@@ -5,8 +5,8 @@
   hosts: localhost
   connection: local
 
-  vars:
-    openshift_bootstrap_bucket: "{{ ocp_install_infraID }}-infra"
+  vars_files:
+    - "vars/compute/ocp-bootstrap-aws.yaml"
 
   vars_prompt:
     - name: install_dir
@@ -14,22 +14,12 @@
       private: no
 
   pre_tasks:
-    # create bucket
-    - name: create bucket
+    - name: Create bucket
       s3_bucket:
         name: "{{ openshift_bootstrap_bucket }}"
         state: present
 
-    #   # upload ignition
-    # - name: Upload bootstrap.ign
-    #   community.aws.s3_sync:
-    #     bucket: "{{ openshift_bootstrap_bucket }}"
-    #     #key_prefix: /bootstrap.ign
-    #     file_root: "{{ install_dir + '/bootstrap.ign' }}"
-    #     #mode: put
-    #     file_change_strategy: checksum
-
-      # upload ignition
+    # TODO: Make it indepotent
     - name: Upload bootstrap.ign
       amazon.aws.aws_s3:
         bucket: "{{ openshift_bootstrap_bucket }}"

@@ -1,15 +1,14 @@
 ---
 - include: openshift_config_load.yaml
 
-- name: OpenShift Control Plane Setup
+- name: OpenShift Create Node
   hosts: localhost
   connection: local
-
-  vars:
-    bucket_name: "{{ ocp_install_infraID }}-infra"
 
   pre_tasks:
     - include_vars: "vars/compute/{{ name }}-{{ provider }}.yaml"
 
   roles:
     - role: mtulio.cloud-compute
+
+- include: openshift_config_dump.yaml

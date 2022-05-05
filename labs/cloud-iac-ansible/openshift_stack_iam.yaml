@@ -15,3 +15,5 @@
 
   roles:
     - mtulio.cloud-iam
+
+- include: openshift_config_dump.yaml

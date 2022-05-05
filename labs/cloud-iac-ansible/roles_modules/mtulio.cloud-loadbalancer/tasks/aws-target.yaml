@@ -28,7 +28,7 @@
     name: "{{ target.name }}"
     vpc_id: "{{ vpc_id }}"
     tags: "{{ target.tags | d(omit) }}"
-    purge_tags: "{{ target.purge_tags | d(omit) }}"
+    purge_tags: "{{ target.purge_tags | d('no') }}"
     protocol: "{{ target.protocol }}"
     port: "{{ target.port }}"
     # Health Check

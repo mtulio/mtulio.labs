@@ -42,49 +42,49 @@ machine-create-fcos-aws:
 INSTALL_DIR ?= $(PWD)/.install-dir-ocp
 BOOTSTRAP_NAME ?= ocp-bootstrap
 CONTROLPLANE_NAME ?= ocp-controlplane
+COMPUTE_NAME ?= ocp-compute
+EXTRA_ARGS ?= 
+
 openshift-config:
 	$(VENV)/bin/ansible-playbook openshift_config_gen.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
-		-e install_dir=$(INSTALL_DIR)
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-config
 
+openshift-config-load:
+	$(VENV)/bin/ansible-playbook openshift_config_load.yaml -vvv \
+		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
+.PHONY: openshift-config-load
 # Network stack
 # - VPC
 # - SG
 openshift-stack-network:
-	$(VENV)/bin/ansible-playbook net-create.yaml \
+	$(VENV)/bin/ansible-playbook openshift_stack_net.yaml \
 		-e provider=aws -e name=ocp \
 		-e region=default \
-		-e install_dir=$(INSTALL_DIR) \
-		-e security_groups=[]
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-network
-
-openshift-stack-securitygroups:
-	$(VENV)/bin/ansible-playbook net-create.yaml -vvv \
-		-e provider=aws -e name=ocp \
-		-e region=default \
-		-e install_dir=$(INSTALL_DIR)
-.PHONY: openshift-stack-securitygroups
 
 # - DNS
 openshift-stack-dns:
 	$(VENV)/bin/ansible-playbook openshift_stack_dns.yaml -vvv \
 		-e provider=aws -e name=ocp \
-		-e install_dir=$(INSTALL_DIR)
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-dns
 
 # - NLB
 openshift-stack-loadbalancers:
 	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
 		-e provider=aws -e name=ocp \
-		-e install_dir=$(INSTALL_DIR)
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-loadbalancers
 
 # IAM
 openshift-stack-iam:
 	$(VENV)/bin/ansible-playbook openshift_stack_iam.yaml -vvv \
 		-e provider=aws -e name=ocp \
-		-e install_dir=$(INSTALL_DIR)
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-iam
 
 # S3 Bucket
@@ -93,20 +93,26 @@ openshift-stack-iam:
 openshift-bootstrap-setup:
 	$(VENV)/bin/ansible-playbook openshift_create_bootstrap_setup.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
-		-e install_dir=$(INSTALL_DIR)
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-bootstrap-setup
 
-openshift-stack-compute-bootstrap: openshift-bootstrap-setup
+openshift-stack-bootstrap: openshift-bootstrap-setup
 	$(VENV)/bin/ansible-playbook openshift_create_bootstrap.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
-		-e install_dir=$(INSTALL_DIR)
-.PHONY: openshift-stack-compute-bootstrap
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
+.PHONY: openshift-stack-bootstrap
 
-openshift-stack-compute-controlplane: openshift-bootstrap-setup
-	$(VENV)/bin/ansible-playbook openshift_create_controlplane.yaml -vvv \
+openshift-stack-controlplane: openshift-bootstrap-setup
+	$(VENV)/bin/ansible-playbook openshift_create_node.yaml -vvv \
 		-e provider=aws -e name=$(CONTROLPLANE_NAME) \
-		-e install_dir=$(INSTALL_DIR)
-.PHONY: openshift-stack-compute-controlplane
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
+.PHONY: openshift-stack-controlplane
+
+openshift-stack-compute:
+	$(VENV)/bin/ansible-playbook openshift_create_node.yaml -vvv \
+		-e provider=aws -e name=$(COMPUTE_NAME) \
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
+.PHONY: openshift-stack-compute
 
 
 # EC2: Control Plane
@@ -114,12 +120,15 @@ openshift-stack-compute-controlplane: openshift-bootstrap-setup
 # EC2: Compute
 
 # All
-openshift-install: openshift-config openshift-stack-iam openshift-stack-network openshift-stack-securitygroups openshift-stack-dns openshift-stack-loadbalancers openshift-stack-compute-controlplane openshift-stack-compute-bootstrap
+openshift-install: openshift-config openshift-stack-iam openshift-stack-network openshift-stack-dns openshift-stack-loadbalancers openshift-stack-controlplane openshift-stack-bootstrap openshift-stack-compute
 .PHONY: openshift-install
 
 ## Infra
-openshift-create-infra: openshift-config openshift-stack-iam openshift-stack-network openshift-stack-securitygroups openshift-stack-dns openshift-stack-loadbalancers
+openshift-create-infra: openshift-config openshift-stack-iam openshift-stack-network openshift-stack-dns openshift-stack-loadbalancers
 .PHONY: openshift-create-infra
+
+openshift-create-controlplane: openshift-stack-controlplane openshift-stack-bootstrap
+.PHONY: openshift-create-controlplane
 
 
 clean:
