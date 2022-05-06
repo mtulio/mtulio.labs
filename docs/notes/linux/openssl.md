@@ -19,6 +19,13 @@ openssl pkcs12 -in cert.pfx -nocerts -out cert.key.pem -nodes
 
 ## x509
 
-```
+- View the cert
+```bash
 openssl x509 -in /etc/etcd/kubernetes.pem -text -noout
+```
+
+- check the issuer and subject
+
+```bash
+cat <cert_file> | openssl x509 -text -noout |egrep '(Issuer|Subject)'
 ```
