@@ -1,0 +1,30 @@
+---
+- name: Destroy | DNS | AWS
+  debug:
+    msg: "Destroy DNS Zone triggered: {{ zone.zone }} - {{ zone.vpc_name|d(zone.vpc_id) }}"
+  tags: dns
+
+- name: DNS | AWS | Get VPC by Name
+  amazon.aws.ec2_vpc_net_info:
+    filters:
+      "tag:Name": "{{ zone.vpc_name }}"
+  when: zone.vpc_name is defined
+  register: vpc_info
+  tags: dns
+
+- name: DNS | AWS | Set VPC Id for Zone name
+  set_fact:
+    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+  when:
+    - zone.vpc_name is defined
+    - vpc_info.vpcs|length > 0
+  tags: dns
+
+- name: DNS | AWS | Delete Zone for OpenShift
+  community.aws.route53_zone:
+    state: absent
+    zone: "{{ zone.zone }}"
+    vpc_id: "{{ vpc_id | d(zone.vpc_id) }}"
+    vpc_region: "{{ zone.vpc_region }}"
+  when: zone.openshift_type == 'cluster'
+  tags: dns

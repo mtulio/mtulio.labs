@@ -41,6 +41,7 @@ machine-create-fcos-aws:
 .PHONY: machine-create-fcos-aws
 
 #### OPENSHIFT
+PROVIDER ?= aws
 INSTALL_DIR ?= $(PWD)/.install-dir-ocp
 BOOTSTRAP_NAME ?= ocp-bootstrap
 CONTROLPLANE_NAME ?= ocp-controlplane
@@ -57,7 +58,7 @@ openshift-install-clients:
 
 openshift-config:
 	$(VENV)/bin/ansible-playbook openshift_config_gen.yaml -vvv \
-		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
+		-e provider=$(PROVIDER) -e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR) \
 		-e workdir=$(PWD)/.install-dir-bin \
 		$(EXTRA_ARGS)
@@ -65,7 +66,7 @@ openshift-config:
 
 openshift-config-load:
 	$(VENV)/bin/ansible-playbook openshift_config_load.yaml -vvv \
-		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
+		-e provider=$(PROVIDER) -e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-config-load
 # Network stack
@@ -73,7 +74,7 @@ openshift-config-load:
 # - SG
 openshift-stack-network:
 	$(VENV)/bin/ansible-playbook openshift_stack_net.yaml \
-		-e provider=aws -e name=ocp \
+		-e provider=$(PROVIDER) -e name=ocp \
 		-e region=default \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-network
@@ -81,28 +82,28 @@ openshift-stack-network:
 # - DNS
 openshift-stack-dns:
 	$(VENV)/bin/ansible-playbook openshift_stack_dns.yaml -vvv \
-		-e provider=aws -e name=ocp \
+		-e provider=$(PROVIDER) -e name=ocp \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-dns
 
 # - NLB
 openshift-stack-loadbalancers:
 	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
-		-e provider=aws -e name=ocp \
+		-e provider=$(PROVIDER) -e name=ocp \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-loadbalancers
 
 ## NLB for ingress on non-integrated platform (platform=none)
 openshift-stack-loadbalancers-none:
 	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
-		-e provider=none-aws \
+		-e provider=none-$(PROVIDER) \
 		-e install_dir=$(INSTALL_DIR) -vvv $(EXTRA_ARGS)
 .PHONY: openshift-stack-loadbalancers-none
 
 # IAM
 openshift-stack-iam:
 	$(VENV)/bin/ansible-playbook openshift_stack_iam.yaml -vvv \
-		-e provider=aws -e name=ocp \
+		-e provider=$(PROVIDER) -e name=ocp \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-iam
 
@@ -111,32 +112,29 @@ openshift-stack-iam:
 # EC2: Bootstrap
 openshift-bootstrap-setup:
 	$(VENV)/bin/ansible-playbook openshift_create_bootstrap_setup.yaml -vvv \
-		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
+		-e provider=$(PROVIDER) -e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-bootstrap-setup
 
 openshift-stack-bootstrap: openshift-bootstrap-setup
 	$(VENV)/bin/ansible-playbook openshift_create_bootstrap.yaml -vvv \
-		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
+		-e provider=$(PROVIDER) -e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-bootstrap
 
+# EC2: Control Plane
 openshift-stack-controlplane: openshift-bootstrap-setup
 	$(VENV)/bin/ansible-playbook openshift_create_node.yaml -vvv \
-		-e provider=aws -e name=$(CONTROLPLANE_NAME) \
+		-e provider=$(PROVIDER) -e name=$(CONTROLPLANE_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-controlplane
 
+# EC2: Compute
 openshift-stack-compute:
 	$(VENV)/bin/ansible-playbook openshift_create_node.yaml -vvv \
-		-e provider=aws -e name=$(COMPUTE_NAME) \
+		-e provider=$(PROVIDER) -e name=$(COMPUTE_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-compute
-
-
-# EC2: Control Plane
-
-# EC2: Compute
 
 # All
 openshift-install: openshift-config openshift-stack-iam openshift-stack-network openshift-stack-dns openshift-stack-loadbalancers openshift-stack-controlplane openshift-stack-bootstrap openshift-stack-compute
@@ -149,6 +147,13 @@ openshift-create-infra: openshift-config openshift-stack-iam openshift-stack-net
 openshift-create-controlplane: openshift-stack-controlplane openshift-stack-bootstrap
 .PHONY: openshift-create-controlplane
 
+## Destroy
+openshift-destroy:
+	$(VENV)/bin/ansible-playbook openshift_destroy_cluster.yaml -vvv \
+		-e provider=$(PROVIDER) \
+		-e install_dir=$(INSTALL_DIR) \
+		$(EXTRA_ARGS)
+.PHONY: openshift-destroy
 
 clean:
 	rm -rvf $(INSTALL_DIR)

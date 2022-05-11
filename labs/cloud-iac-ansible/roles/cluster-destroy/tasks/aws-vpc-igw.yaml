@@ -1,0 +1,13 @@
+---
+- name: Destroy | VPC | AWS
+  debug:
+    msg: "Destroy VPC IGW triggered"
+  tags: vpc
+
+- name: "Delete internet gateway"
+  ec2_vpc_igw:
+    region: "{{ vpc_region }}"
+    vpc_id: "{{ vpc_id }}"
+    state: "absent"
+  with_items: "{{ vpc_info.vpcs }}"
+  tags: vpc

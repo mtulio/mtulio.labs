@@ -1,0 +1,41 @@
+---
+- name: Destroy | VPC | AWS
+  debug:
+    msg: "Destroy VPC triggered"
+  tags: vpc
+
+- ec2_group_facts:
+    filters:
+      vpc-id: "{{ vpc_id }}"
+  register: ret_sgs
+  tags: vpc
+
+- debug: var=ret_sgs
+  tags: vpc
+
+- name: AWS | SG - delete rules
+  ec2_group:
+    state: present
+    region: "{{ vpc_region }}"
+    vpc_id: "{{ vpc_id }}"
+    name: "{{ item.group_name }}"
+    description: "To be deleted"
+    group_id: "{{ item.group_id }}"
+    rules: []
+    rules_egress: []
+  with_items: "{{ ret_sgs.security_groups }}"
+  when: item.group_name != 'default'
+  register: returned_sgs
+  tags: vpc
+
+- name: AWS | SG - delete
+  ec2_group:
+    state: absent
+    region: "{{ vpc_region }}"
+    vpc_id: "{{ vpc_id }}"
+    group_id: "{{ item.group_id }}"
+  with_items: "{{ ret_sgs.security_groups }}"
+  register: returned_sgs
+  when: item.group_name != 'default'
+  tags: vpc
+

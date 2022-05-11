@@ -1,0 +1,24 @@
+---
+- include: openshift_config_load.yaml
+  tags: always
+
+- name: OpenShift Create Node
+  hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: install_dir
+      prompt: What is the Installation Directory?
+      private: no
+    - name: provider
+      prompt: What is the Provider the cluster was installed?
+      private: no
+
+  vars_files:
+    - "vars/loadbalancers/ocp-{{ provider }}.yaml"
+    - "vars/iam/ocp-{{ provider }}.yaml"
+    - "vars/dns/ocp-{{ provider }}.yaml"
+    - "vars/networks/ocp-{{ provider }}-default.yaml"
+
+  roles:
+    - role: cluster-destroy

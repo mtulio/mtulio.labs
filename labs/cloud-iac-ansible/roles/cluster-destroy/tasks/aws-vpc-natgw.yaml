@@ -1,0 +1,28 @@
+---
+- name: Destroy | VPC | AWS
+  debug:
+    msg: "Destroy VPC NATGW triggered"
+  tags: vpc
+
+- name: Get all nat gateways with specific filters
+  ec2_vpc_nat_gateway_info:
+    region: "{{ vpc_region }}"
+    filters:
+      state: ['available']
+      #"tag:kubernetes.io/cluster/{{ cluster_state.infra_id }}": "owned"
+      "vpc-id": "{{ vpc_id }}"
+  register: natgws_delete
+  tags: vpc
+
+- debug: var=natgws_delete
+  tags: vpc
+
+- name: AWS | NAT GW delete
+  ec2_vpc_nat_gateway:
+    state: absent
+    region: "{{ vpc_region }}"
+    nat_gateway_id: "{{ item.nat_gateway_id }}"
+    release_eip: yes
+    wait: yes
+  with_items: "{{ natgws_delete.result }}"
+  tags: vpc

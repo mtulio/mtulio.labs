@@ -1,0 +1,25 @@
+---
+- name: Destroy | Compute | AWS
+  debug:
+    msg: "Destroy Compute triggered"
+
+- name: EC2 | Destroying instance(s)
+  ec2_instance:
+    state: absent
+    filters:
+      "tag:Name": "{{ machine.name }}"
+      instance-state-name: running
+    wait: "{{ machine.wait | d('no') }}"
+    wait_timeout: "{{ machine.wait_timeout |d(omit) }}"
+  with_items:
+    - name: "{{ cluster_state.infra_id }}-bootstrap"
+    - name: "{{ cluster_state.infra_id }}-master-1"
+    - name: "{{ cluster_state.infra_id }}-master-2"
+    - name: "{{ cluster_state.infra_id }}-master-3"
+    - name: "{{ cluster_state.infra_id }}-worker-1"
+    - name: "{{ cluster_state.infra_id }}-worker-2"
+    - name: "{{ cluster_state.infra_id }}-worker-3"
+      wait: yes
+      wait_timeout: 120
+  loop_control:
+    loop_var: machine

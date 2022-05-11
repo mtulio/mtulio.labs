@@ -1,0 +1,20 @@
+---
+- name: Destroy | Load Balancer
+  include: "{{ provider }}-loadbalancer.yaml"
+  tags: loadbalancer
+
+- name: Destroy | Compute
+  include: "{{ provider }}-compute.yaml"
+  tags: compute
+
+- name: Destroy | IAM
+  include: "{{ provider }}-iam.yaml"
+  tags: iam
+
+- name: Destroy | DNS
+  include: "{{ provider }}-dns.yaml"
+  tags: dns
+
+- name: Destroy | VPC
+  include: "{{ provider }}-vpc.yaml"
+  tags: vpc

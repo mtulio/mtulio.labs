@@ -1,0 +1,46 @@
+---
+- name: Destroy | VPC | AWS
+  debug:
+    msg: "Destroy VPC RTB triggered"
+  tags: vpc
+
+- name: "Query for existing route table(s)"
+  ec2_vpc_route_table_info:
+    region: "{{ vpc_region }}"
+    filters:
+      vpc-id: "{{ vpc_id }}"
+  register: route_table_info
+  tags: vpc
+
+- set_fact:
+    route_tables_to_delete: "{{ (route_tables_to_delete | default([])) + [item.id] }}"
+  when: item.associations | length == 0 or not item.associations[0].main
+  loop: "{{ route_table_info.route_tables }}"
+  tags: vpc
+
+- name: "Purge routes"
+  ec2_vpc_route_table:
+    region: "{{ vpc_region }}"
+    vpc_id: "{{ vpc_id }}"
+    route_table_id: "{{ item }}"
+    lookup: "id"
+    purge_routes: "yes"
+    purge_subnets: "yes"
+    state: "present"
+  loop: "{{ route_tables_to_delete }}"
+  when: route_tables_to_delete is defined
+  tags: vpc
+
+- pause: seconds=10
+  tags: vpc
+
+- name: "Delete route table"
+  ec2_vpc_route_table:
+    region: "{{ vpc_region }}"
+    vpc_id: "{{ vpc_id }}"
+    route_table_id: "{{ item }}"
+    lookup: "id"
+    state: "absent"
+  loop: "{{ route_tables_to_delete }}"
+  when: route_tables_to_delete is defined
+  tags: vpc
