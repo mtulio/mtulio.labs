@@ -1,5 +1,4 @@
 ---
-- debug: var=cloud_loadbalancer_targets
 
 - name: Setup Load Balancer Targets
   include: "{{ target.provider }}-target.yaml"

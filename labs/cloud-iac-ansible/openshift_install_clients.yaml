@@ -1,0 +1,18 @@
+---
+- name: OpenShift Clients
+  hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: install_workdir
+      prompt: What is the Workdir Directory?
+      private: no
+    - name: release_version
+      prompt: What is the OpenShift version?
+      private: no
+
+  vars_files:
+    - vars/openshift.yaml
+
+  roles:
+    - install-clients

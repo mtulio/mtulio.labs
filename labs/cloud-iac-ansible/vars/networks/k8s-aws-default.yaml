@@ -243,11 +243,17 @@ cloud_networks:
         map_public: no
 
       # When Local Zone is enabled on Account:
-      # - name: k8s-net-private-nodes-use1bos-1a
-      #   az: us-east-1-bos-1a
-      #   cidr: 10.82.72.0/22
-      #   route: k8s-rt-public
-      #   map_public: yes
+      - name: k8s-net-private-nodes-use1bos-1a
+        az: us-east-1-bos-1a
+        cidr: 10.82.72.0/22
+        route: k8s-rt-private
+        map_public: no
+
+      - name: k8s-net-public-nodes-use1bos-1a
+        az: us-east-1-bos-1a
+        cidr: 10.82.76.0/22
+        route: k8s-rt-public
+        map_public: yes
 
     endpoint_services:
       - name: s3

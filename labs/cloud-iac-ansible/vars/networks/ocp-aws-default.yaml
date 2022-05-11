@@ -118,12 +118,12 @@ cloud_networks:
         route: "{{ cluster_state.infra_id }}-rt-private"
         map_public: no
 
-      # When Local Zone is enabled on Account:
-      # - name: "{{ cluster_state.infra_id }}-net-private-nodes-use1bos-1a"
-      #   az: us-east-1-bos-1a
-      #   cidr: 10.0.72.0/22
-      #   route: "{{ cluster_state.infra_id }}-rt-public
-      #   map_public: yes
+      #When Local Zone is enabled on Account:
+      - name: "{{ cluster_state.infra_id }}-net-private-nodes-use1bos-1a"
+        az: us-east-1-bos-1a
+        cidr: 10.0.72.0/22
+        route: "{{ cluster_state.infra_id }}-rt-public"
+        map_public: yes
 
     endpoint_services:
       - name: s3

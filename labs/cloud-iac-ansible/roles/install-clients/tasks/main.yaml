@@ -1,0 +1,99 @@
+---
+- name: Create Workdir
+  file:
+    state: directory
+    path: "{{ workdir }}"
+
+- name: mount the binary names 
+  set_fact:
+    bin_installer: "{{ workdir }}/openshift-install-{{ client_os }}-{{ release_version }}"
+    bin_client: "{{ workdir }}/openshift-client-{{ client_os }}-{{ release_version }}"
+    bin_oc: "{{ workdir }}/oc-{{ client_os }}-{{ release_version }}"
+    bin_kubectl: "{{ workdir }}/kubectl-{{ client_os }}-{{ release_version }}"
+
+- name: check if openshift_installer is present
+  stat:
+    path: "{{ bin_installer }}"
+  register: check_bin_inst
+
+- name: check if openshift_installer tarball is present
+  stat:
+    path: "{{ bin_installer }}.tar.gz"
+  register: check_tar_inst
+
+- name: extract the clients from release image
+  shell: |
+    oc adm release extract \
+      -a {{ config_pullSecret_file }} \
+      --tools {{ release_image }}:{{ release_version }}-{{ release_arch }}
+  when:
+    - not(check_tar_inst.stat.exists)
+  args:
+    chdir: "{{ workdir }}"
+
+- block:
+  - name: extract the clients from tarball - installer
+    ansible.builtin.unarchive:
+      src: "{{ bin_installer }}.tar.gz"
+      dest: "{{ workdir }}"
+    when:
+      - not(check_bin_inst.stat.exists)
+    register: ext_bin_inst
+
+  - name: extract the clients from tarball - installer
+    copy:
+      src: "{{ workdir }}/openshift-install"
+      dest: "{{ bin_installer }}"
+      mode: 0755
+    when: ext_bin_inst.changed
+
+  - name: extract the clients from tarball - installer
+    file:
+      state: absent
+      path: "{{ workdir }}/openshift-install"
+    when: ext_bin_inst.changed
+
+  when: not(check_bin_inst.stat.exists)
+
+
+- name: check if openshift client is present
+  stat:
+    path: "{{ bin_oc }}"
+  register: check_bin_cli
+
+- name: Check if clients are present (oc and kubectl)
+  block:
+  - name: extract the clients from tarball - oc
+    ansible.builtin.unarchive:
+      src: "{{ bin_client }}.tar.gz"
+      dest: "{{ workdir }}"
+    when: not(check_bin_cli.stat.exists)
+    register: ext_bin_cli
+
+  - name: "copy to correct name - oc ({{ bin_client }})"
+    copy:
+      src: "{{ workdir }}/oc"
+      dest: "{{ bin_oc }}"
+      mode: 0755
+    when: ext_bin_cli.changed
+
+  - name: remove old file - client
+    file:
+      state: absent
+      path: "{{ workdir }}/oc"
+    when: ext_bin_cli.changed
+
+  - name: "copy to correct name - kubectl"
+    copy:
+      src: "{{ workdir }}/kubectl"
+      dest: "{{ bin_kubectl }}"
+      mode: 0755
+    when: ext_bin_cli.changed
+
+  - name: remove old file - kubectl
+    file:
+      state: absent
+      path: "{{ workdir }}/kubectl"
+    when: ext_bin_cli.changed
+
+  when: not(check_bin_cli.stat.exists)

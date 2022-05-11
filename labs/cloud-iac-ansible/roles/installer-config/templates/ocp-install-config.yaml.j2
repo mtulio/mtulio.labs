@@ -20,7 +20,12 @@ networking:
   serviceNetwork: {{ config_networking_serviceNetwork }}
 {% endif %}
 
+{% if (config_platform is not defined) or (config_platform |length <= 0) %}
+platform: {{ config_platform_default }}
+{% else %}
 platform: {{ config_platform }}
+{% endif %}
+
 
 publish: {{ config_publish }}
 pullSecret: '{{ lookup("file", config_pullSecret_file) }}'
