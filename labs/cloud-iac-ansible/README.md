@@ -4,6 +4,24 @@ Cloud Infra as a Code.
 
 ## Usage
 
+### Export the environment variables used to create the cluster
+
+Create `.env` file or just export it to your session:
+```bash
+cat <<EOF> .env
+export CONFIG_BASE_DOMAIN=mydomain.openshift.com
+export CONFIG_CLUSTER_NAME=mrbans
+export CONFIG_REGION=us-east-1
+export CONFIG_PULL_SECRET_FILE=/home/mtulio/.openshift/pull-secret-latest.json
+export CONFIG_SSH_KEY="$(cat ~/.ssh/id_rsa.pub)"
+EOF
+```
+
+Load it:
+```bash
+source .env
+```
+
 ### Create network stack only (from k8s template)
 
 ```bash
