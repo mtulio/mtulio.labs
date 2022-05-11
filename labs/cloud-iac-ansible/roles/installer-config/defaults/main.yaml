@@ -43,7 +43,7 @@ config_networking_serviceNetwork:
   - 172.30.0.0/16
 
 # Platform
-config_platform:
+config_platform_default:
   none: {}
 
 # Publish
@@ -56,3 +56,8 @@ config_publish: External
 
 # SSH
 config_sshKey: ''
+
+# Client binary names
+bin_openshift_install: openshift-install
+bin_oc: oc
+bin_kubectl: kubectl

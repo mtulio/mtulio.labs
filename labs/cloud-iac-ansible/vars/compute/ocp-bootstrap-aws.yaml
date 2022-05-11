@@ -37,6 +37,7 @@ compute_resources:
       name: "{{ _def.name }}"
       filters:
         tag:Name: "{{ _def.name }}"
+        instance-state-name: running
       tags: "{% set x=cluster_state.tags.__setitem__('Name', _def.name ) %}{{ cluster_state.tags }}"
       detailed_monitoring: "{{ _def.detailed_monitoring }}"
       ebs_optimized: "{{ _def.ebs_optimized }}"

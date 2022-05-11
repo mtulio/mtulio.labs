@@ -1,34 +1,42 @@
-- name: create the install dir
+- name: InstallerConfig | Create the install dir
   file:
     state: directory
     path: "{{ install_dir }}"
     recurse: yes
 
-- name: Look for metadata.json on install-dir
+- name: InstallerConfig | Check if metadata.json exists
   stat:
     path: "{{ install_dir }}/metadata.json"
   register: st_out
 
-- debug: var=st_out
+- name: InstallerConfig | Check if pull secret file from env var CONFIG_PULL_SECRET_FILE exists
+  stat:
+    path: "{{ config_pullSecret_file }}"
+  register: ps_out
 
-- name: create the install config
+- name: InstallerConfig | Fail when pull secret file is not present
+  debug:
+    msg: "CONFIG_PULL_SECRET_FILE env var was not found. Please set it with pull-secret file path"
+  failed_when: not(ps_out.stat.exists)
+
+- name: InstallerConfig | Create the install config
   template:
     src: ocp-install-config.yaml.j2
     dest: "{{ install_dir }}/install-config.yaml"
   when: not(st_out.stat.exists)
 
-- name: backup the install config
+- name: InstallerConfig | Backup the rendered install config
   template:
     src: ocp-install-config.yaml.j2
     dest: "{{ install_dir }}/install-config-bkp.yaml"
   when: not(st_out.stat.exists)
 
-- name: create manifests
+- name: InstallerConfig | Create manifests
   shell: |
-    openshift-install create manifests --dir {{ install_dir }}
+    {{ bin_openshift_install }} create manifests --dir {{ install_dir }}
   when: not(st_out.stat.exists)
 
-- name: remote machine related manifests
+- name: InstallerConfig | Remove Cluster/Machine API manifests for UPI
   file:
     state: absent
     path: "{{ item }}"
@@ -41,8 +49,8 @@
     - "{{ install_dir }}/openshift/99_openshift-cluster-api_worker-machineset-3.yaml"
   when: not(st_out.stat.exists)
 
-- name: create ignition configs
+- name: InstallerConfig | Create ignition configs
   shell: |
-    openshift-install create ignition-configs --dir {{ install_dir }}
+    {{ bin_openshift_install }} create ignition-configs --dir {{ install_dir }}
   when: not(st_out.stat.exists)
 

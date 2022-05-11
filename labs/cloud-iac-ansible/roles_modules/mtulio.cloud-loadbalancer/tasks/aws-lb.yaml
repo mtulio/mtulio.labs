@@ -1,24 +1,26 @@
 ---
 
-- amazon.aws.ec2_vpc_net_info:
+- name: Load Balancer | AWS | Discovery VPC by Name
+  amazon.aws.ec2_vpc_net_info:
     filters:
       "tag:Name": "{{ target.vpc_name }}"
   when: target.vpc_name is defined
   register: vpc_info
 
-- debug: var=vpc_info
-
-- set_fact:
+- name: Load Balancer | AWS | Set VPC ID from discovery
+  set_fact:
     vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
   when:
     - target.vpc_name is defined
     - vpc_info.vpcs|length > 0
 
-- set_fact:
+- name: Load Balancer | AWS | Set VPC ID from config
+  set_fact:
     vpc_id: "{{ target.vpc_id }}"
   when: target.vpc_id is defined
 
-- ec2_vpc_subnet_info:
+- name: Load Balancer | AWS | Discovery subnet by names
+  ec2_vpc_subnet_info:
     filters:
       vpc-id: "{{ vpc_id }}"
       "tag:Name": "{{ item }}"
@@ -26,12 +28,12 @@
   when: lb.subnets_discovery 
   register: subnet_facts
 
-- debug: var=subnet_facts
-- set_fact:
+- name: Load Balancer | AWS | Set empty subnet IDs
+  set_fact:
     subnet_ids: []
   when: lb.subnets_discovery 
 
-- name: "AWS | Discovery subnet IDs"
+- name: Load Balancer | AWS | Mount the subnetIds from discovered subnets
   set_fact:
     subnet_ids: "{{ subnet_ids + [item] }}"
   with_items: "{{ subnet_facts.results | json_query(rt_query) }}"
@@ -39,9 +41,7 @@
     rt_query: "[].subnets[?vpc_id=='{{ vpc_id }}'].subnet_id"
   when: lb.subnets_discovery
 
-- debug: var=subnet_ids
-
-- name: Create an internal ELB with a specified IP address
+- name: Load Balancer | AWS | Create NLB
   community.aws.elb_network_lb:
     name: "{{ lb.name }}"
     scheme: "{{ lb.scheme }}"
@@ -58,7 +58,7 @@
     state: present
   register: lb_out
 
-- name: Register DNS
+- name: Load Balancer | AWS | Register DNS record
   community.aws.route53:
     state: present
     zone: "{{ rec.zone }}"
@@ -75,17 +75,17 @@
     loop_var: rec
   register: rec_out
 
-- name: Load Balancer | Save config | Name
+- name: Load Balancer | AWS | Save config | Name
   set_fact:
     cluster_state: "{% set x=cluster_state.loadbalancers.__setitem__(lb.openshift_id+'_name', lb_out.load_balancer_name) %}{{ cluster_state }}"
   when: lb.openshift_id is defined
 
-- name: Load Balancer | Save config | Provider's DNS record
+- name: Load Balancer | AWS | Save config | Provider's DNS record
   set_fact:
     cluster_state: "{% set x=cluster_state.loadbalancers.__setitem__(lb.openshift_id+'_dns_provider', lb_out.dns_name) %}{{ cluster_state }}"
   when: lb.openshift_id is defined
 
-- name: Load Balancer | Set config | Custom DNS record
+- name: Load Balancer | AWS | Set config | Custom DNS record
   set_fact:
     cluster_state: "{% set x=cluster_state.loadbalancers.__setitem__(lb.openshift_id+'_dns', lb.register_dns[0].record) %}{{ cluster_state }}"
   when:
@@ -93,5 +93,9 @@
     - lb.register_dns is defined
     - lb.register_dns | length > 0
 
-- debug: var=lb_out
-- debug: var=rec_out
+- name: Load Balancer | AWS | Show resources created
+  debug:
+    var: lb_out
+- name: Load Balancer | AWS | Show DNS records created
+  debug:
+    var: rec_out

@@ -1,27 +1,29 @@
 ---
 
-- name: Discovery VPC ID
+- name: Target Group | AWS | Discovery VPC ID
   amazon.aws.ec2_vpc_net_info:
     filters:
       "tag:Name": "{{ target.vpc_name }}"
   when: target.vpc_name is defined
   register: vpc_info
 
-- debug: var=vpc_info
+- name: Target Group | AWS | Show VPC Info
+  debug: 
+    var: vpc_info
 
-- name: Set discovered VPC ID
+- name: Target Group | AWS | Set discovered VPC ID
   set_fact:
     vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
   when:
     - target.vpc_name is defined
     - vpc_info.vpcs|length > 0
 
-- name: Set VPC ID from config
+- name: Target Group | AWS | Set VPC ID from config
   set_fact:
     vpc_id: "{{ target.vpc_id }}"
   when: target.vpc_id is defined
 
-- name: Create target group
+- name: Target Group | AWS | Create
   community.aws.elb_target_group:
     state: present
     region: "{{ target.region | d(omit) }}"
@@ -33,13 +35,13 @@
     port: "{{ target.port }}"
     # Health Check
     health_check_protocol: "{{ target.health_check_protocol }}"
-    health_check_path: "{{ target.health_check_path }}"
-    health_check_port: "{{ target.health_check_port }}"
-    successful_response_codes: "{{ target.successful_response_codes }}"
-    health_check_interval: "{{ target.health_check_interval }}"
+    health_check_path: "{{ target.health_check_path | d(omit) }}"
+    health_check_port: "{{ target.health_check_port | d(omit) }}"
+    successful_response_codes: "{{ target.successful_response_codes | d(omit) }}"
+    health_check_interval: "{{ target.health_check_interval | d(omit) }}"
     health_check_timeout: "{{ target.health_check_timeout |d(omit) }}"
-    healthy_threshold_count: "{{ target.healthy_threshold_count }}"
-    unhealthy_threshold_count: "{{ target.unhealthy_threshold_count }}"
+    healthy_threshold_count: "{{ target.healthy_threshold_count | d(omit) }}"
+    unhealthy_threshold_count: "{{ target.unhealthy_threshold_count | d(omit) }}"
     # Targets
     target_type: "{{ target.target_type | d(omit) }}"
     modify_targets: "{{ target.modify_targets | d(omit) }}"
@@ -55,4 +57,14 @@
     deregistration_delay_timeout: "{{ target.deregistration_delay_timeout | d(omit) }}"
   register: tg_out
 
-- debug: var=tg_out
+- name: Target Group | AWS | Show resource created
+  debug:
+    var: tg_out
+
+- name: Target Group | AWS | Discovery and register EC2 targets
+  include: aws-tg-register-ec2.yaml
+  with_items: "{{ target.register_ec2 | d([]) }}"
+  when: target.register_ec2 is defined
+  loop_control:
+    loop_var: machine
+

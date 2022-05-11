@@ -11,11 +11,13 @@ update:
 
 create-network:
 	$(VENV)/bin/ansible-playbook net-create.yaml \
-		-e provider=$(PROVIDER) -e name=$(NET_NAME)
+		-e provider=$(PROVIDER) \
+		-e name=$(NET_NAME) \
+		$(EXTRA_ARGS)
 .PHONY: create-network
 
 k8s-create-network-aws-use1:
-	$(MAKE) create-network PROVIDER=aws NET_NAME=k8s
+	$(MAKE) create-network PROVIDER=aws NET_NAME=k8s EXTRA_ARGS="-e region=default"
 .PHONY: k8s-create-network-aws-use1
 
 k8s-create-network-aws-usw2:
@@ -44,11 +46,21 @@ BOOTSTRAP_NAME ?= ocp-bootstrap
 CONTROLPLANE_NAME ?= ocp-controlplane
 COMPUTE_NAME ?= ocp-compute
 EXTRA_ARGS ?= 
+OPENSHIFT_RELEASE=4.10.13
+
+openshift-install-clients:
+	$(VENV)/bin/ansible-playbook openshift_install_clients.yaml -vvv \
+		-e release_version=$(OPENSHIFT_RELEASE) \
+		-e workdir=$(PWD)/.install-dir-bin \
+		$(EXTRA_ARGS)
+.PHONY: openshift-install-clients
 
 openshift-config:
 	$(VENV)/bin/ansible-playbook openshift_config_gen.yaml -vvv \
 		-e provider=aws -e name=$(BOOTSTRAP_NAME) \
-		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
+		-e install_dir=$(INSTALL_DIR) \
+		-e workdir=$(PWD)/.install-dir-bin \
+		$(EXTRA_ARGS)
 .PHONY: openshift-config
 
 openshift-config-load:
@@ -79,6 +91,13 @@ openshift-stack-loadbalancers:
 		-e provider=aws -e name=ocp \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-loadbalancers
+
+## NLB for ingress on non-integrated platform (platform=none)
+openshift-stack-loadbalancers-none:
+	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
+		-e provider=none-aws \
+		-e install_dir=$(INSTALL_DIR) -vvv $(EXTRA_ARGS)
+.PHONY: openshift-stack-loadbalancers-none
 
 # IAM
 openshift-stack-iam:

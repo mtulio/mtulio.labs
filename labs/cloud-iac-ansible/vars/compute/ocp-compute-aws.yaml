@@ -37,8 +37,7 @@ compute_resources:
       vpc_subnet_name: "{{ openshift_prefix }}-net-private-use1-1a"
       filters:
         tag:Name: "{{ openshift_prefix }}-{{ _def.name }}-1"
-      #tags: "{% set x=_def.tags.__setitem__('Name', openshift_prefix+'-worker-1' ) %}{{ _def.tags }}"
-      #tags: "{% set x=_def.tags.__setitem__('Name', openshift_prefix+_def.name'-1' ) %}{{ _def.tags }}"
+        instance-state-name: running
       tags: "{% set x=_def.tags.__setitem__('Name', openshift_prefix+'-'+_def.name+'-1' ) %}{{ _def.tags }}"
 
       detailed_monitoring: "{{ _def.detailed_monitoring }}"
