@@ -1,0 +1,15 @@
+---
+- name: Destroy | DNS | AWS | Records
+  debug:
+    msg: "Destroy DNS Records triggered for zone: {{ zone.zone }}"
+  tags: dns
+
+- name: Destroy | DNS | AWS | Records delete triggere
+  include: aws-dns-record.yaml
+  with_items:
+    - "api.{{ cluster_state.zones.cluster }}"
+    - "api-int.{{ cluster_state.zones.cluster }}"
+    - "*.apps.{{ cluster_state.zones.cluster }}"
+  loop_control:
+    loop_var: record
+  tags: dns

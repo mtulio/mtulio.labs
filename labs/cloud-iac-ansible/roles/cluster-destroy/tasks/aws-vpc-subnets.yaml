@@ -1,0 +1,25 @@
+---
+- name: Destroy | VPC | AWS
+  debug:
+    msg: "Destroy VPC subnets triggered"
+  tags: vpc
+
+- name: Get subnets in the VPC
+  ec2_vpc_subnet_info:
+    filters:
+      vpc-id: "{{ vpc_id }}"
+  register: ret_subnets
+  tags: vpc
+
+- debug: var=ret_subnets
+  tags: vpc
+
+- name: " AWS | Delete subnets"
+  ec2_vpc_subnet:
+    state: absent
+    region: "{{ vpc_region }}"
+    vpc_id: "{{ item.vpc_id }}"
+    cidr: "{{ item.cidr_block }}"
+    wait: true
+  with_items: "{{ ret_subnets.subnets }}"
+  tags: vpc

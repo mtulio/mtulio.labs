@@ -1,10 +1,12 @@
 ---
 
-- set_fact:
+- name: DNS | AWS | Zone name
+  set_fact:
     zone: "{{ item_zone }}"
 - debug: var=zone
 
-- amazon.aws.ec2_vpc_net_info:
+- name: DNS | AWS | Get VPC by Name
+  amazon.aws.ec2_vpc_net_info:
     filters:
       "tag:Name": "{{ zone.vpc_name }}"
   when: zone.vpc_name is defined
@@ -18,12 +20,6 @@
   when:
     - zone.vpc_name is defined
     - vpc_info.vpcs|length > 0
-
-- debug: var=zone
-
-# - set_fact:
-#     vpc_id: "{{ zone.vpc_id }}"
-#   when: zone.vpc_id is defined
 
 - name: DNS | AWS | Create zone
   community.aws.route53_zone:

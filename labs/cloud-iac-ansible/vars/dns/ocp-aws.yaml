@@ -7,25 +7,10 @@ cloud_dns_zones:
     openshift_type: base
     provider: aws
 
-    # records:
-    #   - record: "api.{{ ocp_install_infraID }}.{{ ocp_config_baseDomain }}"
-    #     type: A
-    #     value: "{{ openshift_lb_public_dns }}"
-    #     alias: yes
-
   # private
   - zone: "{{ cluster_state.zones.cluster }}"
     openshift_type: cluster
     provider: aws
     vpc_name: "{{ cluster_state.infra_id }}-vpc"
     vpc_region: us-east-1
-
-    # records:
-    #   - record: "api.{{ ocp_install_infraID }}.{{ ocp_config_baseDomain }}"
-    #     type: A
-    #     value: "{{ openshift_lb_public_dns }}"
-    #     alias: yes
-    #   - record: "api-int.{{ ocp_install_infraID }}.{{ ocp_config_baseDomain }}"
-    #     type: A
-    #     value: "{{ openshift_lb_private_dns }}"
-    #     alias: yes
+    private_zone: yes

@@ -1,0 +1,4 @@
+---
+- name: Destroy | Load Balancer
+  include: "aws-loadbalancer.yaml"
+  tags: loadbalancer

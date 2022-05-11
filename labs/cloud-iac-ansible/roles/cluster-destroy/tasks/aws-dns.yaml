@@ -1,0 +1,21 @@
+---
+- name: Destroy | DNS | AWS
+  debug:
+    msg: "Destroy DNS triggered"
+  tags: dns
+
+- name: DNS | AWS | Clear Zone records
+  include: aws-dns-records.yaml
+  with_items: "{{ cloud_dns_zones }}"
+  loop_control:
+    loop_var: zone
+  tags: dns
+
+- name: DNS | AWS | Delete Zone
+  include: aws-dns-zone.yaml
+  when: zone.openshift_type == 'cluster'
+  with_items: "{{ cloud_dns_zones }}"
+  loop_control:
+    loop_var: zone
+  tags: dns
+
