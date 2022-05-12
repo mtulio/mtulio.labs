@@ -5,7 +5,7 @@
 
 Simple Go application to get the Geo location from HTTP client (caller) IP.
 
-This example app was used to this post.
+This example app was used to post to research about running apps on AWS Local Zones using OpenShift.
 
 ## Install
 
