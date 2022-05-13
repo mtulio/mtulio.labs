@@ -1,3 +1,3 @@
-# notebook
+# mtulio's Labs | Notes
 
-Personal technical notes, drafts and blog posts.
+Personal technical labs, notes, drafts and blog posts.
