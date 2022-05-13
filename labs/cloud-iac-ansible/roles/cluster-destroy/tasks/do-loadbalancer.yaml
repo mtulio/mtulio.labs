@@ -1,0 +1,33 @@
+---
+
+#TODO: add discovery here. Currently the info supports only given
+# LB ID, not lookup by name, it could add many extra tasks,
+# let's just ignore if absent returns errors when does not
+# exists (expected on destroy).
+#- name: Destroy | DO | VPC | Discovery by Name
+#  community.digitalocean.digital_ocean_load_balancer_info:
+#    members: true
+#    name: "{{ item_vpc.name }}"
+#  register: do_lb
+#  ignore_errors: true
+
+- name: Destroy | DO | Load Balancer
+  community.digitalocean.digital_ocean_load_balancer:
+    state: absent
+    name: "{{ lb.name }}"
+    wait: yes
+    project: "{{ lb.project_name | d(omit) }}"
+    region: "{{ lb.region | d(omit) }}"
+    vpc_uuid: "{{ vpc_uuid | d(omit) }}"
+    size:  "{{ lb.size | d(omit) }}"
+    droplet_ids: "{{ lb.droplet_ids | d([]) }}"
+    forwarding_rules: "{{ lb.forwarding_rules | d(omit) }}"
+    health_check: "{{ lb.health_check | d(omit) }}"
+    redirect_http_to_https: "{{ lb.redirect_http_to_https | d(omit) }}"
+    enable_backend_keepalive: "{{ lb.enable_backend_keepalive | d(omit) }}"
+    enable_proxy_protocol: "{{ lb.enable_proxy_protocol | d(omit) }}"
+    algorithm: "{{ lb.algorithm | d(omit) }}"
+  with_items: "{{ cloud_loadbalancers | d([]) }}"
+  loop_control:
+    loop_var: lb
+  ignore_errors: true

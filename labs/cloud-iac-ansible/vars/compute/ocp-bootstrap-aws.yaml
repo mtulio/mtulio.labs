@@ -1,6 +1,7 @@
 ---
 openshift_prefix: "{{ cluster_state.infra_id }}"
 openshift_bootstrap_bucket: "{{ openshift_prefix }}-infra"
+
 openshift_instance_type: m6i.xlarge
 openshift_instance_profile: "{{ cluster_state.compute.iam_profile_bootstrap }}"
 openshift_image_id: "{{ cluster_state.compute.image_id }}"
@@ -9,6 +10,9 @@ openshift_security_groups:
   - "{{ openshift_prefix }}-bootstrap-sg"
   - "{{ openshift_prefix }}-controlplane-sg"
 openshift_tags: "{{ cluster_state.tags }}"
+
+openshift_userdata:
+  config_source: "s3://{{ openshift_bootstrap_bucket }}/bootstrap.ign"
 
 _def:
   name: "{{ openshift_prefix }}-bootstrap"

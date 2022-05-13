@@ -1,0 +1,10 @@
+---
+
+- name: Destroy | DO | DNS
+  community.digitalocean.digital_ocean_domain:
+    state: absent
+    name: "{{ zone.zone }}"
+  when: zone.openshift_type == 'cluster'
+  with_items: "{{ cloud_dns_zones }}"
+  loop_control:
+    loop_var: zone

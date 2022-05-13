@@ -2,12 +2,12 @@
 
 - name: Setup Load Balancer Targets
   include: "{{ target.provider }}-target.yaml"
-  with_items: "{{ cloud_loadbalancer_targets }}"
+  with_items: "{{ cloud_loadbalancer_targets | d([]) }}"
   loop_control:
     loop_var: target
 
 - name: Setup Load Balancers
   include: "{{ lb.provider }}-lb.yaml"
-  with_items: "{{ cloud_loadbalancers }}"
+  with_items: "{{ cloud_loadbalancers | d([]) }}"
   loop_control:
     loop_var: lb

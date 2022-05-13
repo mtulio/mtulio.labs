@@ -1,0 +1,38 @@
+---
+
+- name: Destroy | DO | VPC | Firewall
+  community.digitalocean.digital_ocean_firewall:
+    name: "{{ fw.name }}"
+    state: absent
+  with_items: "{{ item_vpc.security_groups }}"
+  loop_control:
+    loop_var: fw
+
+- name: Destroy | DO | VPC | Discovery by Name
+  community.digitalocean.digital_ocean_vpc_info:
+    members: true
+    name: "{{ item_vpc.name }}"
+  register: do_vpc
+  ignore_errors: true
+
+- debug: var=do_vpc
+
+- name: Waiting 30s to delete VPC
+  pause:
+    seconds: 10
+
+- name: Destroy | DO | VPC
+  community.digitalocean.digital_ocean_vpc:
+    state: absent
+    name: "{{ item_vpc.name }}"
+    region: "{{ item_vpc.region }}"
+  when: not(do_vpc.failed)
+
+- name: Waiting 30s to delete project
+  pause:
+    seconds: 20
+
+- name: Destroy | DO | Project
+  community.digitalocean.digital_ocean_project:
+    name: "{{ item_vpc.project }}"
+    state: absent

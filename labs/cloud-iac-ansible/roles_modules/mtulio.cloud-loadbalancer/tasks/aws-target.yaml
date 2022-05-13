@@ -67,4 +67,3 @@
   when: target.register_ec2 is defined
   loop_control:
     loop_var: machine
-

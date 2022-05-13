@@ -2,7 +2,7 @@
   "ignition": {
     "config": {
       "replace": {
-        "source": "s3://{{ openshift_bootstrap_bucket }}/bootstrap.ign"
+        "source": "{{ openshift_userdata.config_source }}"
       }
     },
     "version": "3.1.0"

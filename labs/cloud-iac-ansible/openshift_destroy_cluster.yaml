@@ -15,10 +15,11 @@
       private: no
 
   vars_files:
-    - "vars/loadbalancers/ocp-{{ provider }}.yaml"
-    - "vars/iam/ocp-{{ provider }}.yaml"
-    - "vars/dns/ocp-{{ provider }}.yaml"
-    - "vars/networks/ocp-{{ provider }}-default.yaml"
+    - "vars/openshift.yaml"
+    - "vars/loadbalancers/ocp-{{ ocp_config_provider | d(provider) }}.yaml"
+    - "vars/iam/ocp-{{ ocp_config_provider | d(provider) }}.yaml"
+    - "vars/dns/ocp-{{ ocp_config_provider | d(provider) }}.yaml"
+    - "vars/networks/ocp-{{ ocp_config_provider | d(provider) }}-{{ ocp_config_region | d(region) }}.yaml"
 
   roles:
     - role: cluster-destroy
