@@ -11,14 +11,7 @@
       private: no
 
   vars_files:
-    - "vars/loadbalancers/ocp-{{ provider }}.yaml"
-
-  pre_tasks:
-    # discovery DNS
-    - set_fact:
-        load_balancers: {}
-
-    - include_vars: "vars/dns/ocp-{{ provider }}.yaml"
+    - "vars/dns/ocp-{{ provider }}.yaml"
 
   roles:
     - cloud-dns

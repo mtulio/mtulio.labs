@@ -1,0 +1,17 @@
+---
+
+#AWS: https://docs.ansible.com/ansible/latest/collections/community/aws/route53_module.html
+cloud_dns_zones:
+
+  # private
+  - zone: "{{ cluster_state.zones.cluster }}"
+    openshift_type: cluster
+    provider: do
+    #vpc_name: "{{ cluster_state.infra_id }}-vpc"
+    vpc_region: "{{ cluster_state.region }}"
+    #private_zone: yes
+    project: "{{ cluster_state.infra_id }}"
+#    records:
+#      - name: "api.{{ cluster_state.zones.cluster }}"
+#        value: "lb.{{ cluster_state.zones.cluster }}"
+#        type: CNAME

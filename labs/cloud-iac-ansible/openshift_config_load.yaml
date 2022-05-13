@@ -9,7 +9,7 @@
       private: no
 
   tasks:
-    - name: OpenShift Config Load | Get Installer Meta
+    - name: OpenShift Config Load | Get Installer data
       set_fact:
           ocp_installer_state: "{{ lookup('file', install_dir + '/.openshift_install_state.json') }}"
           ocp_installer_metadata: "{{ lookup('file', install_dir + '/metadata.json') }}"
@@ -23,6 +23,7 @@
           ocp_install_clusterName: "{{ ocp_installer_metadata.clusterName }}"
           ocp_config_baseDomain: "{{ ocp_installer_state[\"*installconfig.InstallConfig\"][\"config\"][\"baseDomain\"] }}"
           ocp_cluster_tags: {}
+          ocp_config_region: "{{ lookup('env', 'CONFIG_REGION') }}"
 
     - name: OpenShift Config Load | Set Default tags
       set_fact:
@@ -45,6 +46,10 @@
           cluster_id: "{{ ocp_installer_metadata.clusterID }}"
           infra_id: "{{ ocp_install_infraID }}"
           tags: "{{ ocp_cluster_tags }}"
+          region: "{{ ocp_config_region | d('NA') }}"
+          platform:
+            provider: "{{ provider | d('NA') }}"
+            integratoin: "{{ config_platform | d('none') }}"
           zones:
             base: "{{ ocp_config_baseDomain }}"
             base_id: ''

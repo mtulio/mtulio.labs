@@ -2,7 +2,7 @@
 - debug: var=cloud_dns_zones
 
 - name: Setup DNS
-  include: "{{ item_zone.provider }}-zone.yaml"
+  include: "{{ zone.provider }}-zone.yaml"
   with_items: "{{ cloud_dns_zones }}"
   loop_control:
-    loop_var: item_zone
+    loop_var: zone

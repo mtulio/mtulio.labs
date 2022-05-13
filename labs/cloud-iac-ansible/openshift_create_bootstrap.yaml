@@ -6,7 +6,7 @@
   connection: local
 
   vars_files:
-    - "vars/compute/ocp-bootstrap-aws.yaml"
+    - "vars/compute/ocp-bootstrap-{{ provider }}.yaml"
 
   roles:
     - role: mtulio.cloud-compute

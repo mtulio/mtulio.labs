@@ -1,0 +1,48 @@
+---
+
+- debug: var=lb_out
+
+- name: Resource value was not defined, setting LB recently created
+  set_fact:
+    res_value: "{{ lb_ip }}"
+  when: res.value is not defined
+
+# Module does not provide a good lookup nor indepotency, so
+# let's load current records filter it and create only new ones.
+# It provides indepotency by name, and not value. Additional
+# checks should be done to achieve that.
+
+- name: Retrieve all domain records
+  community.digitalocean.digital_ocean_domain_record_info:
+    state: present
+    domain: "{{ res.domain }}"
+  register: reg_dns_zone_records
+
+- debug: var=reg_dns_zone_records
+
+- name: Create empty RR list
+  set_fact:
+    rr_to_add: []
+
+- name: Discovery RR to add
+  set_fact:
+    rr_to_add: "{{ rr_to_add + [record] }}"
+  when: reg_dns_zone_records.data.records | community.general.json_query(q_rr) | length <= 0
+  with_items: "{{ res.records }}"
+  loop_control:
+    loop_var: record
+  vars:
+    q_rr: "[?name=='{{ record.name }}']"
+
+- debug: var=rr_to_add
+
+- name: LoadBalancer | DO | Callback Register | DNS | Create RR
+  community.digitalocean.digital_ocean_domain_record:
+    state: present
+    domain: "{{ res.domain }}"
+    type: "{{ record.type }}"
+    name: "{{ record.name }}"
+    data: "{{ record.value | d(res_value) }}"
+  with_items: "{{ rr_to_add }}"
+  loop_control:
+    loop_var: record

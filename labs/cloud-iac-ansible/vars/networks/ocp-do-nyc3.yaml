@@ -1,0 +1,63 @@
+################################
+# AWS Networks
+# AWS us-east-1: 10.0.0.0/16 (to 10.0.255.255/16)
+# AWS <unassigned>: 10.23.0.0/16 (to 10.23.255.255/19)
+
+#########################
+
+vpc_cidr: 10.0.0.0/16
+vpc_tags:
+  - "kubernetes.io/cluster/{{ cluster_state.infra_id }}"
+
+# TODO: fix those rules to more restrictive. This is used to dev env.
+security_groups:
+  - name: "{{ cluster_state.infra_id }}-default-fw"
+    description: Default Firewall
+    #tags: "{{ vpc_tags }}"
+    inbound_rules:
+      - protocol: tcp
+        ports: "22"
+        sources:
+          addresses: ["0.0.0.0/0", "::/0"]
+          #tags: "{{ vpc_tags }}"
+      - protocol: "tcp"
+        ports: "1-65535"
+        sources:
+          addresses: ["{{ vpc_cidr }}"]
+#          tags: "{{ vpc_tags }}"
+      - protocol: "udp"
+        ports: "1-65535"
+        sources:
+          addresses: ["{{ vpc_cidr }}"]
+#          tags: "{{ vpc_tags }}"
+      - protocol: "icmp"
+        ports: "1-65535"
+        sources:
+          addresses: ["{{ vpc_cidr }}"]
+#          tags: "{{ vpc_tags }}"
+    outbound_rules:
+      - protocol: "tcp"
+        ports: "1-65535"
+        destinations:
+          addresses: ["0.0.0.0/0", "::/0"]
+      - protocol: "udp"
+        ports: "1-65535"
+        destinations:
+          addresses: ["0.0.0.0/0", "::/0"]
+      - protocol: "icmp"
+        ports: "1-65535"
+        destinations:
+          addresses: ["0.0.0.0/0", "::/0"]
+
+cloud_networks:
+  # ## AWS US East 1
+  - name: "{{ cluster_state.infra_id }}-vpc"
+    block: "{{ vpc_cidr }}"
+    provider: do
+    region: "{{ cluster_state.region }}"
+    project: "{{ cluster_state.infra_id }}"
+    project_purpose: "OpenShift Cluster"
+    project_env: "Development"
+
+    security_groups: "{{ security_groups | d([]) }}"
+    tags: "{{ cluster_state.tags | d({}) }}"

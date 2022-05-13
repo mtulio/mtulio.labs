@@ -1,0 +1,24 @@
+---
+
+- name: DNS | AWS | Create zone
+  community.digitalocean.digital_ocean_domain:
+    state: present
+    name: "{{ zone.zone }}"
+  register: z_out
+
+- debug: var=z_out
+
+#- name: DNS | AWS | Create zone records
+#  community.digitalocean.digital_ocean_domain_record:
+#    state: present
+#    domain: "{{ zone.zone }}"
+#    type: "{{ rec.type }}"
+#    name: "{{ rec.name }}"
+#    data: "{{ rec.value }}"
+#  whith_items: "{{ zone.records | d([]) }}"
+#  loop_control:
+#    loop_var: rec
+
+- set_fact:
+    cluster_state: "{% set x=cluster_state.zones.__setitem__(zone.openshift_type+'_id', z_out.domain.name) %}{{ cluster_state }}"
+  when: zone.openshift_type is defined

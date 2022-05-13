@@ -1,0 +1,89 @@
+---
+
+- debug: var=lb
+
+- set_fact:
+    vpc_uuid: "{{ lb.vpc_uuid | d('') }}"
+    lb_name: ''
+    lb_ip: ''
+
+# API does not return when member=true name=vpc_name
+- name: Load Balancer | DO | Lookup for vpc_uuid
+  community.digitalocean.digital_ocean_vpc_info:
+  register: do_vpc
+  when: vpc_uuid == ''
+
+- debug: var=do_vpc
+
+- name: Load Balancer | DO | Set vpc_uuid
+  set_fact:
+    vpc_uuid: "{{ do_vpc.data | json_query(filter_vpc) | join(' ') }}"
+  when: 
+    - vpc_uuid == ''
+    - not(do_vpc.failed)
+  vars:
+    filter_vpc: "[?name=='{{ lb.vpc_name }}'].id"
+
+- debug: var=vpc_uuid
+
+- name: Gather information about all load balancers
+  community.digitalocean.digital_ocean_load_balancer_info:
+  register: do_lbs
+
+- debug: var=do_lbs
+
+- name: Set LB name when eixsts
+  set_fact:
+    lb_name: "{{ do_lbs.data | community.general.json_query(filter_lb) | join(' ') }}"
+  vars:
+    filter_lb: "[?name=='{{ lb.name }}'].name"
+
+- name: Set LB ID when eixsts
+  set_fact:
+    lb_id: "{{ do_lbs.data | community.general.json_query(filter_lb) | join(' ') }}"
+  vars:
+    filter_lb: "[?name=='{{ lb.name }}'].id"
+
+- name: Set LB IP when eixsts
+  set_fact:
+    lb_ip: "{{ do_lbs.data | community.general.json_query(filter_lb) | join(' ') }}"
+  vars:
+    filter_lb: "[?name=='{{ lb.name }}'].ip"
+
+- name: Load Balancer | DO | Create
+  community.digitalocean.digital_ocean_load_balancer:
+    state: present
+    name: "{{ lb.name | d(omit) }}"
+    project: "{{ lb.project_name | d(omit) }}"
+    region: "{{ lb.region | d(omit) }}"
+    vpc_uuid: "{{ vpc_uuid | d(omit) }}"
+    size:  "{{ lb.size | d(omit) }}"
+    droplet_ids: "{{ lb.droplet_ids | d([]) }}"
+    forwarding_rules: "{{ lb.forwarding_rules | d(omit) }}"
+    health_check: "{{ lb.health_check | d(omit) }}"
+    redirect_http_to_https: "{{ lb.redirect_http_to_https | d(omit) }}"
+    enable_backend_keepalive: "{{ lb.enable_backend_keepalive | d(omit) }}"
+    enable_proxy_protocol: "{{ lb.enable_proxy_protocol | d(omit) }}"
+    algorithm: "{{ lb.algorithm | d(omit) }}"
+    wait: yes
+  when: lb_name == ''
+  register: lb_out
+
+# Gather info again (maybe sleep a bit?)
+- name: Gather information about all load balancers to set IP
+  community.digitalocean.digital_ocean_load_balancer_info:
+  register: do_lbs
+  when: lb_ip == ''
+
+- name: Set LB IP when eixsts
+  set_fact:
+    lb_ip: "{{ do_lbs.data | community.general.json_query(filter_lb) | join(' ') }}"
+  vars:
+    filter_lb: "[?name=='{{ lb.name }}'].ip"
+  when: lb_ip == ''
+
+- name: Load Balancer | DO | Callback register resources
+  include: "do-lb-register-{{ res.service }}.yaml"
+  with_items: "{{ lb.register_resources | d([]) }}"
+  loop_control:
+    loop_var: res

@@ -1,0 +1,15 @@
+---
+
+- name: delete bootstrap.ign
+  amazon.aws.aws_s3:
+    bucket: "{{ cluster_state.infra_id }}"
+    object: "/bootstrap.ign"
+    mode: delobj
+    s3_url: "https://{{ cluster_state.region }}.digitaloceanspaces.com"
+
+- name: Destroy | DO | Spaces | Bucket
+  community.digitalocean.digital_ocean_spaces:
+    state: absent
+    name: "{{ cluster_state.infra_id }}"
+    region: "{{ cluster_state.region }}"
+  register: do_space
