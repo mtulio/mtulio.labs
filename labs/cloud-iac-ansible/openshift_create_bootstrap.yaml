@@ -1,7 +1,7 @@
 ---
 - include: openshift_create_bootstrap_setup.yaml
 
-- name: OpenShift Bootstrap Setup
+- name: OpenShift Create Node - Bootstrap
   hosts: localhost
   connection: local
 

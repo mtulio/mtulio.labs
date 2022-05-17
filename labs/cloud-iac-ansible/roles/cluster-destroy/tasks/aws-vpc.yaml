@@ -167,6 +167,9 @@
     - include: aws-vpc-igw.yaml
       tags: vpc
 
+    - include: aws-vpc-endpoint.yaml
+      tags: vpc
+
     - include: aws-vpc-rtb.yaml
       tags: vpc
 

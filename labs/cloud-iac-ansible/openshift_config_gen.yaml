@@ -1,5 +1,5 @@
 ---
-- name: OpenShift Config Generator
+- name: OpenShift Install Config Generator
   hosts: localhost
   connection: local
 
