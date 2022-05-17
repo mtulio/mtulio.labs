@@ -47,11 +47,13 @@ CONFIG_CLUSTER_NAME=mrbupi \
 
 Create the cluster:
 ```bash
-INSTALL_DIR="${PWD}/.install-dir-none"
+INSTALL_DIR="${PWD}/.install-dir-mrbnone"
 make clean INSTALL_DIR=${INSTALL_DIR}
 CONFIG_CLUSTER_NAME=mrbnone \
+    INSTALL_DIR="${INSTALL_DIR}" \
+    CONFIG_PROVIDER=aws \
     EXTRA_ARGS='-e custom_image_id=ami-0a57c1b4939e5ef5b -e config_platform="" -vvv' \
-    $(which time) -v make openshift-install INSTALL_DIR=${INSTALL_DIR}
+    $(which time) -v make openshift-install
 ```
 
 - Approve the certificates to Compute nodes join to the cluster
@@ -65,15 +67,17 @@ for i in $(oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig \
 done
 ```
 
-Create the ingress Load Balancers on AWS:
+Create the Load Balancers for default router on AWS:
 
 ```bash
-$(which time) -v make openshift-stack-loadbalancers-none INSTALL_DIR=${INSTALL_DIR}
+INSTALL_DIR=${INSTALL_DIR} \
+    CONFIG_PROVIDER=aws \
+    make openshift-stack-loadbalancers-none
 ```
 
 Check the COs
 
-```
+```bash
 oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig get co -w
 ```
 
@@ -81,11 +85,21 @@ Destroy a cluster:
 
 ```bash
 # Destroy the ingress LB first
-make openshift-destroy INSTALL_DIR=${INSTALL_DIR} PROVIDER=aws-none EXTRA_ARGS='-t loadbalancer'
+INSTALL_DIR=${INSTALL_DIR} \
+    CONFIG_PROVIDER=aws \
+    EXTRA_ARGS='-t loadbalancer' \
+    make openshift-destroy
 
 # Destroy the cluster
-INSTALL_DIR="${PWD}/.install-dir-none"
-make openshift-destroy INSTALL_DIR=${INSTALL_DIR}
+INSTALL_DIR=${INSTALL_DIR} \
+    CONFIG_PROVIDER=aws \
+    EXTRA_ARGS='-vvv' \
+    make openshift-destroy
+```
+
+Clear install-dir
+```bash
+make clean INSTALL_DIR=${INSTALL_DIR}
 ```
 
 ### Create an OpenShift cluster on DigitalOcean with no integration (platform=None)

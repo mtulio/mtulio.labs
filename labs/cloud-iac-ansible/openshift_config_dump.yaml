@@ -1,5 +1,5 @@
 ---
-- name: OpenShift Config Load
+- name: OpenShift | dump state to file
   hosts: localhost
   connection: local
 

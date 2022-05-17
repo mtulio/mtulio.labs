@@ -1,5 +1,5 @@
 ---
-- name: OpenShift Clients
+- name: OpenShift Install Clients
   hosts: localhost
   connection: local
 

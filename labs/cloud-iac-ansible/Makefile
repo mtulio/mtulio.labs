@@ -17,11 +17,16 @@ create-network:
 .PHONY: create-network
 
 k8s-create-network-aws-use1:
-	$(MAKE) create-network PROVIDER=aws NET_NAME=k8s EXTRA_ARGS="-e region=default"
+	$(MAKE) create-network \
+		PROVIDER=aws \
+		NET_NAME=k8s \
+		EXTRA_ARGS="-e region=us-east-1"
 .PHONY: k8s-create-network-aws-use1
 
 k8s-create-network-aws-usw2:
-	$(MAKE) create-network PROVIDER=aws NET_NAME=k8s-usw2
+	$(MAKE) create-network \
+		PROVIDER=aws \
+		NET_NAME=k8s-usw2
 .PHONY: k8s-create-network-aws-usw2
 
 k8s-create-master-aws:
@@ -48,7 +53,8 @@ CONTROLPLANE_NAME ?= ocp-controlplane
 COMPUTE_NAME ?= ocp-compute
 EXTRA_ARGS ?= 
 OPENSHIFT_RELEASE=4.10.13
-REGION ?= default
+REGION ?= us-east-1
+CONFIG_REGION ?= $(REGION)
 
 openshift-install-clients:
 	$(VENV)/bin/ansible-playbook openshift_install_clients.yaml -vvv \
@@ -59,7 +65,8 @@ openshift-install-clients:
 
 openshift-config:
 	$(VENV)/bin/ansible-playbook openshift_config_gen.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=$(BOOTSTRAP_NAME) \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR) \
 		-e workdir=$(PWD)/.install-dir-bin \
 		$(EXTRA_ARGS)
@@ -67,7 +74,8 @@ openshift-config:
 
 openshift-config-load:
 	$(VENV)/bin/ansible-playbook openshift_config_load.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=$(BOOTSTRAP_NAME) \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-config-load
 
@@ -76,7 +84,8 @@ openshift-config-load:
 # - SG
 openshift-stack-network:
 	$(VENV)/bin/ansible-playbook openshift_stack_net.yaml \
-		-e provider=$(CONFIG_PROVIDER) -e name=ocp \
+		-e name=ocp \
+		-e provider=$(CONFIG_PROVIDER) \
 		-e region=$(REGION) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-network
@@ -84,14 +93,16 @@ openshift-stack-network:
 # - DNS
 openshift-stack-dns:
 	$(VENV)/bin/ansible-playbook openshift_stack_dns.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=ocp \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=ocp \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-dns
 
 # - NLB
 openshift-stack-loadbalancers:
 	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=ocp \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=ocp \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-loadbalancers
 
@@ -99,13 +110,21 @@ openshift-stack-loadbalancers:
 openshift-stack-loadbalancers-none:
 	$(VENV)/bin/ansible-playbook openshift_stack_loadbalancers.yaml -vvv \
 		-e provider=none-$(CONFIG_PROVIDER) \
-		-e install_dir=$(INSTALL_DIR) -vvv $(EXTRA_ARGS)
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-loadbalancers-none
+
+openshift-destroy-loadbalancers-none:
+	$(VENV)/bin/ansible-playbook openshift_destroy_cluster.yaml -vvv \
+		-e config=none-aws \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
+.PHONY: openshift-destroy-loadbalancers-none
 
 # IAM
 openshift-stack-iam:
 	$(VENV)/bin/ansible-playbook openshift_stack_iam.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=ocp \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=ocp \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-iam
 
@@ -114,27 +133,31 @@ openshift-stack-iam:
 # EC2: Bootstrap
 openshift-bootstrap-setup:
 	$(VENV)/bin/ansible-playbook openshift_create_bootstrap_setup.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=$(BOOTSTRAP_NAME) \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-bootstrap-setup
 
 openshift-stack-bootstrap:
 	$(VENV)/bin/ansible-playbook openshift_create_bootstrap.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=$(BOOTSTRAP_NAME) \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=$(BOOTSTRAP_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-bootstrap
 
 # EC2: Control Plane
 openshift-stack-controlplane: openshift-bootstrap-setup
 	$(VENV)/bin/ansible-playbook openshift_create_node.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=$(CONTROLPLANE_NAME) \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=$(CONTROLPLANE_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-controlplane
 
 # EC2: Compute
 openshift-stack-compute:
 	$(VENV)/bin/ansible-playbook openshift_create_node.yaml -vvv \
-		-e provider=$(CONFIG_PROVIDER) -e name=$(COMPUTE_NAME) \
+		-e provider=$(CONFIG_PROVIDER) \
+		-e name=$(COMPUTE_NAME) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-stack-compute
 

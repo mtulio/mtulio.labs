@@ -1,7 +1,7 @@
 ---
 - include: openshift_config_load.yaml
 
-- name: OpenShift Stack Create Load Balancer
+- name: OpenShift Stack Create - Load Balancer
   hosts: localhost
   connection: local
 

@@ -2,7 +2,7 @@
 - include: openshift_config_load.yaml
   tags: always
 
-- name: OpenShift Create Node
+- name: OpenShift Destroy Cluster
   hosts: localhost
   connection: local
 
@@ -16,7 +16,7 @@
 
   vars_files:
     - "vars/openshift.yaml"
-    - "vars/loadbalancers/ocp-{{ ocp_config_provider | d(provider) }}.yaml"
+    - "vars/loadbalancers/ocp-{{ config |d(ocp_config_provider) | d(provider) }}.yaml"
     - "vars/iam/ocp-{{ ocp_config_provider | d(provider) }}.yaml"
     - "vars/dns/ocp-{{ ocp_config_provider | d(provider) }}.yaml"
     - "vars/networks/ocp-{{ ocp_config_provider | d(provider) }}-{{ ocp_config_region | d(region) }}.yaml"
