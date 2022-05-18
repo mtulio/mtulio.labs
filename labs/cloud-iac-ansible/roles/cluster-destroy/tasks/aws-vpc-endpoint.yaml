@@ -17,7 +17,7 @@
   register: res_vpce
 
 - name: Delete newly created vpc endpoint
-  amazon.aws.ec2_vpc_endpoint:
+  ec2_vpc_endpoint:
     state: absent
     vpc_endpoint_id: "{{ item.vpc_endpoint_id }}"
     region: "{{ vpc_region }}"
