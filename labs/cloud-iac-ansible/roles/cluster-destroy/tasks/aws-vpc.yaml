@@ -158,19 +158,19 @@
     - include: aws-vpc-natgw.yaml
       tags: vpc
 
-    - include: aws-vpc-subnets.yaml
-      tags: vpc
-
     - include: aws-vpc-sgs.yaml
-      tags: vpc
-
-    - include: aws-vpc-igw.yaml
       tags: vpc
 
     - include: aws-vpc-endpoint.yaml
       tags: vpc
 
     - include: aws-vpc-rtb.yaml
+      tags: vpc
+
+    - include: aws-vpc-subnets.yaml
+      tags: vpc
+
+    - include: aws-vpc-igw.yaml
       tags: vpc
 
     - name: AWS | VPC delete

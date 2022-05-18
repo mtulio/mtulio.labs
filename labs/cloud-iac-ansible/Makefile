@@ -115,7 +115,7 @@ openshift-stack-loadbalancers-none:
 
 openshift-destroy-loadbalancers-none:
 	$(VENV)/bin/ansible-playbook openshift_destroy_cluster.yaml -vvv \
-		-e config=none-aws \
+		-e config=none-$(CONFIG_PROVIDER) \
 		-e provider=$(CONFIG_PROVIDER) \
 		-e install_dir=$(INSTALL_DIR) $(EXTRA_ARGS)
 .PHONY: openshift-destroy-loadbalancers-none

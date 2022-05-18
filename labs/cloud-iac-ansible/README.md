@@ -81,14 +81,14 @@ Check the COs
 oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig get co -w
 ```
 
-Destroy a cluster:
+Destroy a cluster (Ingress Load balancer then cluster resources):
 
 ```bash
 # Destroy the ingress LB first
 INSTALL_DIR=${INSTALL_DIR} \
     CONFIG_PROVIDER=aws \
     EXTRA_ARGS='-t loadbalancer' \
-    make openshift-destroy
+    make openshift-destroy-loadbalancers-none
 
 # Destroy the cluster
 INSTALL_DIR=${INSTALL_DIR} \
