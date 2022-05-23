@@ -13,3 +13,6 @@
 [submodule "labs/cloud-iac-ansible/collections/mtulio/labc"]
 	path = labs/cloud-iac-ansible/collections/mtulio/labc
 	url = git@github.com:mtulio/ansible-collection-labc.git
+[submodule "labs/cloud-iac-ansible/collections/ansible_collections/mtulio/labc"]
+	path = labs/cloud-iac-ansible/collections/ansible_collections/mtulio/labc
+	url = git@github.com:mtulio/ansible-collection-labc.git
