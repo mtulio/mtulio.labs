@@ -7,3 +7,9 @@
 [submodule "labs/cloud-iac-ansible/roles_modules/mtulio.cloud-compute"]
 	path = labs/cloud-iac-ansible/roles_modules/mtulio.cloud-compute
 	url = git@github.com:mtulio/ansible-role-cloud-compute.git
+[submodule "labs/cloud-iac-ansible/roles_modules/mtulio.lab"]
+	path = labs/cloud-iac-ansible/roles_modules/mtulio.lab
+	url = git@github.com:mtulio/ansible-role-lab.git
+[submodule "labs/cloud-iac-ansible/collections/mtulio/labc"]
+	path = labs/cloud-iac-ansible/collections/mtulio/labc
+	url = git@github.com:mtulio/ansible-collection-labc.git
