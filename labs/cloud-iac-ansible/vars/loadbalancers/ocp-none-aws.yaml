@@ -24,13 +24,13 @@ cloud_loadbalancer_targets:
       # ToDo: create a generic role to identify workers, like:
       # - openshift_node_role=worker
       # - node-role.kubernetes.io/worker=''
-      - filters: 
+      - filters:
           "tag:Name": "{{ cluster_state.infra_id }}-worker-1"
         resource_type: ip
-      - filters: 
+      - filters:
           "tag:Name": "{{ cluster_state.infra_id }}-worker-2"
         resource_type: ip
-      - filters: 
+      - filters:
           "tag:Name": "{{ cluster_state.infra_id }}-worker-3"
         resource_type: ip
 
@@ -55,13 +55,13 @@ cloud_loadbalancer_targets:
       # ToDo: create a generic role to identify workers, like:
       # - openshift_node_role=worker
       # - node-role.kubernetes.io/worker=''
-      - filters: 
+      - filters:
           "tag:Name": "{{ cluster_state.infra_id }}-worker-1"
         resource_type: ip
-      - filters: 
+      - filters:
           "tag:Name": "{{ cluster_state.infra_id }}-worker-2"
         resource_type: ip
-      - filters: 
+      - filters:
           "tag:Name": "{{ cluster_state.infra_id }}-worker-3"
         resource_type: ip
 
