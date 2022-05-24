@@ -2,7 +2,7 @@
 openshift_prefix: "{{ cluster_state.infra_id }}"
 openshift_bootstrap_bucket: "{{ openshift_prefix }}-infra"
 
-openshift_instance_type: m6i.xlarge
+openshift_instance_type: "{{ controlplane_instance | d('m6i.xlarge') }}"
 openshift_instance_profile: "{{ cluster_state.compute.iam_profile_bootstrap }}"
 openshift_image_id: "{{ cluster_state.compute.image_id }}"
 openshift_subnet_name: "{{ openshift_prefix }}-net-public-use1-1a"
