@@ -30,10 +30,29 @@ Load it:
 source .env
 ```
 
+## Build-in Use Cases
+
+The use cases described below are re-using playbooks
+changing the variables for each goal.
+
+Feel free to look into the Makefile and create your own
+customization re-using the playbooks to install k8s/okd/openshift
+clusters.
+
 ### Create network stack only (from k8s template)
 
 ```bash
 $(which time) -v make k8s-create-network-aws-use1
+```
+
+### Network
+
+- create AWS VPC
+
+```bash
+ansible-playbook net-create.yaml \
+    -e provider=aws \
+    -e name=k8s
 ```
 
 ### Create an OpenShift cluster on AWS (UPI)
@@ -52,7 +71,7 @@ make clean INSTALL_DIR=${INSTALL_DIR}
 CONFIG_CLUSTER_NAME=mrbnone \
     INSTALL_DIR="${INSTALL_DIR}" \
     CONFIG_PROVIDER=aws \
-    EXTRA_ARGS='-e custom_image_id=ami-0a57c1b4939e5ef5b -e config_platform="" -vvv' \
+    EXTRA_ARGS='-e custom_image_id=ami-0a57c1b4939e5ef5b -e config_platform="" -vvv -e compute_instance=m6i.xlarge' \
     $(which time) -v make openshift-install
 ```
 
@@ -206,12 +225,3 @@ CONFIG_CLUSTER_NAME=mrbdo \
 ```
 
 
-### Network
-
-- create AWS VPC
-
-```bash
-ansible-playbook net-create.yaml \
-    -e provider=aws \
-    -e name=k8s
-```
