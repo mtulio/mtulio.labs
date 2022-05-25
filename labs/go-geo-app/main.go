@@ -140,7 +140,7 @@ func respHandlerGeo(w http.ResponseWriter, resp *Response, ip string) {
 // Handler to discover the GeoIP for QueryString (?ip=<ip>), or
 // discover from request (initially headers, them remote address).
 func HandlerGeo(w http.ResponseWriter, r *http.Request) {
-	log.Println("Received /geo")
+	log.Println("Received /geo or /")
 	var resp Response
 	resp.ClientInfo = &ClientInfo{
 		Request: Request{
@@ -160,7 +160,7 @@ func HandlerGeo(w http.ResponseWriter, r *http.Request) {
 		respHandlerGeo(w, &resp, ip)
 		return
 	}
-	ip = r.Header.Get("X-Forward-For")
+	ip = r.Header.Get("X-Forwarded-For")
 	if ip != "" {
 		respHandlerGeo(w, &resp, ip)
 		return
