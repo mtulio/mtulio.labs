@@ -2,7 +2,7 @@
 
 > Status: WIP
 
-> Preview on [Dev.to](https://dev.to/mtulio/enhance-the-security-options-when-installing-openshift-with-iam-sts-manual-sts-on-aws-5048-temp-slug-3197013?preview=c9e9beb6b5be97e7b8f79527107c7a54847f6a62fab5d2735727e5875f1db843dfb3bfaf4907c49c6628b9014b72f40fc655ff604a033ba604e253ff)
+> Preview on [Dev.to](https://dev.to/mtulio/protect-the-s3-bucket-used-by-oidc-when-installing-openshift-with-aws-in-manual-sts-mode-irsa-2d7j-temp-slug-5985517?preview=ab8edd52ff229c24f2e63deba4c326bdfba74e3cd8609016573ed06c3b36de9a751b6a1799bbdb52047f0a0916dad1f3373f8c8740b8815062bf6766)
 
 > [PR to Collab](https://github.com/mtulio/mtulio.labs/pull/8) (feel free to review)
 

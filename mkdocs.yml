@@ -195,6 +195,9 @@ nav:
 
   - Articles:
     - Home: articles/README.md
+    - OpenShift OIDC:
+      - Deep Dive into OpenShift IdP OIDC: articles/ocp-idp-aws-oidc.md
+      - Use CloudFront for public URL of OIDC on OpenShift: articles/ocp-idp-aws-oidc-s3-pvt-cfn.md
 
   - Open Learning:
       - Home: learning/README.md
