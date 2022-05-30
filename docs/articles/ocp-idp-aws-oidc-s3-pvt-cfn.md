@@ -2,7 +2,7 @@
 
 # Create private S3 Bucket for OpenID Connect when installing OpenShift in AWS with "manual-STS"
 
-__info__:
+__meta_info__:
 
 > Status: WIP
 
@@ -10,7 +10,7 @@ __info__:
 
 > [PR to Collab](https://github.com/mtulio/mtulio.labs/pull/8) (feel free to review)
 
-> [PR Preview](https://mtuliolabs-git-article-ocp-aws-idp-oidc-mtulio.vercel.app/articles/ocp-idp-aws-oidc/?h=oidc)
+> [PR Preview](https://mtuliolabs-git-article-ocp-aws-idp-oidc-mtulio.vercel.app/articles/ocp-idp-aws-oidc-s3-pvt-cfn/)
 
 > Estimated time to publish: 10 June
 

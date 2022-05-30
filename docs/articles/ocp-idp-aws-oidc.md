@@ -1,4 +1,8 @@
+<!--METADATA_START-->
+
 # Deep Dive into AWS OIDC identity provider when installing OpenShift with IAM STS (“manual-STS”) support
+
+__meta_info__:
 
 > Status: WIP
 
@@ -6,9 +10,17 @@
 
 > [PR to Collab](https://github.com/mtulio/mtulio.labs/pull/8) (feel free to review)
 
-> [PR Preview](https://mtuliolabs-git-article-ocp-aws-idp-oidc-mtulio.vercel.app/articles/ocp-idp-aws-oidc/?h=oidc)
+> [PR Preview](https://mtuliolabs-git-article-ocp-aws-idp-oidc-mtulio.vercel.app/articles/ocp-idp-aws-oidc/)
 
 > Estimated time to publish: 10 June
+
+> Series Name: OpenShift Security in AWS
+
+> Series Post: #1 OIDC Deep Dive;
+
+> Series post id: #2
+
+<!--METADATA_END-->
 
 Hey! o/
 
