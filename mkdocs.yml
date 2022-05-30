@@ -198,6 +198,11 @@ nav:
     - OpenShift OIDC:
       - Deep Dive into OpenShift IdP OIDC: articles/ocp-idp-aws-oidc.md
       - Use CloudFront for public URL of OIDC on OpenShift: articles/ocp-idp-aws-oidc-s3-pvt-cfn.md
+    - OpenShift Network:
+      - Extend AWS Local Zones on OpenShift: articles/ocp-aws-local-zones.md
+    - OpenShift Ingress:
+      - Using multiple AWS ALB Operator on OpenShift: articles/ocp-aws-local-zones-app-alb.md
+
 
   - Open Learning:
       - Home: learning/README.md
