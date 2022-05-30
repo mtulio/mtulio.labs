@@ -591,15 +591,15 @@ I also can see some advantages when writing this article like expanding the solu
 - Create your own DNS domain for OIDC identifier;
 - Flexible to create an 'multi-tenant' solution storing many JWKS from different cluster into the same bucket; or could be in different buckets but with the same entrypoint (CloudFront) routing to different origins.
 
-Furthermore, itt would be nice to have:
+Furthermore, it would be nice to have:
 - AWS could allow the OIDC private requests (s3://) to access the thumbprints, instead of a public HTTPS*, so it would be possible to set a couple of S3 bucket policies allowing OIDC service, for example, allowing only OIDC's ARN principal;
 - `ccoctl` utility create the steps using CloudFront by default;
 - `openshift-installer` embeed the `ccoctl` steps/automation when using manual-STS;
 - `openshift-installer`deploy the default IPI cluster with STS by default;
 
-> *there's a blocker from OIDC spec[1] in this suggestion, but AWS could improve the security in this access as the unique client of OIDC in this case should be the STS service
+> *there's a blocker from OIDC spec[1] in this suggestion, but AWS could improve the security in this access as the unique client of OIDC in this case should be the STS service (access between AWS services).
 
-> [1] "The returned Issuer location MUST be a URI RFC 3986 [RFC3986] with a scheme component that MUST be https, a host component, and optionally, port and path components and no query or fragment components." [https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery]
+> [1] _"The returned Issuer location MUST be a URI RFC 3986 [RFC3986] with a scheme component that MUST be https, a host component, and optionally, port and path components and no query or fragment components."_ [https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery]
 
 
 Suggestions for the next topics:
