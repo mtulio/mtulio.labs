@@ -1,4 +1,8 @@
-# Create private S3 Bucket for OpenID Connect when installing OpenShift in AWS with STS support (IRSA)
+<!--METADATA_START-->
+
+# Create private S3 Bucket for OpenID Connect when installing OpenShift in AWS with "manual-STS"
+
+__info__:
 
 > Status: WIP
 
@@ -10,33 +14,63 @@
 
 > Estimated time to publish: 10 June
 
-In this article I will share a hands-on steps to replace, _currently_, the default public endpoint used by IAM OpenID Connect (OIDC) from S3 public Bucket/URI to CloudFront Distribution's URI, when installing a OpenShift cluster with STS support.
+> Series Name: OpenShift Security in AWS
 
-### _Quickly recap_
+> Series Post: #1 OIDC Deep Dive;
 
-The endpoint should be public acessible as it's used by OIDC. It contains the signing keys for the ProjectedServiceAccountToken JSON web tokens so external systems, like IAM, can validate and accept the Kubernetes-issued OIDC tokens.
+> Series post id: #2
 
-Currently, the default deployment creates one public S3 Bucket with JWKS objects, exposing directly the Bucket's URI as OIDC discovery endpoint. In some AWS Accounts, public buckets or objects are unwanted or blocked.
+<!--METADATA_END-->
+
+In this article I will share a hands-on steps to replace the default public endpoint used by IAM OpenID Connect (OIDC) from S3 public Bucket to CloudFront Distribution's URL, when installing a OpenShift cluster with STS support.
+
+## Table Of Contents
+  * [Summary](#summary)
+    * [Quickly recap](#summary-recap)
+    * [Goal](#summary-goal)
+  * [Steps](#steps)
+    * [Requirements](#step-requirements)
+    * [Setup](#step-setup)
+    * [Create Installer Manifests](#step-create-manifests)
+    * [Create Origin Access Identity](#step-create-oai)
+    * [Create Bucket](#step-create-bucket)
+    * [Create CloudFront Distribution](#step-create-cloudfront-dist)
+    * [Generate OIDC configuration and keys](#step-gen-oidc)
+    * [Create the OpenID Connector identity provider](#step-create-oidc)
+    * [Create IAM Roles](#step-create-iam-roles)
+    * [Create the Cluster](#step-create-cluster)
+  * [Post-install review and tests](#post-review)
+    * [Installer overview](#post-review-installer)
+    * [Component overview](#post-review-component)
+    * [Test the token with `AssumeRoleWithWebIdentity`](#post-review-test-token)
+  * [Conclusion](#conclusion)
+
+## Summary<a name="summary"></a>
+
+### _Quickly recap_<a name="summary-recap"></a>
+
+The endpoint identifier, also named the OpenID Connector resource, should be public acessible as it's used by OIDC. It contains the signing keys for the `ProjectedServiceAccountToken` JSON web tokens so external systems, like IAM, can validate and accept the Kubernetes-issued OIDC tokens.
+
+Currently, the default `ccoctl` deployment creates one public S3 Bucket by cluster with JWKS objects, exposing directly the Bucket's URL as OIDC discovery endpoint. In some AWS Accounts, public buckets or objects are unwanted or blocked, the main motivation to explore this topic and share options we have nowadays.
 
 If you would like to know more about this topic, I highly advise to read:
 - [Blog: Deep Dive into AWS OIDC identity provider when installing OpenShift with IAM STS (“manual-STS”) support](https://dev.to/mtulio/enhance-the-security-options-when-installing-openshift-with-iam-sts-manual-sts-on-aws-5048-temp-slug-3197013?preview=c9e9beb6b5be97e7b8f79527107c7a54847f6a62fab5d2735727e5875f1db843dfb3bfaf4907c49c6628b9014b72f40fc655ff604a033ba604e253ff)
 - [AWS Doc: Restricting access to Amazon S3 content by using an origin access identity (OAI)](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
 
-### _Goal_
+### _Goal_<a name="summary-goal"></a>
 
 We will walk through those steps to:
 - create one CloudFront Distribution to be used as public endpoint for OIDC
 - create one private S3 Bucket
-- [create one origin access identity (OAI) to access the S3 from CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
-- replace the new CloduFront URI on JWKS files when setting up the [manual-STS](https://docs.openshift.com/container-platform/4.10/authentication/managing_cloud_provider_credentials/cco-mode-sts.html#cco-mode-sts) during the OpenShift installation
-- create the OIDC using the CloudFront URI
-- create the IAM Roles with proper Trusted Policy Federated by OIDC with proper service account
+- create one [origin access identity (OAI) to access the S3 from CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
+- replace the new CloduFront URL on JWKS files when setting up the [manual-STS](https://docs.openshift.com/container-platform/4.10/authentication/managing_cloud_provider_credentials/cco-mode-sts.html#cco-mode-sts) during the OpenShift installation
+- create the OIDC identity provider using the CloudFront URL
+- create the IAM Roles with Trusted Policy’s allowing Federated OIDC service ARN with proper service account restrictions
 - create the OpenShift cluster with STS support with no public buckets
 
+## Steps<a name="steps"></a>
 
-## Steps
-
-### Requirements
+### Requirements<a name="step-requirements"></a>
 
 - OpenShift installer client (`openshift-installer`)
 - OpenShift client (`oc`)
@@ -46,7 +80,7 @@ We will walk through those steps to:
 - jq
 - yq
 
-### Setup
+### Setup<a name="step-setup"></a>
 
 - Adjust and export the environment variables
 
@@ -66,6 +100,8 @@ export OIDC_BUCKET_CONTENT="${WORKDIR}/bucket-content"
 
 mkdir -p ${WORKDIR}/{cco,installer,bucket-content}
 ```
+
+### Create Install Manifests<a name="step-create-manifests"></a>
 
 - Create installer manifests 
 
@@ -102,11 +138,11 @@ EOF
 CLUSTER_ID="$(yq -r .status.infrastructureName ${DIR_INSTALLER}/manifests/cluster-infrastructure-02-config.yml)"
 ```
 
-### Create the OAI
+### Create Origin Access Identity<a name="step-create-oai"></a>
 
-Steps to create the Origin Access Identity (OAI) to restrict access to content that you serve from Amazon S3 buckets.
+Steps to create the Origin Access Identity (OAI) to restrict access to content that you serve from Amazon S3 buckets.l:
 
-- Create the OAI
+- Create the OAI and set the variable `OAI_CLODUFRONT_ID`:
 
 ```bash
 aws cloudfront create-cloud-front-origin-access-identity \
@@ -119,9 +155,9 @@ OAI_CLODUFRONT_ID=$(aws cloudfront \
     --output text)
 ```
 
-### Create the Private Bucket
+### Create Bucket<a name="step-create-bucket"></a>
 
-- Create the Bucket
+- Create the private Bucket
 
 ```bash
 aws s3api create-bucket \
@@ -129,7 +165,7 @@ aws s3api create-bucket \
     --acl private
 ```
 
-- Create the Bucket Policy json document with OAI
+- Create the Bucket Policy document allowing OAI retrieve objects
 
 ```bash
 cat <<EOF | envsubst > ${WORKDIR}/oidc-bucket-policy.json
@@ -151,7 +187,7 @@ cat <<EOF | envsubst > ${WORKDIR}/oidc-bucket-policy.json
 EOF
 ```
 
-- Apply the policy to Bucket and block public objects
+- Apply the policy to Bucket and block public access
 
 ```bash
 aws s3api put-bucket-policy \
@@ -163,7 +199,10 @@ aws s3api put-public-access-block \
     --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
 ```
 
-- create distribution
+## Create CloudFront Distribution<a name="step-create-cloudfront-dist"></a>
+
+- create distribution’s document
+
 ```bash
 cat <<EOF | envsubst > ${WORKDIR}/oidc-cloudfront.json
 {
@@ -268,9 +307,9 @@ aws cloudfront create-distribution-with-tags \
     file://${WORKDIR}/oidc-cloudfront.json
 ```
 
-- Wait a few time until the distribution has been created.
+- Wait a few minutes until the distribution has been created.
 
-- Get the CloudFront's Distribution URI
+- Get the CloudFront's Distribution URL
 
 ```bash
 CLOUDFRONT_URI=$(aws cloudfront list-distributions \
@@ -279,6 +318,8 @@ CLOUDFRONT_URI=$(aws cloudfront list-distributions \
 
 echo ${CLOUDFRONT_URI}
 ```
+
+### Generate OIDC configuration and keys<a name="step-gen-oidc"></a>
 
 - Generate the key pair used to create the service account tokens
 
@@ -332,10 +373,11 @@ sed -i "s/https:\/\/[a-z.-].*/https:\/\/${CLOUDFRONT_URI}\",/" \
 jq . ${DIR_CCO}/04-iam-identity-provider.json
 ```
 
-- Upload the Bucket content
+- Upload the bucket content
 
 ```bash
-aws s3 sync ${OIDC_BUCKET_CONTENT}/ s3://${OIDC_BUCKET_NAME}
+aws s3 sync ${OIDC_BUCKET_CONTENT}/ \
+    s3://${OIDC_BUCKET_NAME}
 ```
 
 - Make sure you can access the content through public URL
@@ -344,6 +386,8 @@ aws s3 sync ${OIDC_BUCKET_CONTENT}/ s3://${OIDC_BUCKET_NAME}
 curl https://${CLOUDFRONT_URI}/keys.json
 curl https://${CLOUDFRONT_URI}/.well-known/openid-configuration
 ```
+
+### Create the OpenID Connector identity provider<a name="step-create-oidc"></a>
 
 - Create the IdP IAM OIDC
 
@@ -361,6 +405,8 @@ OIDC_ARN=$(jq -r .OpenIDConnectProviderArn \
 
 echo ${OIDC_ARN}
 ```
+
+### Create IAM Roles<a name="step-create-iam-roles"></a>
 
 - Extract `CredentialRequests` from release image
 
@@ -383,12 +429,14 @@ echo ${OIDC_ARN}
     --output-dir ${DIR_CCO}
 ```
 
-- Copy manifests to install-dir
+- Copy manifests to the installer directory
 
 ```bash
 cp -rvf ${DIR_CCO}/manifests/* ${DIR_INSTALLER}/manifests
 cp -rvf ${DIR_CCO}/tls ${DIR_INSTALLER}/
 ```
+
+### Create the Cluster<a name="step-create-cluster"></a>
 
 - Create a cluster
 
@@ -400,9 +448,9 @@ cp -rvf ${DIR_CCO}/tls ${DIR_INSTALLER}/
 
 o/
 
-## Post-install review
+## Post-install review<a name="post-review"></a>
 
-### _Installer overview_
+### _Installer overview_<a name="post-review-installer"></a>
 
 - Install logs
 ```log
@@ -442,7 +490,9 @@ $ oc get co -o json \
 32 False
 ```
 
-### _Machine-API tests_
+### _Component tests_<a name="post-review-component"></a>
+
+The component credentials that will be tested is the Machine-API Controler.
 
 - Deep dive into Machine API credentials
 
@@ -474,8 +524,10 @@ https://guifreelife.com/blog/2022/03/10/Debugging-AWS-STS-Authentication-for-Ope
 # Get Token path from AWS credentials mounted to pod
 TOKEN_PATH=$(oc get secrets aws-cloud-credentials \
     -n openshift-machine-api \
-    -o jsonpath='{.data.credentials}' \
-    | base64 -d |grep ^web |awk '{print$3}')
+    -o jsonpath='{.data.credentials}' |\
+    base64 -d |\
+    grep ^web_identity_token_file |\
+    awk '{print$3}')
 
 # Get Controler's pod
 CAPI_POD=$(oc get pods -n openshift-machine-api \
@@ -501,31 +553,59 @@ $ echo $TOKEN | awk -F. '{ print $2 }' | base64 -d 2>/dev/null | jq .iss
 "https://d15diimhmpdwiy.cloudfront.net"
 ```
 
+### Test the token with `AssumeRoleWithWebIdentity`<a name="post-review-test-token"></a>
+
+- Extract the IAM Role ARN from secret
+
+```bash
+IAM_ROLE=$(oc get secrets aws-cloud-credentials \
+    -n openshift-machine-api \
+    -o jsonpath='{.data.credentials}' |\
+    base64 -d |\
+    grep ^role_arn |\
+    awk '{print$3}')
+```
+
+- Assume the IAM Role with previous extracted token
+
+```bash
+aws sts assume-role-with-web-identity \
+    --role-arn "${IAM_ROLE}" \
+    --role-session-name "my-session" \
+    --web-identity-token "${TOKEN}"
+```
+
+
 All set! Now you can see there's no public Bucket on the AWS account installed the cluste
 ralongisde there's no change to
 
 
-## Conclusion
+## Conclusion<a name="conclusion"></a>
 
-As you can see, there's no restrictions to use CloudFront as a public endpoint for IAM OIDC, restricting the S3 bucket for public access, also avoid exposing directly the S3 URL, keeping compliant with the [best practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html).
+As you can see, there's no restrictions to use CloudFront as a public endpoint for IAM OIDC, restricting the S3 bucket for public access, also avoid exposing directly the S3 URL, keeping compliant with the [S3 best practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html).
 
-There's no difference/impact in terms of clusters security, as the cluster should not access that URL, so that change is more for Account's security compliant.
+That change also there is no difference/impact in terms of clusters' security, as the cluster should not access that URL, so that change is more for Account's security compliant.
 
-In my opnion, I saw some advantages when writing this article like expanding the soltion when you're operating many accounts with many clusters simplifying the life of DevSecOps teams:
+I also can see some advantages when writing this article like expanding the solution when you're operating many accounts with many clusters simplifying the life of DevSecOps teams:
 - Centralize the management of the OIDC files into one single entrypoint;
 - Create your own DNS domain for OIDC identifier;
 - Flexible to create an 'multi-tenant' solution storing many JWKS from different cluster into the same bucket; or could be in different buckets but with the same entrypoint (CloudFront) routing to different origins.
 
-It will be nice to have:
-- AWS could allow the OIDC private requests (s3://) to access the thumbprints, instead of a public HTTPS, so it would be possible to set a couple of S3 bucket policies allowing OIDC service, for example;
+Furthermore, itt would be nice to have:
+- AWS could allow the OIDC private requests (s3://) to access the thumbprints, instead of a public HTTPS*, so it would be possible to set a couple of S3 bucket policies allowing OIDC service, for example, allowing only OIDC's ARN principal;
 - `ccoctl` utility create the steps using CloudFront by default;
-- `openshift-installer` could embeed the `ccoctl` steps;
-- `openshift-installer` could embeed the `ccoctl` automation;
+- `openshift-installer` embeed the `ccoctl` steps/automation when using manual-STS;
+- `openshift-installer`deploy the default IPI cluster with STS by default;
 
-Suggestion for the next topics:
+> *there's a blocker from OIDC spec[1] in this suggestion, but AWS could improve the security in this access as the unique client of OIDC in this case should be the STS service
+
+> [1] "The returned Issuer location MUST be a URI RFC 3986 [RFC3986] with a scheme component that MUST be https, a host component, and optionally, port and path components and no query or fragment components." [https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery]
+
+
+Suggestions for the next topics:
 - Create one multi-tenant bucket with custom DNS on the CloudFront to serve JWKS files from multiple clusters
 - Evaluate the other options to serve public URLs to IAM OIDC, like:
-  - Lambda function serving JWKS files directly or reading from S3 bucket restricted to function's ARN, using one option below as URL entrypoint:
+  - Lambda function serving JWKS files directly or reading from S3 bucket restricted to function's ARN, using one option below as URL entrypoint*:
   - a) [dedicated HTTPS endpoint](https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html);
   - b) [API Gateway proxying](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html) to the function;
   - c) [ALB as Lamdda's target group](https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html);type
@@ -533,11 +613,11 @@ Suggestion for the next topics:
 
 ## References
 
+- [OpenID Connect specifications](https://openid.net/connect/)
+- [RFC3986](https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery)
 - [OpenShift doc: Installing an OpenShift Container Platform cluster configured for manual mode with STS](https://docs.openshift.com/container-platform/4.10/authentication/managing_cloud_provider_credentials/cco-mode-sts.html#cco-mode-sts)
 - [AWS Blog: Fine-grained IAM roles for Red Hat OpenShift Service on AWS (ROSA) workloads with STS](https://aws.amazon.com/blogs/containers/fine-grained-iam-roles-for-red-hat-openshift-service-on-aws-rosa-workloads-with-sts/)
 - [AWS doc: Restricting access to Amazon S3 content by using an origin access identity (OAI)](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
 - [AWS Doc: S3 best practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html)
 - [EKS Workshop: IAM Roles for Service Account](https://www.eksworkshop.com/beginner/110_irsa/)
 - [AWS STS API: AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
-- [AWS IdP Doc: Obtaining the thumbprint for an OpenID Connect Identity Provider](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html)
-- [DEBUGGING AWS STS AUTHENTICATION FOR OPENSHIFT OPERATORS](https://guifreelife.com/blog/2022/03/10/Debugging-AWS-STS-Authentication-for-OpenShift-Operators/)
