@@ -4,7 +4,7 @@
 
 __meta_info__:
 
-> Status: WIP
+> Status: Open for review
 
 > Preview on [Dev.to](https://dev.to/mtulio/protect-the-s3-bucket-used-by-oidc-when-installing-openshift-with-aws-in-manual-sts-mode-irsa-2d7j-temp-slug-5985517?preview=ab8edd52ff229c24f2e63deba4c326bdfba74e3cd8609016573ed06c3b36de9a751b6a1799bbdb52047f0a0916dad1f3373f8c8740b8815062bf6766)
 
@@ -615,6 +615,38 @@ aws sts assume-role-with-web-identity \
 All set! Now you can see there's no public Bucket on the AWS account installed the cluste
 ralongisde there's no change to
 
+## Solution Review
+
+Using CloudFront to use as endpoint URL for OIDC was one option explored in this article, I can see many other possibilities like: Lambda, on-prem web server, and so on.
+
+In my opninion, the CloudFront distribution seems to have many benefits, like: low-operations, low-cost, no-code, secure.
+
+Let's create a simple matrix:
+
+| URL exposure solution | Est.Cost(USD)/mo | Private S3 | Serverless | Codeless | Low-Ops | Note | 
+| --                    | -- | -- | -- | -- | -- | -- |
+| S3                    | 0.11 | No | Yes | Yes | No | Private bucket |
+| CloudFront + S3 | free-tier** + 0.11** | Yes | Yes | Yes | Yes | Best effort |
+| Lambda Endpoint+S3 | free-tier + 0.11 | Yes | Yes | No | No | Risk to manage extra function code |
+| ApiGW+Lambda+S3 | (free-tier*2) + 0.11 | Yes | Yes | No | No | Risk to manage extra function code |
+| ALB+Lambda+S3 | 17,73 + free-tier + 0.11 | Yes | Yes | No | No | Risk to manage extra function code |
+
+> AWS Princing Calculator [available here](https://calculator.aws/#/estimate?id=bd03775a971f855d119c40f8ff89f224d090e1be).
+
+*Estimated costs calculation (based on CloudFront distribution's metrics):
+- ~4 requests per minute (Avg) => ~172800/mo
+- ~1500KiB per minute (Avg) => ~64.8GiB/mo
+
+**CloudFront option will be free when enable the cache to origin, as all the S3 content is static, otherwise the cost will be higher than[1]: CloudFront + S3.
+
+***Free tier details:
+```
+# S3 Free-tier:
+S3 Free-tier: 20,000 GET Requests; 2,000 PUT, COPY, POST, or LIST Requests; and 100 GB of Data Transfer Out each month.
+
+# CloudFront Free-tier:
+1 TB of data transfer out, 10,000,000 HTTP and HTTPS Requests, plus 2,000,000 CloudFront Function invocations each month.
+```
 
 ## Conclusion<a name="conclusion"></a>
 
@@ -636,7 +668,6 @@ Furthermore, it would be nice to have:
 > *there's a blocker from OIDC spec[1] in this suggestion, but AWS could improve the security in this access as the unique client of OIDC in this case should be the STS service (access between AWS services).
 
 > [1] _"The returned Issuer location MUST be a URI RFC 3986 [RFC3986] with a scheme component that MUST be https, a host component, and optionally, port and path components and no query or fragment components."_ [https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery]
-
 
 Suggestions for the next topics:
 - Create one multi-tenant bucket with custom DNS on the CloudFront to serve JWKS files from multiple clusters
