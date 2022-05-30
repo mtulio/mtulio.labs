@@ -23,3 +23,8 @@
 ./rosa list machinepools -c mrbrosa
 ./rosa list clusters
 ```
+
+## References:
+
+- [CLI](https://docs.openshift.com/rosa/rosa_cli/rosa-get-started-cli.html)
+- [Getting started with ROSA](https://docs.openshift.com/rosa/rosa_install_access_delete_clusters/rosa-sts-creating-a-cluster-quickly.html)
