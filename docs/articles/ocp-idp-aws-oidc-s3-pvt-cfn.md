@@ -85,7 +85,7 @@ We will walk through those steps to:
 - Adjust and export the environment variables
 
 ```bash
-export CLUSTER_NAME="mrb-sts"
+export CLUSTER_NAME="my-sts"
 
 export CLUSTER_REGION=us-east-1
 export VERSION=4.10.16
@@ -101,15 +101,39 @@ export OIDC_BUCKET_CONTENT="${WORKDIR}/bucket-content"
 mkdir -p ${WORKDIR}/{cco,installer,bucket-content}
 ```
 
+- Install the clients (optional): `oc`, `openshift-installer` and `ccoctl`
+
+> You should have the client's binaries in your current directory
+
+```bash
+# oc and openshift-install
+oc adm release extract \
+    --tools quay.io/openshift-release-dev/ocp-release:${VERSION}-x86_64 \
+    -a ${PULL_SECRET_FILE}
+
+tar xvfz openshift-client-linux-${VERSION}.tar.gz
+tar xvfz openshift-install-linux-${VERSION}.tar.gz
+
+# ccoctl
+RELEASE_IMAGE=$(./openshift-install version \
+    | awk '/release image/ {print $3}')
+CCO_IMAGE=$(./oc adm release info \
+    --image-for='cloud-credential-operator' \
+    ${RELEASE_IMAGE})
+./oc image extract ${CCO_IMAGE} \
+    --file="/usr/bin/ccoctl" \
+    -a ${PULL_SECRET_FILE}
+chmod 775 ccoctl
+```
+
 ### Create Install Manifests<a name="step-create-manifests"></a>
 
-- Create installer manifests 
+- Create installer config
 
 > The mandatory change: `credentialsMode: Manual`
 
 ```bash
-mkdir -p $INSTALL_DIR_CFN
-cat <<EOF > ${INSTALL_DIR_CFN}/install-config.yaml
+cat <<EOF > ${DIR_INSTALLER}/install-config.yaml
 apiVersion: v1
 baseDomain: devcluster.openshift.com
 credentialsMode: Manual
@@ -129,13 +153,24 @@ pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
 sshKey: |
   $(cat ${SSH_PUB_KEY_FILE})
 EOF
-./openshift-install create manifests --dir ${DIR_INSTALLER}
+
+echo "#Backup install-config.yaml"
+cp -v ${DIR_INSTALLER}/install-config.yaml \
+    ${DIR_INSTALLER}/install-config-bkp.yaml
+```
+
+- Create installer manifests
+
+```bash
+./openshift-install create manifests \
+    --dir ${DIR_INSTALLER}
 ```
 
 - Set the `CLUSTER_ID` environment variable
 
 ```bash
-CLUSTER_ID="$(yq -r .status.infrastructureName ${DIR_INSTALLER}/manifests/cluster-infrastructure-02-config.yml)"
+CLUSTER_ID="$(yq -r .status.infrastructureName \
+    ${DIR_INSTALLER}/manifests/cluster-infrastructure-02-config.yml)"
 ```
 
 ### Create Origin Access Identity<a name="step-create-oai"></a>
@@ -196,7 +231,8 @@ aws s3api put-bucket-policy \
 
 aws s3api put-public-access-block \
     --bucket ${OIDC_BUCKET_NAME} \
-    --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+    --public-access-block-configuration \
+    BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
 ```
 
 ## Create CloudFront Distribution<a name="step-create-cloudfront-dist"></a>
@@ -442,7 +478,7 @@ cp -rvf ${DIR_CCO}/tls ${DIR_INSTALLER}/
 
 ```bash
 ./openshift-install create cluster \
-    --dir ${INSTALL_DIR} \
+    --dir ${DIR_INSTALLER} \
     --log-level debug
 ```
 
