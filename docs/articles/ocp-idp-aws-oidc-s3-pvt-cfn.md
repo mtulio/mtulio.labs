@@ -1,26 +1,4 @@
-<!--METADATA_START-->
-
 # Install OpenShift in AWS with STS (manual-STS) using private S3 Bucket for OpenID Connect endpoint
-
-__meta_info__:
-
-> Status: Open for review
-
-> Preview on [Dev.to](https://dev.to/mtulio/protect-the-s3-bucket-used-by-oidc-when-installing-openshift-with-aws-in-manual-sts-mode-irsa-2d7j-temp-slug-5985517?preview=ab8edd52ff229c24f2e63deba4c326bdfba74e3cd8609016573ed06c3b36de9a751b6a1799bbdb52047f0a0916dad1f3373f8c8740b8815062bf6766)
-
-> [PR to Collab](https://github.com/mtulio/mtulio.labs/pull/8) (feel free to review)
-
-> [PR Preview](https://mtuliolabs-git-article-ocp-aws-idp-oidc-mtulio.vercel.app/articles/ocp-idp-aws-oidc-s3-pvt-cfn/)
-
-> Estimated time to publish: 10 June
-
-> Series Name: OpenShift Security in AWS
-
-> Series Post: #1 OIDC Deep Dive;
-
-> Series post id: #2
-
-<!--METADATA_END-->
 
 In this article, I will share hands-on steps to replace the default public endpoint used by IAM OpenID Connect (OIDC) from S3 public Bucket to CloudFront Distribution's URL, when installing an OpenShift cluster with STS support.
 
@@ -694,3 +672,25 @@ Suggestions for the next topics:
 - [AWS Doc: S3 best practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html)
 - [EKS Workshop: IAM Roles for Service Account](https://www.eksworkshop.com/beginner/110_irsa/)
 - [AWS STS API: AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
+
+<!--METADATA_START-->
+
+__meta_info__:
+
+> Status: Open for review
+
+> Preview on [Dev.to](https://dev.to/mtulio/protect-the-s3-bucket-used-by-oidc-when-installing-openshift-with-aws-in-manual-sts-mode-irsa-2d7j-temp-slug-5985517?preview=ab8edd52ff229c24f2e63deba4c326bdfba74e3cd8609016573ed06c3b36de9a751b6a1799bbdb52047f0a0916dad1f3373f8c8740b8815062bf6766)
+
+> [PR to Collab](https://github.com/mtulio/mtulio.labs/pull/8) (feel free to review)
+
+> [PR Preview](https://mtuliolabs-git-article-ocp-aws-idp-oidc-mtulio.vercel.app/articles/ocp-idp-aws-oidc-s3-pvt-cfn/)
+
+> Estimated time to publish: 10 June
+
+> Series Name: OpenShift Security in AWS
+
+> Series Post: #1 OIDC Deep Dive;
+
+> Series post id: #2
+
+<!--METADATA_END-->
