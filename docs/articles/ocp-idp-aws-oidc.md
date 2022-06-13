@@ -4,7 +4,7 @@
 
 __meta_info__:
 
-> Status: WIP
+> Status: Waiting for Review
 
 > Preview on [Dev.to](https://dev.to/mtulio/enhance-the-security-options-when-installing-openshift-with-iam-sts-manual-sts-on-aws-5048-temp-slug-3197013?preview=c9e9beb6b5be97e7b8f79527107c7a54847f6a62fab5d2735727e5875f1db843dfb3bfaf4907c49c6628b9014b72f40fc655ff604a033ba604e253ff)
 
@@ -63,23 +63,6 @@ The flow is something like this:
 
 ![aws-iam-oidc-flow](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/t6j45d92bmgauvy9zket.png)
 
-## Problem statement
-
-The endpoint which stores the JWKS keys should be public, as the OIDC will access the endpoint available on the JWT token when it is sent by STS API call `AssumeRoleWithWebIdentity`. You can take a look at the request arriving at the bucket when:
-- Enable the S3 bucket access log
-- Filter the events to access the Bucket on the CloudTrail
-
-The main motivation to write this article is to share the current flow to help to understand the solution when any of the components described here is not working as expected, then share further ideas to workaround to expose the public S3 Bucket to the internet when using IAM OpenID Connector to provide authentication to OpenShift clusters.
-
-Let me share some options to install a cluster using different approaches that should not impact the IAM OIDC managed service requirements:
-
-1. Expose the JWKS files through CloudFront URL in a Private Bucket, restricted to CloudFront distribution through OAI (Origin Access Identity)
-1. Lambda function serving JWKS files directly or reading from S3 bucket restricted to function's ARN, using one option below as URL entry point*:
-  - a) [dedicated HTTPS endpoint](https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html);
-  - b) [API Gateway proxying](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html) to the function;
-  - c) [ALB as Lamdda's target group](https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html);type
-3. directly from a hosted web server
-
 ## Installing a cluster with manual-STS
 
 > Steps described on [Official documentation](https://docs.openshift.com/container-platform/4.10/authentication/managing_cloud_provider_credentials/cco-mode-sts.html#cco-mode-sts)
@@ -90,6 +73,7 @@ Requirements:
 
 ```bash
 export CLUSTER_NAME="my-cluster"
+export BASE_DOMAIN="devcluster.example.com"
 export CLUSTER_REGION=us-east-1
 export VERSION=4.10.16
 export PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json
@@ -174,6 +158,7 @@ AWS_IAM_OIDP_ARN=$(aws iam list-open-id-connect-providers \
 ```bash
 mkdir -p ${INSTALL_DIR}
 cat <<EOF > ${INSTALL_DIR}/install-config.yaml
+apiVersion: v1
 baseDomain: ${BASE_DOMAIN}
 credentialsMode: Manual
 compute:
@@ -221,8 +206,8 @@ cp -rvf ${OUTPUT_DIR_CCO}/tls \
 
 ```bash
 $ oc get authentication cluster -o json \
-    | jq .spec.serviceAccountIssuer
-"https://d15diimhmpdwiy.cloudfront.net"
+>     | jq .spec.serviceAccountIssuer
+"https://my-cluster-oidc.s3.us-east-1.amazonaws.com"
 ```
 
 - Check if all Cluster Operators are available
@@ -285,7 +270,7 @@ $ echo $TOKEN | awk -F. '{ print $1 }' | base64 -d 2>/dev/null | jq .alg
 
 ```bash
 $ echo $TOKEN | awk -F. '{ print $2 }' | base64 -d 2>/dev/null | jq .iss
-"https://d15diimhmpdwiy.cloudfront.net"
+"https://my-cluster-oidc.s3.us-east-1.amazonaws.com"
 ```
 
 ### _troubleshoot_
@@ -320,19 +305,36 @@ aws sts assume-role-with-web-identity \
         "AccessKeyId": "ASIAT[redacted]",
         "SecretAccessKey": "[redacted]",
         "SessionToken": "[redacted]",
-        "Expiration": "2022-06-08T05:29:37Z"
+        "Expiration": "2022-06-08T06:59:11Z"
     },
     "SubjectFromWebIdentityToken": "system:serviceaccount:openshift-machine-api:machine-api-controllers",
     "AssumedRoleUser": {
         "AssumedRoleId": "AROAT[redacted]:my-session",
-        "Arn": "arn:aws:sts::[redacted]:assumed-role/ccodoc-zlj79-openshift-machine-api-aws-cloud-credentials/my-session"
+        "Arn": "arn:aws:sts::[redacted]:assumed-role/my-cluster-openshift-machine-api-aws-cloud-credentials/my-session"
     },
-    "Provider": "arn:aws:iam::[redacted]:oidc-provider/d15diimhmpdwiy.cloudfront.net",
+    "Provider": "arn:aws:iam::[redacted]:oidc-provider/my-cluster-oidc.s3.us-east-1.amazonaws.com",
     "Audience": "openshift"
 }
 ```
 
 That's how the SDK automatically load/refresh the credentials to controllers.
+
+## Problem statement
+
+The endpoint which stores the JWKS keys should be public, as the OIDC will access the endpoint available on the JWT token when it is sent by STS API call `AssumeRoleWithWebIdentity`. You can take a look at the request arriving at the bucket when:
+- Enable the S3 bucket access log
+- Filter the events to access the Bucket on the CloudTrail
+
+The main motivation to write this article is to share the current flow to help to understand the solution when any of the components described here is not working as expected, then share further ideas to workaround to expose the public S3 Bucket to the internet when using IAM OpenID Connector to provide authentication to OpenShift clusters.
+
+Let me share some options to install a cluster using different approaches that should not impact the IAM OIDC managed service requirements:
+
+1. Expose the JWKS files through CloudFront URL in a Private Bucket, restricted to CloudFront distribution through OAI (Origin Access Identity)
+1. Lambda function serving JWKS files directly or reading from S3 bucket restricted to function's ARN, using one option below as URL entry point*:
+  - a) [dedicated HTTPS endpoint](https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html);
+  - b) [API Gateway proxying](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html) to the function;
+  - c) [ALB as Lamdda's target group](https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html);type
+3. directly from a hosted web server
 
 ## FAQ
 
