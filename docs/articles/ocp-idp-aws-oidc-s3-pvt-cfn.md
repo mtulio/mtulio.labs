@@ -22,7 +22,9 @@ In this article, I will share hands-on steps to replace the default public endpo
     * [Installer overview](#post-review-installer)
     * [Component overview](#post-review-component)
     * [Testing the token with `AssumeRoleWithWebIdentity`](#post-review-test-token)
+  * [Solution Review](#solution-review)
   * [Conclusion](#conclusion)
+  * [References](#references)
 
 ## Summary<a name="summary"></a>
 
@@ -603,29 +605,29 @@ aws sts assume-role-with-web-identity \
 
 The temporary credentials should be returned, otherwise, the controller may have issues accessing the AWS services.
 
-## Solution Review
+## Solution Review<a name="solution-review"></a>
 
 Using CloudFront to use as an endpoint URL for OIDC was one option explored in this article, I can see many other possibilities like Lambda, on-prem web server, and so on. The most important is: that the IAM OIDC requires a public endpoint to serve the public keys and configuration.
 
-In my opinion, CloudFront Distribution seems to have many benefits, like low operation, low cost, no code to maintain, secure, and full-managed.
+In my opinion, CloudFront Distribution seems to have many benefits, such as low operation, low cost, no code to maintain, secure, as well as fully managed.
 
-Let's create a simple matrix comparing other options:
+Let's create a matrix comparing a few available options:
 
-| URL exposure solution | Est.Cost(USD)/mo | Private S3 | Serverless | Codeless | Low-Ops | Note | 
-| --                    | -- | -- | -- | -- | -- | -- |
-| S3                    | 0.11 | No | Yes | Yes | No | Private bucket |
-| CloudFront + S3 | free-tier** + 0.11** | Yes | Yes | Yes | Yes | Best effort |
-| Lambda Endpoint+S3 | free-tier + 0.11 | Yes | Yes | No | No | Risk to manage extra function code |
-| ApiGW+Lambda+S3 | (free-tier*2) + 0.11 | Yes | Yes | No | No | Risk to manage extra function code |
-| ALB+Lambda+S3 | 17,73 + free-tier + 0.11 | Yes | Yes | No | No | Risk to manage extra function code |
+| # | URL exposure solution | Est.Cost(USD)/mo | Private S3 | Serverless | Codeless | Low-Ops | Note | 
+| -- | --                    | -- | -- | -- | -- | -- | -- |
+| 1 | S3                    | 0.11 | No | Yes | Yes | No | Private bucket |
+| 2 | CloudFront + S3 | free-tier** + 0.11** | Yes | Yes | Yes | Yes | Best option evaluated |
+| 3 | Lambda Endpoint+S3 | free-tier + 0.11 | Yes | Yes | No | No | Additional code management required, and function management as well |
+| 4 | ApiGW+Lambda+S3 | (free-tier*2) + 0.11 | Yes | Yes | No | No | Additional code management required, and function management as well |
+| 5 | ALB+Lambda+S3 | 17,73 + free-tier + 0.11 | Yes | Yes | No | No | Additional code management required, and function management as well |
 
-> AWS Princing Calculator [available here](https://calculator.aws/#/estimate?id=bd03775a971f855d119c40f8ff89f224d090e1be).
+> AWS Pricing Calculator [available here](https://calculator.aws/#/estimate?id=bd03775a971f855d119c40f8ff89f224d090e1be).
 
-*Estimated costs calculation (based on CloudFront distribution's metrics):
+*Estimated cost calculation (based on CloudFront Distribution metrics):
 - ~4 requests per minute (Avg) => ~172800/mo
 - ~1500KiB per minute (Avg) => ~64.8GiB/mo
 
-**CloudFront option will be free when enabling the cache to the origin, as all the S3 content is static, otherwise the cost will be higher than[1]: S3 direct/public URL.
+**The CloudFront option will be free when enabling the `cache` on the requests to the `origin`, since all the S3 content is static. Otherwise the cost will be higher than[1]: S3 direct/public URL.
 
 ***Free tier details:
 ```
@@ -638,36 +640,35 @@ S3 Free-tier: 20,000 GET Requests; 2,000 PUT, COPY, POST, or LIST Requests; and 
 
 ## Conclusion<a name="conclusion"></a>
 
-As you can see, I didn’t find any restriction to using CloudFront as a public endpoint for IAM OIDC, setting the S3 bucket for private access only, and keeping it compliant with the [S3 best practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html).
+As you can see, I didn’t find any restriction to using CloudFront as a public endpoint for IAM OIDC when setting the S3 bucket for private access only, and keeping it compliant with the [S3 best practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html).
 
-I also would like to mention
-that there is no difference/impact in terms of clusters' security, as the cluster should not access that URL so that change is more for Account's security compliant.
+I would also like to mention that there is no difference/impact in terms of cluster security, as the cluster does not access the OIDC URL. So, that change is more for the AWS account security compliance.
 
-I also can see some advantages when writing this article like expanding the solution when you're operating many accounts with many clusters and simplifying the life of DevSecOps teams:
+I can also see some advantages when writing this article, like expanding the solution when you're operating many accounts with many clusters thus simplifying the life of DevSecOps teams:
 - Centralize the management of the OIDC files into one single entry point;
-- Create your own DNS domain for OIDC identifier;
-- Flexible to create a 'multi-tenant' solution storing many JWKS from the different clusters into the same bucket; or could be in different buckets but with the same entry point (CloudFront) routing to different origins.
+- Create your own DNS domain for the OIDC identifier;
+- Flexibility to create a 'multi-tenant' solution storing many JWKS from the different clusters in the same bucket; or it could be in different buckets using the same entry point (CloudFront) routing to different origins (S3 Buckets).
 
 Furthermore, it would be nice to have:
-- AWS could allow the OIDC private access to the thumbprints, instead of a public HTTPS*, so it would be possible to set a couple of S3 bucket policies allowing OIDC service, for example, allowing only OIDC's ARN principal;
-- `ccoctl` utility creates the steps using CloudFront by default;
-- `openshift-installer` embed the `ccoctl` steps/automation when using manual-STS;
-- `openshift-installer` deploy the default IPI cluster with STS by default;
+- AWS to implement the OIDC private access to the thumbprints instead of a public HTTPS*, this way it would be possible to set a couple of S3 bucket policies, allowing only OIDC ARN principal;
+- `ccoctl` utility to create the steps using CloudFront by default;
+- `openshift-installer` to embed the `ccoctl` steps/automation when using manual-STS;
+- `openshift-installer` to deploy the default IPI cluster with STS by default.
 
-> *there's a blocker from OIDC spec[1] in this suggestion, but AWS could improve the security in this access as the unique client of OIDC, in this case, should be the STS service (access between AWS services).
+> *there's a blocker from OIDC spec[1] in this suggestion, but AWS could improve the security in this access since the only OIDC client, in this case, is the STS service (access between AWS services).
 
 > [1] _"The returned Issuer location MUST be a URI RFC 3986 [RFC3986] with a scheme component that MUST be HTTPS, a host component, and optionally, port and path components and no query or fragment components."_ [https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery]
 
 Suggestions for the next topics:
-- Create one multi-tenant bucket with custom DNS on the CloudFront to serve JWKS files from multiple clusters
-- Evaluate the other options to serve public URLs to IAM OIDC, like:
-  - Lambda function serving JWKS files directly or reading from S3 bucket restricted to function's ARN, using one option below as URL entry point*:
-  - a) [dedicated HTTPS endpoint](https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html);
-  - b) [API Gateway proxying](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html) to the function;
-  - c) [ALB as Lamdda's target group](https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html);type
-  - directly from a hosted web server
+- Create one multi-tenant bucket with custom DNS on CloudFront to serve JWKS files from multiple clusters
+- Evaluate the following options to serve public URLs to IAM OIDC, like:
+  - Lambda function serving JWKS files directly or reading from S3 bucket restricted to the ARN function, using one option below as the URL entry point*:
+    - a) [dedicated HTTPS endpoint](https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html);
+    - b) [API Gateway proxying](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html) to the function;
+    - c) [ALB as Lamdda's target group type](https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html);
+  - hosting directly from a web server
 
-## References
+## References<a name="references"></a>
 
 - [OpenID Connect specifications](https://openid.net/connect/)
 - [RFC3986](https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery)
