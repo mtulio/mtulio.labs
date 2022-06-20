@@ -24,21 +24,21 @@ __meta_info__:
 
 Hey! o/
 
-I will share some options to install store OpenShift in AWS using IAM STS / manual-STS mode.
+I will share some options to install the OpenShift in AWS using IAM STS (a.k.a "manual-STS" mode).
 
-## Recap
+## An overview how the AWS credentials flow works on OpenShift
 
 Getting credentials assuming an IAM role is the best way to provide credentials to access AWS resources as it uses short-lived tokens, easy to expire, and fine-tuned the access through trusted relationship statements.
 
-When the application which wants to consume AWS services is the other AWS service (EC2, ECS, Lambda, etc) or an application running in any AWS service, usually it uses temporary credentials provided by the authentication service (EC2 is the metadata services / IMDS) to assume the role and get the temporary credentials from STS.
+When the application which wants to consume AWS services is the other AWS service (EC2, ECS, Lambda, etc) or an application running in any AWS service, usually it uses temporary credentials provided by the authentication service (example for EC2: metadata services, IMDS) to assume the role and get the temporary credentials from STS.
 
 When the service is external from AWS (example mobile App), or it uses shared resources (like Kubernetes/OpenShift cluster running in EC2) it needs an extra layer of authentication to avoid any application being able to assume the role allowed by the service (example EC2 instance profile).
 
-For that reason, there is the managed service IAM OIDC (which implements OpenID Connect spec) to allow external services federating access to AWS services through STS when assuming the AWS IAM Role.
+For that reason, there is the managed service IAM OIDC (which implements OpenID Connect spec) to allow external services federating access to AWS services through STS when assuming the AWS IAM Role. That is the IRSA: IAM Role for Service Accounts.
 
-The Kubernetes API Server (KAS) signs the service account tokens (JWT). The service uses that token to authenticate on STS API calling t, calling the method `AssumeRoleWithWebIdentity` informing the IAM Role name desired to be assumed. The STS service access the **OIDC to validate it by accessing the JWKS (JSON Web Key Sets) files stored on the public URL**, once the token is validated, the IAM Role will be assumed, returning the short-lived credentials to the caller. The service can authenticate on the target service endpoint API (S3, EC2, etc).
+The Kubernetes API Server (KAS) signs the service account tokens (JWT) with OIDC and IAM Role information. The service uses that token to authenticate on STS API calling the method `AssumeRoleWithWebIdentity` informing the IAM Role name desired to be assumed. The STS service access the **OIDC to validate it by accessing the JWKS (JSON Web Key Sets) files stored on the public URL**, once the token is validated, the IAM Role will be assumed, returning the short-lived credentials to the caller. The service can authenticate on the target service endpoint API (S3, EC2, etc).
 
-In OpenShift every cluster service that needs to interact with AWS has one different token signed by KAS and IAM Role. Example of services:
+In OpenShift, every cluster component that needs to interact with AWS has one different token signed by KAS, associated to exclusively IAM Roles. Example of services:
 
 - Machine API to create EC2
 - Image Registry to create S3 Buckets
@@ -52,11 +52,11 @@ Said that, let’s recap the steps to install OpenShift on AWS with STS support 
 1. Generate the OIDC keys
 1. Create the bucket to store JWKS
 1. Upload the OIDC config and keys to Bucket
-1. Create the OIDC
-1. Save the bucket URL to the `Authentication` manifest
-1. Extract the credentials requests from the release image
-1. Process `CredentialRequests` creating the IAM roles
-1. Copy the secret manifests and authentication resources to the installer manifests directory
+1. Create the IAM OIDC service
+1. Set the issuerURL with the bucket URL address on custom resource `Authentication`
+1. Extract the credentials requests from the OpenShift release image
+1. Process the custom resources `CredentialRequests`, creating the all the IAM roles
+1. Copy the manifests dor secrets and authentication custom resource to the installer manifests directory
 1. Install a cluster
 
 The flow is something like this:
@@ -64,6 +64,8 @@ The flow is something like this:
 ![aws-iam-oidc-flow](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/t6j45d92bmgauvy9zket.png)
 
 ## Installing a cluster with manual-STS
+
+Now let’s walk through all the commands used to create a cluster.
 
 > Steps described on [Official documentation](https://docs.openshift.com/container-platform/4.10/authentication/managing_cloud_provider_credentials/cco-mode-sts.html#cco-mode-sts)
 
@@ -73,7 +75,7 @@ Requirements:
 
 ```bash
 export CLUSTER_NAME="my-cluster"
-export BASE_DOMAIN="devcluster.example.com"
+export BASE_DOMAIN="mydomain.example.com"
 export CLUSTER_REGION=us-east-1
 export VERSION=4.10.16
 export PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json
@@ -202,7 +204,7 @@ cp -rvf ${OUTPUT_DIR_CCO}/tls \
 
 - Wait the cluster to complete the installation
 
-- Check the Authenticator resource
+- Check the `authentication` resource
 
 ```bash
 $ oc get authentication cluster -o json \
@@ -325,26 +327,28 @@ The endpoint which stores the JWKS keys should be public, as the OIDC will acces
 - Enable the S3 bucket access log
 - Filter the events to access the Bucket on the CloudTrail
 
-The main motivation to write this article is to share the current flow to help to understand the solution when any of the components described here is not working as expected, then share further ideas to workaround to expose the public S3 Bucket to the internet when using IAM OpenID Connector to provide authentication to OpenShift clusters.
+The main motivation to write this article is to share the current flow to help to understand the solution when any of the components is not working as expected, then share further ideas to workaround to expose the public S3 Bucket to the internet when using IAM OpenID Connector to provide authentication to OpenShift clusters.
 
 Let me share some options to install a cluster using different approaches that should not impact the IAM OIDC managed service requirements:
 
-1. Expose the JWKS files through CloudFront URL in a Private Bucket, restricted to CloudFront distribution through OAI (Origin Access Identity)
+1. Expose the JWKS files through CloudFront Distribution URL in a Private Bucket, restricted to Distribution through OAI (Origin Access Identity)
 1. Lambda function serving JWKS files directly or reading from S3 bucket restricted to function's ARN, using one option below as URL entry point*:
   - a) [dedicated HTTPS endpoint](https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html);
   - b) [API Gateway proxying](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html) to the function;
   - c) [ALB as Lamdda's target group](https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html);type
-3. directly from a hosted web server
+3. directly from a hosted web server public on the internet
 
 ## FAQ
 
-Q: Why are my cluster operator being Degraded and installation does not finish?
+Q: Why are my cluster operator in Degraded state, and installation does not finish successfully?
 
-Check the logs of related components (Operators and Controllers). If any component has no access to the Cloud API, you may have credentials problems. The first step is to validate if the credentials provided to the component are working as expected. (Steps described in the Troubleshooting section)
+Check the logs of related component (operators and controllers). If any component has no access to the Cloud API, you may have credentials problems. The first step is to validate if the credentials provided to the component are working as expected. (Steps described in the Troubleshooting section)
 
 Q: Why my private cluster is not completing the installation due to authentication errors?
 
-Every component which should access the AWS service API to manage components should have valid AWS credentials. When you set the CredentialsMode to Manual on install-config.yam, you should provide the credentials. When the provided credentials with a projected token from the ServiceAccount, the components described in this post should have the right permissions. A very common mistake is creating one restrictive Bucket Policy to restrict access within the VPC, avoiding the S3 bucket exposure from the internet, and impacting the OIDC to retrieve the public keys and configuration.
+Every component which should access the AWS service API to manage components should have valid AWS credentials. When you set the CredentialsMode to Manual on install-config.yaml, you should provide the credentials. When the provided credential is a projected token from the ServiceAccount, the components described in this should have the right permissions. A very common mistake is creating one restrictive Bucket Policy to restrict access within the VPC, avoiding the S3 bucket exposure from the internet, and impacting the IAM OIDC to retrieve the public keys and configuration.
+
+Important to remember: IAM OpenID Connect service is not a service hosted inside your VPC, thus does not have a internal IP Address, also the service does not support (at the moment this post was published) to federate authentication to retrieve files to the bucket.
 
 Q: Why I am seeing a lot of errors `InvalidIdentityToken` on the logs?
 
@@ -352,13 +356,15 @@ Q: Why I am seeing a lot of errors `InvalidIdentityToken` on the logs?
 (InvalidIdentityToken) when calling the AssumeRoleWithWebIdentity operation: Couldn't retrieve the verification key from your identity provider
 ```
 
-The managed service OIDC should access a public endpoint to retrieve the public keys, if for some reason it’s unable to access when doing the AssumeRoleWithWebIdentity, the STS API will raise the error above to the caller.
+The managed service OIDC should access a public endpoint to retrieve the public keys, if for some reason it’s unable to access when doing the `AssumeRoleWithWebIdentity`, the STS API will raise the error above to the caller.
 
 Q: Can I restrict the OIDC's bucket policy to restrict access publicly?
 
-No. The IAM OIDC requires a public endpoint HTTPS to retrieve the JWKS. If you want to use a private bucket, you should choose one option, as described in the problem statement, to expose those files.
+No. The IAM OIDC requires a public endpoint HTTPS to retrieve the JWKS. If you want to use a private bucket, you should choose one option, as described in the problem statement, to expose those configurations and public keys.
 
 Q: How can I make sure the service account's token is working to access AWS resources?
+
+Steps described on the troubleshooting section above:
 
 1. Get the ServiceAccount token
 2. Make the API call AssumeRoleWithWebIdentity
@@ -368,7 +374,7 @@ Q: How can I make sure the service account's token is working to access AWS reso
 
 As you can see, the OpenShift provides a powerful mechanism to enhance the security of your AWS account by using short-lived credentials through STS, instead of static User credentials (Access Keys).
 
-It is also possible to expose the public endpoint used to IAM identity provider OpenID Connector using other alternatives, like CloudFront Distribution accessing privately the S3 Bucket.
+It is also possible to expose the public endpoint used to IAM identity provider OpenID Connect using other alternatives, like CloudFront Distribution accessing privately the S3 Bucket.
 
 The `ccoctl` provides all the flexibility to build your solution if you are operating in a more restrictive environment.
 
