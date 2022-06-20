@@ -413,8 +413,9 @@ EOF
 # NOTE: you should not use your credentials in
 # shared clusters, please take a look into [CCO](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/manually-creating-iam.html)
 # to create the `CredentialsRequest` instead.
-oc create secret generic aws-load-balancer-operator -n aws-load-balancer-operator \
---from-file=credentials=credentials
+oc create secret generic aws-load-balancer-operator \
+  -n aws-load-balancer-operator \
+  --from-file=credentials=credentials
 
 # Export the image name to be used
 export IMG=quay.io/mrbraga/aws-load-balancer-operator:latest
