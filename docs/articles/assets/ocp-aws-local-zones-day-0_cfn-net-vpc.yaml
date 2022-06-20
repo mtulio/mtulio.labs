@@ -8,6 +8,10 @@ Parameters:
   ClusterName:
     Type: String
     Description: ClusterName used to prefix resource names
+  ClusterInfraId:
+    Type: String
+    Default: TBD
+    Description: ClusterInfraId used to tag required resources
   VpcCidr:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
@@ -65,6 +69,9 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-vpc" ] ]
+      - Key: !Join [ "", [ "kubernetes.io/cluster/", !Ref ClusterInfraId ] ]
+        Value: "shared"
+
   PublicSubnet:
     Type: "AWS::EC2::Subnet"
     Properties:

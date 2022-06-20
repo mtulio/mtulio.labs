@@ -95,6 +95,10 @@ cat <<EOF | envsubst > ./stack-vpc-vars.json
     "ParameterValue": "${CLUSTER_NAME}"
   },
   {
+    "ParameterKey": "ClusterInfraId",
+    "ParameterValue": ""
+  },
+  {
     "ParameterKey": "VpcCidr",
     "ParameterValue": "${VPC_CIDR}"
   },
@@ -267,6 +271,56 @@ cp -v ${PWD}/install-config.yaml \
 ./openshift-install create manifests
 ```
 
+- Update the VPC cluster tag
+
+> Required when installing the ELB Operator: `ERROR	setup	failed to get VPC ID	{"error": "no VPC with tag \"kubernetes.io/cluster/lzdemo-ds2dn\" found"}`
+> Q. to NE: Is it a bug? Should be required?
+> Q. to Installer: Is it impact the destroy flow?
+
+0. Get the InfraID
+
+```bash
+export CLUSTER_ID="lzdemo-ds2dn"
+```
+
+1. Edit the VPC var file
+```bash
+cat <<EOF | envsubst > ./stack-vpc-vars.json
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "${CLUSTER_NAME}"
+  },
+  {
+    "ParameterKey": "ClusterInfraId",
+    "ParameterValue": "${CLUSTER_ID}"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "${VPC_CIDR}"
+  },
+  {
+    "ParameterKey": "AvailabilityZoneCount",
+    "ParameterValue": "3"
+  },
+  {
+    "ParameterKey": "SubnetBits",
+    "ParameterValue": "12"
+  }
+]
+EOF
+```
+
+2. Update the stack
+
+```bash
+aws cloudformation update-stack \
+  --stack-name ${STACK_VPC} \
+  --template-body file://${STACK_VPC_TPL} \
+  --parameters file://${STACK_VPC_VARS}
+```
+
+
 ### Create the Machine Set manifest
 
 - Set the variables used to create the Machine Set
@@ -351,7 +405,7 @@ EOF
 
 ### Use NLB on Ingress Controller (optional?)
 
-> TODO need to check if we need that section as the NLB should be default in 4.11
+> `4.11.0-fc.0` still install Classic LB. This option will force to use NLB by default
 
 Reference: https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-network-customizations.html#nw-aws-nlb-new-cluster_installing-aws-network-customizations
 
@@ -385,15 +439,46 @@ EOF
 ./openshift-install create cluster --log-level=debug
 ```
 
+- Install summary
 ```
 DEBUG Time elapsed per stage:
-DEBUG            cluster: 4m21s
-DEBUG          bootstrap: 37s
-DEBUG Bootstrap Complete: 10m37s
-DEBUG                API: 2m6s
+DEBUG            cluster: 4m28s
+DEBUG          bootstrap: 36s
+DEBUG Bootstrap Complete: 10m30s
+DEBUG                API: 2m18s
 DEBUG  Bootstrap Destroy: 57s
-DEBUG  Cluster Operators: 16m25s
-INFO Time elapsed: 33m37s
+DEBUG  Cluster Operators: 8m39s
+INFO Time elapsed: 25m50s
+```
+
+- Cluster operatos summary
+
+```
+$ oc get co -o json \
+    | jq -r ".items[].status.conditions[] | select(.type==\"Available\").status" \
+    | sort |uniq -c
+     32 True
+
+$ oc get co -o json \
+    | jq -r ".items[].status.conditions[] | select(.type==\"Degraded\").status" \
+    | sort |uniq -c
+     32 False
+```
+
+- Machines
+
+```bash
+$ oc get machines -n openshift-machine-api -l machine.openshift.io/zone=us-east-1-nyc-1a
+NAME                                       PHASE     TYPE          REGION      ZONE               AGE
+lzdemo-ds2dn-edge-us-east-1-nyc-1a-6645q   Running   c5d.2xlarge   us-east-1   us-east-1-nyc-1a   12m
+```
+
+- Nodes in Local Zone filtering by custom labels defined on Machine Set (location, zone_group)
+
+```bash
+$ oc get nodes -l location=local-zone
+NAME                           STATUS   ROLES         AGE   VERSION
+ip-10-0-143-104.ec2.internal   Ready    edge,worker   11m   v1.24.0+beaaed6
 ```
 
 ## Destroy
@@ -425,15 +510,21 @@ Goal review: Install one OpenShift cluster...DONE
 
 Resources produced:
 - UPI CloudFormation template for VPC reviewed/updated
-- New CloudFormation template to create LocalZone subnets is available
-- OpenShift 4.11 can be installed in the VPC with Local Zones, and Machine Sets can be created using the new subnet
+- New CloudFormation template to create Local Zone subnets created
+- Steps for: OpenShift 4.11 installing with support of compute nodes in Local Zones
 
 Takeaways / Important notes:
 - All the subnets should be tagged properly with the correct tag to be discovered by Ingress Controller
-- The LocalZone subnet **should** have the tag cluster to "unmanaged"
+- The LocalZone subnets **should** have the tag cluster to "unmanaged"
 - Local Zones does not support Nat Gateways, so there are two options to nodes on Local Zones access the internet:
   1) Use public subnet on Local Zone and map public IP (Machine spec). There's no security constraints here as the Security Group rules blocks all the access outside the VPC.
   2) Create the private subnet, associating the Local Zone subnet to the main zone's route table, then create the machine in the private subnet.
+
+Tests performed:
+- Install a cluster with LB subnets tagging. Result: fail, the Controller discoverer added the LZ subnet to the list to create the IG
+- Install a cluster with LB subnets tagging on the zones on parent region, and unmanaed to the LZ subnet. Result: success. The discoverer ignored the LZ subnet
+- Install a cluster with no LB subnets tagging, and unmanaged on LZ subnet: Result: TODO
+- Install the ELB Operator on LZ subnet which has unmanaged tag. Result: TODO
 
 ## References
 
