@@ -1,6 +1,7 @@
-<!--METADATA_START-->
+# Extending OpenShift compute nodes to the edge with AWS Local Zones
+<!--METADATA_START
 
-# [review] Extending OpenShift’s compute nodes to the edge with AWS Local Zones
+-->
 
 __info__:
 
@@ -18,13 +19,14 @@ Let's talk about delivering single-digit millisecond latency applications to end
 
 AWS Local Zones were created to locate Cloud Infrastructure closer to the large cities and IT centers, helping businesses to deliver their solutions to end-users faster.
 
-On OpenShift, Clusters installed with **I**nstaller **P**rovisioned-**I**nfrastructure on AWS (with support of [ MachineSets](https://docs.openshift.com/container-platform/4.10/machine_management/creating_machinesets/creating-machineset-aws.html)), can easily extend the compute nodes to new locations far from main zones within the region, to closer to the end-user with lower latency.
+**This is a Day-2 guide** used on OpenShift clusters installed with support of [machine sets](https://docs.openshift.com/container-platform/4.10/machine_management/creating_machinesets/creating-machineset-aws.html)) to easily extend the compute nodes to the new locations far main zones within the region, closer to the end-user where can achieve a lower latency.
 
-If the Machines/nodes are not managed by MachineSets, or the cluster was deployed using User-Provisioned Infrastructure (UPI), you can add new nodes by running [these steps](https://docs.openshift.com/container-platform/4.10/machine_management/user_infra/adding-aws-compute-user-infra.html) - not covered in this post.
+If the Machines/nodes are not managed by machine sets, you can add new nodes by running [these steps](https://docs.openshift.com/container-platform/4.10/machine_management/user_infra/adding-aws-compute-user-infra.html) - not covered in this post.
 
 As always, you need to design your application architecture to take advantage of that feature without being limited or impacted negatively.
 
 I will walk through the solution example which can rely on user-close infrastructure while describing the steps to enable and create the resources in an OpenShift Cluster installed on AWS, then finally deploy one sample application running in the edge networks, and collect the latency from different locations (users) to different zone groups (parent/main region and Local Zones).
+
 
 **User Story**
 
