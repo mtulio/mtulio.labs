@@ -16,7 +16,7 @@
     "ParameterValue": "nyc1"
   },
   {
-    "ParameterKey": "PublicRouteTable",
+    "ParameterKey": "PublicRouteTableId",
     "ParameterValue": "rtb-0c80dfd2b8d03c7d8"
   },
   {
