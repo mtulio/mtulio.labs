@@ -6,9 +6,9 @@ __info__:
 
 > Status: WIP
 
-> [PR to Collab](): 
+> [PR](#):
 
-> [PR Preview]()
+> [PR Preview](#)
 
 > Preview on [Dev.to](#)
 
@@ -57,6 +57,8 @@ oc adm release extract \
 tar xvfz openshift-client-linux-${VERSION}.tar.gz
 tar xvfz openshift-install-linux-${VERSION}.tar.gz
 ```
+
+## Steps to Create the Cluster
 
 ### Create the network stack
 
@@ -484,7 +486,7 @@ NAME                           STATUS   ROLES         AGE   VERSION
 ip-10-0-143-104.ec2.internal   Ready    edge,worker   11m   v1.24.0+beaaed6
 ```
 
-## Destroy
+## Steps to Destroy the Cluster
 
 - Destroy the cluster
 
