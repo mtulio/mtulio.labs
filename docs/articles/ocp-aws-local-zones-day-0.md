@@ -1,6 +1,6 @@
 <!--METADATA_START-->
 
-# [review] Install OpenShift cluster on the edge with AWS Local Zones
+# [review] Install OpenShift cluster in the edge with AWS Local Zones
 
 __info__:
 
@@ -14,7 +14,7 @@ __info__:
 
 <!--METADATA_END-->
 
-Goal: Install one OpenShift cluster.
+The Goal: Install one OpenShift cluster.
 - in an existing network (VPC)
 - the VPC should have at least one Local Zone subnet created
 - the installation should be finished successfully
@@ -39,7 +39,7 @@ Goal: Install one OpenShift cluster.
 
 > Status: Waiting Review
 
-- Export common environment variables (change me)
+- Export the common environment variables (change me)
 
 ```bash
 export VERSION=4.11.0-fc.0
@@ -78,7 +78,7 @@ References:
 - NLB Discovery by tags> https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/
 -->
 
-The first step is to create the network resouces on the zones located on the parent region. Those steps reuses the VPC stack as described on the documentation[1], adapting it to tag the subnets with properly values[2] used by Kubernetes Controller Manager to discovery the subnets used to create the Load Balancer used by the default router (ingress).
+The first step is to create the network resources in the zones located in the parent region. Those steps reuse the VPC stack as described in the documentation[1], adapting it to tag the subnets with proper values[2] used by Kubernetes Controller Manager to discover the subnets used to create the Load Balancer used by the default router (ingress).
 
 > [1] [OpenShift documentation / CloudFormation template for the VPC](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-cloudformation-vpc_installing-aws-user-infra)
 
@@ -235,7 +235,7 @@ mapfile -t -O "${#SUBNETS[@]}" SUBNETS < <(aws cloudformation describe-stacks \
   | jq -r '.Stacks[0].Outputs[1].OutputValue' | tr ',' '\n')
 ```
 
-- Create the `install-config.yaml` setting the subnets recently created (**parent region only**)
+- Create the `install-config.yaml` file, setting the subnets recently created (**parent region only**)
 
 > Adapt it as your usage, the requirement is to set the field `platform.aws.subnets` with the subnet IDs
 
@@ -274,9 +274,9 @@ cp -v ${PWD}/install-config.yaml \
 
 - Update the VPC cluster tag
 
-> Required when installing the ELB Operator: `ERROR	setup	failed to get VPC ID	{"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`
+> Required when installing the ELB Operator: `ERROR setup failed to get VPC ID  {"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`
 
-> Q. to NE: Is it a bug? Should it be required? Can we use VPC's owned by subnets which the cluster was installed?
+> Q. to NE: Is it a bug? Should it be required? Can we use VPCs owned by subnets where the cluster was installed?
 
 0. Get the InfraID from the installer manifests
 
@@ -532,8 +532,8 @@ Tests performed:
 - #2. Install a cluster with LB subnets tagging on the zones on the parent region and `unmanaged` to the LZ subnet. Result: success. The discoverer ignored the LZ subnet
 - #3A. Install a cluster with no LB subnets tagging, and unmanaged on LZ subnet: Result: Succes
 - #3B. Install the ELB Operator on the LZ subnet which has an `unmanaged` tag. Result: Controller is not finding the VPC tagged by cluster tag
-- #4. Install with tags: SB for LB, LZ Unmanaged, VPC cluster shared. Results: OK. There were wrong credentials granted to controller, so the tag for VPC may be useless. Need to run more tests
-- #5. Install with tags: SB for LB. Results: TODO
+- #4. Install with tags: SB for LB, LZ Unmanaged, VPC cluster shared. Results: OK. There were wrong credentials granted to the controller, so the tag for VPC may be useless. Need to run more tests
+- #5. Install with tags: SB for LB. Results: Success
 - #6. Install #4 + using NLB as default. Result: TODO
 
 ## References
