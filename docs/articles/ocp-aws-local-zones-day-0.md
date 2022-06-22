@@ -14,7 +14,7 @@ __info__:
 
 <!--METADATA_END-->
 
-This article describe the steps to install OpenShift cluster in an existing VPC with Local Zones subnets.
+This article describes the steps to install the OpenShift cluster in an existing VPC with Local Zones subnets.
 
 **Table Of Contents**:
 
@@ -77,7 +77,7 @@ tar xvfz openshift-install-linux-${VERSION}.tar.gz
 
 ### Create the network stack <a name="steps-create-net"></a>
 
-Steps to network stack describes how to:
+Steps to network stack describe how to:
 
 - create the Network (VPC, subnets, Nat Gateways) in the parent/main zone
 - create the subnet on the Local Zone location
@@ -278,7 +278,7 @@ cp -v ${PWD}/install-config.yaml \
 ./openshift-install create manifests
 ```
 
-- Get the InfraId used on the next sections
+- Get the `InfraId` used in the next sections
 
 ```bash
 export CLUSTER_ID="$(awk '/infrastructureName: / {print $2}' manifests/cluster-infrastructure-02-config.yml)"
@@ -537,8 +537,8 @@ Takeaways / Important notes:
 - All the subnets should be tagged properly with the correct tag to be discovered by Ingress Controller
 - The LocalZone subnets **should** have the tag cluster to "unmanaged"
 - Local Zones do not support Nat Gateways, so there are two options for nodes on Local Zones to access the internet:
-  1) Use public subnet on Local Zone and map public IP (Machine spec). There are no security constraints here as the Security Group rules block all the access outside the VPC.
-  2) Create the private subnet, associating the Local Zone subnet to the main zone's route table, then create the machine in the private subnet.
+  - 1) Use public subnet on Local Zone and map the public IP to the instance (Machine spec). There are no security constraints as the Security Group rules block all the access outside the VPC (default installation). The NLB has more unrestrictive rules on the security groups, so option 2 should be better until it is not improved.
+  - 2) Create the private subnet, associating the Local Zones subnet to one parent region route table, then create the machine in the private subnet without mapping public IP.
 
 Tests performed:
 
@@ -548,7 +548,7 @@ Tests performed:
 - 3B: Install the ELB Operator on the LZ subnet which has an `unmanaged` tag. Result: Controller is not finding the VPC tagged by cluster tag
 - 4: Install with tags: SB for LB, LZ Unmanaged, VPC cluster shared. Results: OK. There were wrong credentials granted to the controller, so the tag for VPC may be useless. Need to run more tests
 - 5: Install with tags: SB for LB. Results: Success
-- 6: Install #4 + using NLB as default. Result: TODO
+- 6: Install #4 + using NLB as default. Result: Success. The NLB has more unrestrictive security group rules, installing the compute nodes in the public subnets could expose the node ports directly to the internet.
 
 ## References <a name="references"></a>
 
