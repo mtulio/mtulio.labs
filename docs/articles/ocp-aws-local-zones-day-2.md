@@ -402,20 +402,8 @@ We will use the [Application Load Balancer Operator](https://github.com/openshif
 # Create the project to place the operator
 oc new-project aws-load-balancer-operator
 
-# Make sure the AWS Access Key are exported
-cat << EOF > credentials
-[default]
-aws_access_key_id=${AWS_ACCESS_KEY_ID}
-aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
-EOF
-
-# Create the secret used to deploy the ALB
-# NOTE: you should not use your credentials in
-# shared clusters, please take a look into [CCO](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/manually-creating-iam.html)
-# to create the `CredentialsRequest` instead.
-oc create secret generic aws-load-balancer-operator \
-  -n aws-load-balancer-operator \
-  --from-file=credentials=credentials
+# Create the credentials secret
+oc apply -f hack/operator-credentials-request.yaml
 
 # Export the image name to be used
 export IMG=quay.io/mrbraga/aws-load-balancer-operator:latest

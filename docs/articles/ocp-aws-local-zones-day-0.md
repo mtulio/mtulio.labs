@@ -14,11 +14,11 @@ __info__:
 
 <!--METADATA_END-->
 
-
 Goal: Install one OpenShift cluster.
 - in an existing network (VPC)
 - the VPC should have at least one Local Zone subnet created
 - the installation should be finished successfully
+
 
 **What you need to know**
 
@@ -31,11 +31,11 @@ Goal: Install one OpenShift cluster.
 
 > TODO. Ref Day-2 article
 
-## **Requirements and considerations**
+## Requirements and considerations
 
 > TODO. Ref Day-2 article
 
-## **Preparing the environment**
+### Preparing the environment
 
 > Status: Waiting Review
 
@@ -66,7 +66,7 @@ Steps to:
 - create the Network (VPC, subnets, Nat Gateways) in the parent/main zone
 - create the subnet on the Local Zone location
 
-#### Main Zones subnets
+#### Create the network (VPC and dependencies)
 
 <!--
 > WIP
@@ -77,6 +77,14 @@ References:
 - NLB Controller subnet: https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/service/annotations/#subnets
 - NLB Discovery by tags> https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/
 -->
+
+The first step is to create the network resouces on the zones located on the parent region. Those steps reuses the VPC stack as described on the documentation[1], adapting it to tag the subnets with properly values[2] used by Kubernetes Controller Manager to discovery the subnets used to create the Load Balancer used by the default router (ingress).
+
+> [1] [OpenShift documentation / CloudFormation template for the VPC](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-cloudformation-vpc_installing-aws-user-infra)
+
+> [2] [AWS Load Balancer Controller / Subnet Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/)
+
+Steps to create the VPC stack:
 
 - Set the environment variables
 
@@ -93,10 +101,6 @@ cat <<EOF | envsubst > ./stack-vpc-vars.json
   {
     "ParameterKey": "ClusterName",
     "ParameterValue": "${CLUSTER_NAME}"
-  },
-  {
-    "ParameterKey": "ClusterInfraId",
-    "ParameterValue": ""
   },
   {
     "ParameterKey": "VpcCidr",
@@ -142,7 +146,7 @@ aws cloudformation update-stack \
   --parameters file://${STACK_VPC_VARS}
 ```
 
-#### Local Zones subnet
+#### Create the Local Zones subnet
 
 - Set the environment the variables to create the Local Zone subnet
 
@@ -195,7 +199,7 @@ EOF
 
 - Download the [CloudFormation Template for Local Zone subnet stack](./assets/ocp-aws-local-zones-day-0_cfn-net-lz.yaml)
 
-- Create the Local Zone subnet stack
+- Create the Local Zones subnet stack
 
 ```bash
 STACK_LZ=${CLUSTER_NAME}-lz-${LZ_ZONE_SHORTNAME}
@@ -213,16 +217,7 @@ aws cloudformation create-stack \
 aws cloudformation describe-stacks --stack-name ${STACK_LZ}
 ```
 
-- (optional) Update if you need
-
-```bash
-aws cloudformation update-stack \
-  --stack-name ${STACK_LZ} \
-  --template-body file://${STACK_LZ_TPL} \
-  --parameters file://${STACK_LZ_VARS}
-```
-
-Repeat those steps for each location.
+Repeat the steps above for each location.
 
 ## Create the installer configuration
 
@@ -240,7 +235,9 @@ mapfile -t -O "${#SUBNETS[@]}" SUBNETS < <(aws cloudformation describe-stacks \
   | jq -r '.Stacks[0].Outputs[1].OutputValue' | tr ',' '\n')
 ```
 
-- Create the `install-config.yaml` - setting the subnets recently created (parent zone only)
+- Create the `install-config.yaml` setting the subnets recently created (**parent region only**)
+
+> Adapt it as your usage, the requirement is to set the field `platform.aws.subnets` with the subnet IDs
 
 ```bash
 cat <<EOF > ${PWD}/install-config.yaml
@@ -277,11 +274,11 @@ cp -v ${PWD}/install-config.yaml \
 
 - Update the VPC cluster tag
 
-> Required when installing the ELB Operator: `ERROR	setup	failed to get VPC ID	{"error": "no VPC with tag \"kubernetes.io/cluster/lzdemo-ds2dn\" found"}`
+> Required when installing the ELB Operator: `ERROR	setup	failed to get VPC ID	{"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`
 
-> Q. to NE: Is it a bug? Should it be required?
+> Q. to NE: Is it a bug? Should it be required? Can we use VPC's owned by subnets which the cluster was installed?
 
-0. Get the InfraID
+0. Get the InfraID from the installer manifests
 
 ```bash
 export CLUSTER_ID="$(awk '/infrastructureName: / {print $2}' manifests/cluster-infrastructure-02-config.yml)"
@@ -324,16 +321,17 @@ aws cloudformation update-stack \
   --parameters file://${STACK_VPC_VARS}
 ```
 
-
 ### Create the Machine Set manifest
 
 - Set the variables used to create the Machine Set
 
+> Adapt the instance type as you need, as supported on the Local Zone
+
 ```bash
 export INSTANCE_TYPE="c5d.2xlarge"
 
-export AMI_ID=$(grep ami openshift/99_openshift-cluster-api_worker-machineset-0.yaml |tail -n1 |awk '{print$2}')
-export SUBNET_ID=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}" |jq -r .Stacks[0].Outputs[0].OutputValue)
+export AMI_ID=$(grep ami openshift/99_openshift-cluster-api_worker-machineset-0.yaml | tail -n1 |awk '{print$2}')
+export SUBNET_ID=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}" | jq -r .Stacks[0].Outputs[0].OutputValue)
 ```
 
 - Create the Machine Set for `nyc1` nodes
@@ -407,15 +405,16 @@ EOF
 ```
 
 
-### Use NLB on Ingress Controller (optional? yes)
+### Create Ingress Controller manifest to use NLB (optional)
 
 > The `4.11.0-fc.0` still installing Classic LB. This option will force to use the NLB by default.
 
-> Optional as the intention is to validate the default IPI behavior. NLB is nice to have by default, should be tested either.
+> Optional as the intention in this article is to validate the default IPI behavior. NLB is nice to have by default, should be tested either.
 
-Reference: https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-network-customizations.html#nw-aws-nlb-new-cluster_installing-aws-network-customizations
+> Section based on the [official documentation](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-network-customizations.html#nw-aws-nlb-new-cluster_installing-aws-network-customizations).
 
 - Create the IngressController manifest to use NLB by default
+
 ```bash
 cat <<EOF > manifests/cluster-ingress-default-ingresscontroller.yaml
 apiVersion: operator.openshift.io/v1
@@ -436,7 +435,9 @@ spec:
 EOF
 ```
 
-## Install a cluster
+### Install the cluster
+
+Now it's time to create the cluster and check the results.
 
 - Create the cluster
 
@@ -488,6 +489,8 @@ ip-10-0-143-104.ec2.internal   Ready    edge,worker   11m   v1.24.0+beaaed6
 
 ## Steps to Destroy the Cluster
 
+To destroy the resources created, you need to first delete the cluster and then the CloudFormation stacks used to build the network.
+
 - Destroy the cluster
 
 ```bash
@@ -506,10 +509,9 @@ aws cloudformation delete-stack --stack-name ${STACK_LZ}
 aws cloudformation delete-stack --stack-name ${STACK_VPC}
 ```
 
+## Final review / Conclusion
 
-## Conclusion
-
-> TODO/WIP
+> WIP/Review
 
 Goal review: Install one OpenShift cluster...DONE
 
@@ -530,12 +532,13 @@ Tests performed:
 - #2. Install a cluster with LB subnets tagging on the zones on the parent region and `unmanaged` to the LZ subnet. Result: success. The discoverer ignored the LZ subnet
 - #3A. Install a cluster with no LB subnets tagging, and unmanaged on LZ subnet: Result: Succes
 - #3B. Install the ELB Operator on the LZ subnet which has an `unmanaged` tag. Result: Controller is not finding the VPC tagged by cluster tag
-- #4. Install with tags: SB for LB, LZ Unmanaged, VPC cluster shared. Results: TODO
-- #5. Install #4 + using NLB as default. Result: TODO
+- #4. Install with tags: SB for LB, LZ Unmanaged, VPC cluster shared. Results: OK. There were wrong credentials granted to controller, so the tag for VPC may be useless. Need to run more tests
+- #5. Install with tags: SB for LB. Results: TODO
+- #6. Install #4 + using NLB as default. Result: TODO
 
 ## References
 
-> TODO/WIP
+> WIP
 
 - [OpenShift Documentation / Installing a cluster on AWS with network customizations](https://docs.openshift.com/container-platform/4.6/installing/installing_aws/installing-aws-network-customizations.html)
 - [OpenShift Documentation / Installing a cluster on AWS using CloudFormation templates /CloudFormation template for the VPC](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-cloudformation-vpc_installing-aws-user-infra)
