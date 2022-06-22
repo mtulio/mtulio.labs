@@ -14,27 +14,41 @@ __info__:
 
 <!--METADATA_END-->
 
-The Goal: Install one OpenShift cluster...
+This article describe the steps to install OpenShift cluster in an existing VPC with Local Zones subnets.
 
-- in an existing network (VPC)
-- the VPC should have at least one Local Zone subnet created
-- the installation should be finished successfully
+**Table Of Contents**:
 
+- [Summary](#summary)
+- [Steps to create the cluster](#steps-create)
+  - [Create the network stack](#steps-create-net)
+    - [Create the network (VPC and dependencies)](#steps-create-net-vpc)
+    - [Create the Local Zones subnet](#steps-create-net-lz-subnet)
+  - [Create the installer configuration](#steps-create-config)
+  - [Create the installer manifests](#steps-create-manifests)
+    - [Create the Machine Set manifest for Local Zones pool](#steps-create-manifests-ms)
+    - [Create IngressController manifest to use NLB](#steps-create-manifests-ic)
+  - [Update the VPC tag with the InfraID](#steps-create-update-vpc)
+  - [Install the cluster](#steps-create-install)
+- [Steps to Destroy the Cluster](#steps-destroy)
+- [Final notes / conclusion](#review)
+- [References](#references)
 
-**What you need to know**
+## Summary <a name="summary"></a>
 
-> TODO. Ref Day-2 article
+### What you need to know
+
+> TODO. Ref. Day-2 article
 
 - Installing a cluster with network customizations: https://docs.openshift.com/container-platform/4.6/installing/installing_aws/installing-aws-network-customizations.html
 
 
-## **Reference Architecture**
+### Reference Architecture
 
-> TODO. Ref Day-2 article
+> TODO. Ref. Day-2 article
 
-## Requirements and considerations
+### Requirements and considerations
 
-> TODO. Ref Day-2 article
+> TODO. Ref. Day-2 article
 
 ### Preparing the environment
 
@@ -59,25 +73,16 @@ tar xvfz openshift-client-linux-${VERSION}.tar.gz
 tar xvfz openshift-install-linux-${VERSION}.tar.gz
 ```
 
-## Steps to Create the Cluster
+## Steps to create the Cluster <a name="steps-create"></a>
 
-### Create the network stack
+### Create the network stack <a name="steps-create-net"></a>
 
-Steps to:
+Steps to network stack describes how to:
+
 - create the Network (VPC, subnets, Nat Gateways) in the parent/main zone
 - create the subnet on the Local Zone location
 
-#### Create the network (VPC and dependencies)
-
-<!--
-> WIP
-
-References:
-- OpenShift UPI, Network Stack (VPC, Network and R53): https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-cloudformation-vpc_installing-aws-user-infra
-- EKS VPC Guide: https://docs.aws.amazon.com/eks/latest/userguide/creating-a-vpc.html
-- NLB Controller subnet: https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/service/annotations/#subnets
-- NLB Discovery by tags> https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/
--->
+#### Create the network (VPC and dependencies) <a name="steps-create-net-vpc"></a>
 
 The first step is to create the network resources in the zones located in the parent region. Those steps reuse the VPC stack as described in the documentation[1], adapting it to tag the subnets with proper values[2] used by Kubernetes Controller Manager to discover the subnets used to create the Load Balancer used by the default router (ingress).
 
@@ -147,7 +152,7 @@ aws cloudformation update-stack \
   --parameters file://${STACK_VPC_VARS}
 ```
 
-#### Create the Local Zones subnet
+#### Create the Local Zones subnet <a name="steps-create-net-lz-subnet"></a>
 
 - Set the environment the variables to create the Local Zone subnet
 
@@ -220,7 +225,7 @@ aws cloudformation describe-stacks --stack-name ${STACK_LZ}
 
 Repeat the steps above for each location.
 
-## Create the installer configuration
+### Create the installer configuration <a name="steps-create-config"></a>
 
 - Set the vars used on the installer configuration
 
@@ -265,7 +270,7 @@ cp -v ${PWD}/install-config.yaml \
     ${PWD}/install-config-bkp.yaml
 ```
 
-### Create the installer manifests
+### Create the installer manifests <a name="steps-create-manifests"></a>
 
 - Create manifests
 
@@ -273,56 +278,14 @@ cp -v ${PWD}/install-config.yaml \
 ./openshift-install create manifests
 ```
 
-- Update the VPC cluster tag
-
-> Required when installing the ELB Operator: `ERROR setup failed to get VPC ID  {"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`
-
-> Q. to NE: Is it a bug? Should it be required? Can we use VPCs owned by subnets where the cluster was installed?
-
-0. Get the InfraID from the installer manifests
+- Get the InfraId used on the next sections
 
 ```bash
 export CLUSTER_ID="$(awk '/infrastructureName: / {print $2}' manifests/cluster-infrastructure-02-config.yml)"
 ```
 
-1. Edit the VPC var file
-```bash
-cat <<EOF | envsubst > ./stack-vpc-vars.json
-[
-  {
-    "ParameterKey": "ClusterName",
-    "ParameterValue": "${CLUSTER_NAME}"
-  },
-  {
-    "ParameterKey": "ClusterInfraId",
-    "ParameterValue": "${CLUSTER_ID}"
-  },
-  {
-    "ParameterKey": "VpcCidr",
-    "ParameterValue": "${VPC_CIDR}"
-  },
-  {
-    "ParameterKey": "AvailabilityZoneCount",
-    "ParameterValue": "3"
-  },
-  {
-    "ParameterKey": "SubnetBits",
-    "ParameterValue": "12"
-  }
-]
-EOF
-```
 
-2. Update the stack
-
-```bash
-aws cloudformation update-stack \
-  --stack-name ${STACK_VPC} \
-  --template-body file://${STACK_VPC_TPL} \
-  --parameters file://${STACK_VPC_VARS}
-```
-
-### Create the Machine Set manifest
+#### Create the Machine Set manifest for Local Zones pool <a name="steps-create-manifests-ms"></a>
 
 - Set the variables used to create the Machine Set
 
@@ -406,7 +369,7 @@ EOF
 ```
 
 
-### Create Ingress Controller manifest to use NLB (optional)
+#### Create IngressController manifest to use NLB (optional) <a name="steps-create-manifests-ic"></a>
 
 > The `4.11.0-fc.0` still installing Classic LB. This option will force to use the NLB by default.
 
@@ -436,7 +399,53 @@ spec:
 EOF
 ```
 
-### Install the cluster
+### Update the VPC tag with the InfraID <a name="steps-create-update-vpc"></a>
+
+- Update the VPC cluster tag
+
+> Required when installing the ELB Operator: `ERROR setup failed to get VPC ID  {"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`
+
+> Q. to NE: Is it a bug? Should it be required? Can we use VPCs owned by subnets where the cluster was installed?
+
+1. Edit the VPC var file
+
+```bash
+cat <<EOF | envsubst > ./stack-vpc-vars.json
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "${CLUSTER_NAME}"
+  },
+  {
+    "ParameterKey": "ClusterInfraId",
+    "ParameterValue": "${CLUSTER_ID}"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "${VPC_CIDR}"
+  },
+  {
+    "ParameterKey": "AvailabilityZoneCount",
+    "ParameterValue": "3"
+  },
+  {
+    "ParameterKey": "SubnetBits",
+    "ParameterValue": "12"
+  }
+]
+EOF
+```
+
+2. Update the stack
+
+```bash
+aws cloudformation update-stack \
+  --stack-name ${STACK_VPC} \
+  --template-body file://${STACK_VPC_TPL} \
+  --parameters file://${STACK_VPC_VARS}
+```
+
+### Install the cluster <a name="steps-create-install"></a>
 
 Now it's time to create the cluster and check the results.
 
@@ -447,6 +456,7 @@ Now it's time to create the cluster and check the results.
 ```
 
 - Install summary
+
 ```
 DEBUG Time elapsed per stage:
 DEBUG            cluster: 4m28s
@@ -488,7 +498,7 @@ NAME                           STATUS   ROLES         AGE   VERSION
 ip-10-0-143-104.ec2.internal   Ready    edge,worker   11m   v1.24.0+beaaed6
 ```
 
-## Steps to Destroy the Cluster
+## Steps to Destroy the Cluster <a name="steps-destroy"></a>
 
 To destroy the resources created, you need to first delete the cluster and then the CloudFormation stacks used to build the network.
 
@@ -510,7 +520,7 @@ aws cloudformation delete-stack --stack-name ${STACK_LZ}
 aws cloudformation delete-stack --stack-name ${STACK_VPC}
 ```
 
-## Final notes / Conclusion
+## Final notes / Conclusion <a name="review"></a>
 
 > WIP/Review
 
@@ -540,9 +550,7 @@ Tests performed:
 - 5: Install with tags: SB for LB. Results: Success
 - 6: Install #4 + using NLB as default. Result: TODO
 
-## References
-
-> WIP
+## References <a name="references"></a>
 
 - [OpenShift Documentation / Installing a cluster on AWS with network customizations](https://docs.openshift.com/container-platform/4.6/installing/installing_aws/installing-aws-network-customizations.html)
 - [OpenShift Documentation / Installing a cluster on AWS using CloudFormation templates /CloudFormation template for the VPC](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-user-infra.html#installation-cloudformation-vpc_installing-aws-user-infra)
