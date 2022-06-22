@@ -588,7 +588,7 @@ spec:
     - http:
         paths:
           - path: /
-            pathType: Exact
+            pathType: Prefix
             backend:
               service:
                 name: ${APP_NAME}
@@ -926,7 +926,9 @@ time_starttransfer:  0.089609 Sec
         time_total:  0.089729 Sec
 ```
 
+<table align="center"><tr><td>
 <img src="https://acegif.com/wp-content/uploads/2020/b72nv6/partyparrt-40.gif">
+</td></tr></table>
 
 Now we can see the advantage of operating on the edge delivering applications to a client close to the server, some insights from the values above:
 - The time to connect to the NYC zone was 3x faster than the parent region, and 10x faster than the location far from the user
@@ -934,7 +936,9 @@ Now we can see the advantage of operating on the edge delivering applications to
 - The total time to deliver close to the user was about 30% faster than the parent region
 - The TTFB did not report, but the server can be improved as the backend does some processing when calculating the GeoIP
 
+<table align="center"><tr><td>
 <img src="https://i.stack.imgur.com/XGlad.gif">
+</td></tr></table>
 
 ### Testing from (`Client#3`) / California
 
