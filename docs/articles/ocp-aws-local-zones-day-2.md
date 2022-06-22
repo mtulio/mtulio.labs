@@ -19,7 +19,7 @@ Let's talk about delivering single-digit millisecond latency applications to end
 
 AWS Local Zones were created to locate Cloud Infrastructure closer to the large cities and IT centers, helping businesses to deliver their solutions to end-users faster.
 
-**This is a Day-2 guide** used on OpenShift clusters installed with support of [machine sets](https://docs.openshift.com/container-platform/4.10/machine_management/creating_machinesets/creating-machineset-aws.html)) to easily extend the compute nodes to the new locations far main zones within the region, closer to the end-user where can achieve a lower latency.
+**This is a Day-2 guide** used on OpenShift clusters installed with the support of [machine sets](https://docs.openshift.com/container-platform/4.10/machine_management/creating_machinesets/creating-machineset-aws.html)) to easily extend the compute nodes to the new locations far from the main zones within the region, closer to the end-user where can achieve lower latency.
 
 If the Machines/nodes are not managed by machine sets, you can add new nodes by running [these steps](https://docs.openshift.com/container-platform/4.10/machine_management/user_infra/adding-aws-compute-user-infra.html) - not covered in this post.
 
@@ -32,7 +32,7 @@ I will walk through the solution example which can rely on user-close infrastruc
 
 - As a company with hybrid cloud architecture, I would like to process real-time machine learning models in AWS specialized instances closer to my application.
 - As a Regional Bakery operating within the eastern US, I want to deliver custom cakes to the city where my customers are, advertising the closest stores with availability and an estimated delivery time.
-- As a doctor depending on the telemedicine solutions, I would like to have fast results from the exams in order to make fast decisions in an emergency. Those kinds of systems demand ML processing with high computing power closer to the end users.
+- As a doctor depending on the telemedicine solutions, I would like to have fast results from the exams to make fast decisions in an emergency. Those kinds of systems demand ML processing with high computing power closer to the end users.
 
 **What you need to know**
 
@@ -65,7 +65,7 @@ The version of components used in this post:
 
 The first step is to choose the locations you want to use to opt-in on AWS EC2 configuration - it's opt-out by default.
 
-You can use the `describe-availability-zones` to check the location available on the region running your cluster. So let's get started:
+You can use the `describe-availability-zones` to check the location available in the region running your cluster. So let's get started:
 
 Get the region of your OpenShift cluster:
 
@@ -202,7 +202,7 @@ aws ec2 modify-subnet-attribute --map-public-ip-on-launch  \
 
 The next step is to associate the subnet to a route table.
 
-> To simplify the demonstration, only the public subnets were used. Ideally, in production, H.A. environments consider using the private subnets, with a Nat Gateway for each location associating it each subnet´s private route table.
+> To simplify the demonstration, only the public subnets were used. Ideally, in production, H.A. environments consider using the private subnets.
 
 Get the route table ID:
 ```bash
@@ -225,7 +225,7 @@ aws ec2 associate-route-table \
     --subnet-id "${SUBNET_ID_MIA_PUB}"
 ```
 
-All of the network configuration has been set for the new locations.
+All of the network configurations have been set for the new locations.
 
 ### **Choosing the Instance Type**
 
@@ -255,7 +255,7 @@ This section describes the steps needed to create the `MachineSet` resources, wh
 
 We are setting a Kubernetes node-role label `edge` (`node-role.kubernetes.io/edge=`), and setting the `taints` for those nodes as `NoSchedule` to avoid undesired workloads being deployed on the edge.
 
-If you want to create the `MachineSets` from the existing ones, you can do it by saving it to a file and change it later (not covered):
+If you want to create the `MachineSets` from the existing ones, you can do it by saving it to a file and changing it later (not covered):
 
 ```bash
 oc get machineset/${CLUSTER_ID}-worker-${REGION}a \
@@ -389,14 +389,14 @@ All set! Your Machines are ready to run your workloads.
 
 ## **Setup ALB Operator**
 
-We will use the [Application Load Balancer Operator](https://github.com/openshift/aws-load-balancer-operator) to install the ALB Controller to be able to create ingress using the AWS Application Load Balancer. The installation will be performed from source, you can read more options on the project page.
+We will use the [Application Load Balancer Operator](https://github.com/openshift/aws-load-balancer-operator) to install the ALB Controller to be able to create ingress using the AWS Application Load Balancer. The installation will be performed from the source code, you can read more options on the project page.
 
-> Note: if you dont want to build from source, or already deployed the ALB Operator, you can jump to the application deployment section. 
+> Note: if you don't want to build from source, or already deployed the ALB Operator, you can jump to the application deployment section.
 
 1. Setup Local Development: https://github.com/openshift/aws-load-balancer-operator#local-development
 2. Follow the tutorial to install: https://github.com/openshift/aws-load-balancer-operator/blob/main/docs/tutorial.md
 
-> Quick steps after build the operand and operator container images and exported to your registry:
+> Quick steps after building the operand and operator container images and exported to your registry:
 
 ```bash
 # Create the project to place the operator
@@ -438,7 +438,7 @@ Done! Make sure the `AWSLoadBalancerController` was created correctly.
 oc get AWSLoadBalancerController cluster -o yaml
 ```
 
-You should be able to see the subnetIds discovered by operator using the cluster tags, something like this:
+You should be able to see the `subnetIds` discovered by the operator using the cluster tags, something like this:
 
 ```yaml
 status:
@@ -462,7 +462,7 @@ status:
 
 ## **Deploy the Application**
 
-Now it's time for action! In this section we will deploy one sample application which extracts the public `clientIp` (from HTTP request headers), and the `serverIp` (discovered when the app is initialized), returning it to the user.
+Now it's time for action! In this section, we will deploy one sample application that extracts the public `clientIp` (from HTTP request headers), and the `serverIp` (discovered when the app is initialized), returning it to the user.
 
 The app is called `geo-app`, feel free to change it by setting these environment variables:
 
@@ -562,7 +562,7 @@ oc get pods -n ${APP_NS} -l zone_group=${AZ_GROUP_MIA} -o wide
 oc get nodes -l topology.kubernetes.io/zone=${AZ_NAME_MIA}
 ```
 
-Create an ingress' function to setup the edge locations:
+Create an ingress' function to set up the edge locations:
 
 ```bash
 create_ingress() {
@@ -693,13 +693,13 @@ spec:
 EOF
 ```
 
-Wait for the load balancers be provisioned and the `ADDRESS` is available:
+Wait for the load balancers to be provisioned and the `ADDRESS` is available:
 
 ```bash
 oc get ingress -n ${APP_NS}
 ```
 
-Get the Ingress' URL for each location:
+Get the Ingress URL for each location:
 
 ```bash
 APP_URL_MAIN=$(oc get ingress \
@@ -732,7 +732,7 @@ $ curl -s http://${APP_URL_NYC}/ |jq .serverInfo.address
 
 Now it's time to make some measurements with `curl`.
 
-We've run tests from 3 different sources to measure the total time to 3 different targets/zone groups (NYC, MIA and parent region):
+We've run tests from 3 different sources to measure the total time to 3 different targets/zone groups (NYC, MIA, and parent region):
 - Client#1's Location: Florianópolis/Brazil
 - Client#2's Location: Digital Ocean/NYC3 (New York)
 - Client#3's Location: Digital Ocean/SFN (San Francisco)
@@ -753,7 +753,7 @@ time_starttransfer:  %{time_starttransfer} Sec\n
 EOF
 ```
 
-Create the file `curl-format-table.txt` to return the attributes in an single-line tabulation format:
+Create the file `curl-format-table.txt` to return the attributes in a single-line tabulation format:
 
 ```bash
 cat <<EOF> curl-format-table.txt
@@ -773,7 +773,7 @@ curl_table() {
 }
 ```
 
-Also create the function to collect data points, it will send 10 requests, one by second:
+Also, create the function to collect data points, it will send 10 requests, one by second:
 
 ```bash
 curl_batch() {
@@ -811,7 +811,7 @@ $ curl -s ${APP_URL_NYC} |jq .clientInfo.geoIP
 ```
 - Distance between Public IP of Client and Server:
 
-> The Server's location is not precise, as the AWS' Public IP is not exactly from server's location, but the Parent's region. So the IP Address' location are the same between all locations (main region's zone and local zones), impacting in the real value of the calculation
+> The Server's location is not precise, as the AWS' Public IP is not exactly from the server's location, but the Parent's region. So the IP Address' location is the same between all locations (main region's zone and local zones), impacting the real value of the calculation
 
 ```bash
 $ curl -s ${APP_URL_NYC} |jq .distance
@@ -928,11 +928,11 @@ time_starttransfer:  0.089609 Sec
 
 <img src="https://acegif.com/wp-content/uploads/2020/b72nv6/partyparrt-40.gif">
 
-Now we can see the advantage of operating in the edge delivering applications to a client's close to the server, some insights from the values above:
-- The time to connect to NYC zone was 3x faster than the parent region, and 10x faster than the location far from the user
+Now we can see the advantage of operating on the edge delivering applications to a client close to the server, some insights from the values above:
+- The time to connect to the NYC zone was 3x faster than the parent region, and 10x faster than the location far from the user
 - The TTFB (`time_starttransfer`) was also 3 times faster than the parent region
 - The total time to deliver close to the user was about 30% faster than the parent region
-- The TTFB did not reported, but the server can be improved as the backend does some processing when calculating the GeoIP
+- The TTFB did not report, but the server can be improved as the backend does some processing when calculating the GeoIP
 
 <img src="https://i.stack.imgur.com/XGlad.gif">
 
@@ -1038,19 +1038,19 @@ Average in milliseconds:
 | US-CA | 149.5462 | 152.1854 | 164.0881 |
 
 Percentage comparing the parent region (negative is slower):
-			
+
 | Client / Server | Main | NYC | MIA |
 | -- | -- | -- | -- |
 | BR-SC | 0.00% | -2.81% | 12.63% |
 | US-NY | 0.00% | 28.12% | -315.82% |
 | US-CA | 0.00% | -1.76% | -9.72% |
 
-Difference in `ms` between parent region  (negative is slower):
+The difference in `ms` compared to the parent region  (negative is slower):
 
 | Client / Server | Main | NYC | MIA |
 | -- | -- | -- | -- |
-| BR-SC	| 0 | -9.6329 | 43.2823 |
-| US-NY	| 0 | 6.2607 | -70.3038 |
+| BR-SC | 0 | -9.6329 | 43.2823 |
+| US-NY | 0 | 6.2607 | -70.3038 |
 | US-CA | 0 | -2.6392 | -14.5419 |
 
 
@@ -1067,8 +1067,8 @@ Looking at the results of the benchmark, the improvement in the local zone is sl
 Anyway, you can see how easy it is now to create modern Kubernetes applications with the current easier access to the edge networks.
 
 Next topics to review:
-- Use the [Route53 Geolocation routing policy](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html) to deliver a single endpoint to users. It's not a part of this research to check the precision can cover the distance between the Local Zone and parent region
-- You can take advantage of ephemeral storage available on the most instances in Local Zones, so if you are processing files on the board, the disk IO will be extremely faster and the solution cheaper.
+- Use the [Route53 Geolocation routing policy](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html) to deliver a single endpoint to users. It's not a part of this research to check the precision can cover the distance between the Local Zone and the parent region
+- You can take advantage of ephemeral storage available on most instances in Local Zones, so if you are processing files on the board, the disk IO will be extremely faster and the solution cheaper.
 - Check the AWS Wavelength, one more opportunity to deliver low latency applications directly from RAN (Radio Access Networks) / 5G devices
 
 If you would like to further explore any topic described here, feel free to leave a comment!
