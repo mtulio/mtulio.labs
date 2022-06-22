@@ -113,6 +113,7 @@ Resources:
         Value: !Join [ "", [ !Ref ClusterName, "-public-3" ] ]
       - Key: kubernetes.io/role/elb
         Value: 1
+
   InternetGateway:
     Type: "AWS::EC2::InternetGateway"
     Properties:
@@ -124,6 +125,7 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
+
   PublicRouteTable:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -204,6 +206,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
         Ref: NAT
+
   PrivateSubnet2:
     Type: "AWS::EC2::Subnet"
     Condition: DoAz2
@@ -263,6 +266,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
         Ref: NAT2
+
   PrivateSubnet3:
     Type: "AWS::EC2::Subnet"
     Condition: DoAz3
@@ -322,6 +326,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId:
         Ref: NAT3
+
   S3Endpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -367,3 +372,6 @@ Outputs:
   PublicRouteTableId:
     Description: Public Route table ID
     Value: !Ref PublicRouteTable
+  PrivateRouteTableId:
+    Description: Private Route table ID
+    Value: !Ref PrivateRouteTable
