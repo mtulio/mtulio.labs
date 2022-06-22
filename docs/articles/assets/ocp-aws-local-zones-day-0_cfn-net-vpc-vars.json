@@ -5,7 +5,7 @@
   },
   {
     "ParameterKey": "ClusterInfraId",
-    "ParameterValue": ""
+    "ParameterValue": "unmanaged"
   },
   {
     "ParameterKey": "VpcCidr",
