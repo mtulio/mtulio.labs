@@ -14,7 +14,8 @@ __info__:
 
 <!--METADATA_END-->
 
-The Goal: Install one OpenShift cluster.
+The Goal: Install one OpenShift cluster...
+
 - in an existing network (VPC)
 - the VPC should have at least one Local Zone subnet created
 - the installation should be finished successfully
@@ -221,12 +222,12 @@ Repeat the steps above for each location.
 
 ## Create the installer configuration
 
-- Set the vars to be used on installer configuration
+- Set the vars used on the installer configuration
 
 ```bash
 export BASE_DOMAIN="devcluster.openshift.com"
 
-# Parent region (main) subnets only
+# Parent region (main) subnets only: Public and Private
 mapfile -t SUBNETS < <(aws cloudformation describe-stacks \
   --stack-name "${STACK_VPC}" \
   | jq -r '.Stacks[0].Outputs[0].OutputValue' | tr ',' '\n')
@@ -509,18 +510,20 @@ aws cloudformation delete-stack --stack-name ${STACK_LZ}
 aws cloudformation delete-stack --stack-name ${STACK_VPC}
 ```
 
-## Final review / Conclusion
+## Final notes / Conclusion
 
 > WIP/Review
 
 Goal review: Install one OpenShift cluster...DONE
 
 Resources produced:
+
 - UPI CloudFormation template for VPC reviewed/updated
 - New CloudFormation template to create Local Zone subnets created
 - Steps for OpenShift 4.11 installing with support to create compute nodes in Local Zones
 
 Takeaways / Important notes:
+
 - All the subnets should be tagged properly with the correct tag to be discovered by Ingress Controller
 - The LocalZone subnets **should** have the tag cluster to "unmanaged"
 - Local Zones do not support Nat Gateways, so there are two options for nodes on Local Zones to access the internet:
@@ -528,13 +531,14 @@ Takeaways / Important notes:
   2) Create the private subnet, associating the Local Zone subnet to the main zone's route table, then create the machine in the private subnet.
 
 Tests performed:
-- #1. Install a cluster with LB subnets tagging. Result: fail, the Controller discoverer added the LZ subnet to the list to create the IG
-- #2. Install a cluster with LB subnets tagging on the zones on the parent region and `unmanaged` to the LZ subnet. Result: success. The discoverer ignored the LZ subnet
-- #3A. Install a cluster with no LB subnets tagging, and unmanaged on LZ subnet: Result: Succes
-- #3B. Install the ELB Operator on the LZ subnet which has an `unmanaged` tag. Result: Controller is not finding the VPC tagged by cluster tag
-- #4. Install with tags: SB for LB, LZ Unmanaged, VPC cluster shared. Results: OK. There were wrong credentials granted to the controller, so the tag for VPC may be useless. Need to run more tests
-- #5. Install with tags: SB for LB. Results: Success
-- #6. Install #4 + using NLB as default. Result: TODO
+
+- 1: Install a cluster with LB subnets tagging. Result: fail, the Controller discoverer added the LZ subnet to the list to create the IG
+- 2: Install a cluster with LB subnets tagging on the zones on the parent region and `unmanaged` to the LZ subnet. Result: success. The discoverer ignored the LZ subnet
+- 3A: Install a cluster with no LB subnets tagging, and unmanaged on LZ subnet: Result: Succes
+- 3B: Install the ELB Operator on the LZ subnet which has an `unmanaged` tag. Result: Controller is not finding the VPC tagged by cluster tag
+- 4: Install with tags: SB for LB, LZ Unmanaged, VPC cluster shared. Results: OK. There were wrong credentials granted to the controller, so the tag for VPC may be useless. Need to run more tests
+- 5: Install with tags: SB for LB. Results: Success
+- 6: Install #4 + using NLB as default. Result: TODO
 
 ## References
 
