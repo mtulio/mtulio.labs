@@ -7,9 +7,9 @@ __info__:
 
 > Status: Waiting for review
 
-> [PR to Collab]() : please review it! =]
+> [PR](https://github.com/mtulio/mtulio.labs/pull/9) : please review it! =]
 
-> [PR Preview]()
+> [PR Preview](https://mtuliolabs-git-article-ocp-aws-lz-mtulio.vercel.app/articles/ocp-aws-local-zones-day-2/)
 
 > Preview on [Dev.to](https://dev.to/mtulio/extend-the-compute-nodes-of-red-hat-openshift-to-the-aws-local-zones-3ila-temp-slug-3175426?preview=a8f003668e3e7b34397193b446b0445e3aff8fddf94a1ee0a3c029eb42e1993a62806d842901646c28e69af1dd5f2d262ae53de215574fd2cacc6b15)
 

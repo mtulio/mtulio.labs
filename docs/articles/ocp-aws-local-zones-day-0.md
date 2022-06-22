@@ -6,9 +6,9 @@ __info__:
 
 > Status: WIP
 
-> [PR](#):
+> [PR](https://github.com/mtulio/mtulio.labs/pull/9):
 
-> [PR Preview](#)
+> [PR Preview](https://mtuliolabs-git-article-ocp-aws-lz-mtulio.vercel.app/articles/ocp-aws-local-zones-day-0/)
 
 > Preview on [Dev.to](#)
 
