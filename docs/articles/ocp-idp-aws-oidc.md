@@ -1,50 +1,28 @@
-<!--METADATA_START-->
-
-# Deep Dive into AWS OIDC identity provider when installing OpenShift with IAM STS (“manual-STS”) support
-
-__meta_info__:
-
-> Status: Waiting for Review
-
-> Preview on [Dev.to](https://dev.to/mtulio/enhance-the-security-options-when-installing-openshift-with-iam-sts-manual-sts-on-aws-5048-temp-slug-3197013?preview=c9e9beb6b5be97e7b8f79527107c7a54847f6a62fab5d2735727e5875f1db843dfb3bfaf4907c49c6628b9014b72f40fc655ff604a033ba604e253ff)
-
-> [PR to Collab](https://github.com/mtulio/mtulio.labs/pull/8) (feel free to review)
-
-> [PR Preview](https://mtuliolabs-git-article-ocp-aws-idp-oidc-mtulio.vercel.app/articles/ocp-idp-aws-oidc/)
-
-> Estimated time to publish: 10 June
-
-> Series Name: OpenShift Security in AWS
-
-> Series Post: #1 OIDC Deep Dive;
-
-> Series post id: #2
-
-<!--METADATA_END-->
+# Deep Dive into AWS OIDC identity provider when installing OpenShift using manual authentication mode with STS
 
 Hey! o/
 
-I will share some options to install the OpenShift in AWS using IAM STS (a.k.a "manual-STS" mode).
+I will share some options to [install the OpenShift in AWS using manual authentication mode with with AWS Secure Token Service (STS)](https://docs.openshift.com/container-platform/4.10/authentication/managing_cloud_provider_credentials/cco-mode-sts.html).
 
-## An overview of how the AWS credentials flow works on OpenShift
+## An overview of how the AWS STS authentication flow works on OpenShift
 
 Getting credentials assuming an IAM role is the best way to provide credentials to access AWS resources as it uses short-lived tokens, easy to expire, and fine-tuned the access through trusted relationship statements.
 
-When the application which wants to consume AWS services is the other AWS service (EC2, ECS, Lambda, etc) or an application running in any AWS service, usually it uses temporary credentials provided by the authentication service (example for EC2: metadata services, IMDS) to assume the role and get the temporary credentials from STS.
+When the application which wants to consume AWS services is the other AWS service (EC2, ECS, Lambda, etc) or an application running in almost all AWS infrastructure, usually it uses temporary credentials provided by the authentication service (example for EC2: metadata services, IMDS) to assume the role and get the temporary credentials from STS.
 
 When the service is external from AWS (example mobile App), or it uses shared resources (like Kubernetes/OpenShift cluster running in EC2) it needs an extra layer of authentication to avoid any application being able to assume the role allowed by the service (example EC2 instance profile).
 
 For that reason, there is the managed service IAM OIDC (which implements OpenID Connect spec) to allow external services federating access to AWS services through STS when assuming the AWS IAM Role. That is the IRSA: IAM Role for Service Accounts.
 
-The Kubernetes API Server (KAS) signs the service account tokens (JWT) with OIDC and IAM Role information. The service uses that token to authenticate on STS API calling the method `AssumeRoleWithWebIdentity` informing the IAM Role name desired to be assumed. The STS service access the **OIDC to validate it by accessing the JWKS (JSON Web Key Sets) files stored on the public URL**, once the token is validated, the IAM Role will be assumed, returning the short-lived credentials to the caller. The service can authenticate on the target service endpoint API (S3, EC2, etc).
+The Kubernetes API Server (KAS) signs the service account tokens (JWT) with OIDC and IAM Role information. The service uses that token to authenticate on STS API calling the method `AssumeRoleWithWebIdentity` informing the IAM Role ARN desired to be assumed. The STS service access the **OIDC to validate it by accessing the JWKS (JSON Web Key Sets) files stored on the public URL**, once the token is validated, the IAM Role will be assumed, returning the short-lived credentials to the caller (pod). The service can authenticate on the API for the target service (S3, EC2, etc).
 
-In OpenShift, every cluster component that needs to interact with AWS has one different token signed by KAS, associated exclusively with IAM Roles. Example of services:
+In OpenShift, every cluster component that needs to interact with AWS has one different token signed by KAS, each one associated exclusively with one IAM Role. Example of services:
 
 - Machine API to create EC2
 - Image Registry to create S3 Buckets
 - CSI to create EBS block storage
 
-Said that, let’s recap the steps to install OpenShift on AWS with STS support (manual-STS):
+Said that, let’s recap the steps to install OpenShift on AWS with STS:
 
 1. Create installer config
 1. Set the `credentialsMode` to `Manual`
@@ -63,7 +41,7 @@ The flow is something like this:
 
 ![aws-iam-oidc-flow](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/t6j45d92bmgauvy9zket.png)
 
-## Installing a cluster with manual-STS
+## Installing a cluster with AWS STS
 
 Now let’s walk through all the commands used to create a cluster.
 
@@ -323,7 +301,7 @@ That's how the SDK automatically loads/refreshes the credentials to controllers.
 
 ## Problem statement
 
-The endpoint which stores the JWKS keys should be public, as the OIDC will access the endpoint available on the JWT token when it is sent by STS API call `AssumeRoleWithWebIdentity`. You can take a look at the request arriving at the bucket when:
+The endpoint which stores the JWKS files should be public, as the IAM OIDC will access the endpoint available on the JWT token when it is sent by STS API call `AssumeRoleWithWebIdentity`. You can take a look at the request arriving at the bucket when:
 - Enable the S3 bucket access log
 - Filter the events to access the Bucket on the CloudTrail
 
@@ -393,3 +371,41 @@ A few ideas for the next step using the `ccoctl` utility:
 - [AWS Doc: S3 best practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html)
 - [EKS Workshop: IAM Roles for Service Account](https://www.eksworkshop.com/beginner/110_irsa/)
 - [AWS STS API: AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
+
+<!--METADATA_START
+
+__meta_info__:
+- id: 1097083,
+- canonical_url: "https://dev.to/mtulio/ocp-aws-deep-dive-into-oidc-idp-when-installing-with-manual-mode"
+
+```
+ARTICLE_PATH="ocp-aws-deep-dive-into-oidc-idp-when-installing-with-manual-mode"
+curl -X PUT -H "Content-Type: application/json" \
+  -H "api-key: $FOREM_API_KEY" \
+  -d "{\"article\":{
+        \"canonical_url\":\"https://dev.to/mtulio/${ARTICLE_PATH}\",
+        \"slug\":\"${ARTICLE_PATH}\",
+        \"path\":\"/mtulio/${ARTICLE_PATH}\",
+        \"url\":\"https://dev.to/mtulio/${ARTICLE_PATH}\"
+      }}" \
+  https://dev.to/api/articles/1097083
+```
+
+
+> Status: Waiting for Review
+
+> Preview on [Dev.to](https://dev.to/mtulio/enhance-the-security-options-when-installing-openshift-with-iam-sts-manual-sts-on-aws-5048-temp-slug-3197013?preview=c9e9beb6b5be97e7b8f79527107c7a54847f6a62fab5d2735727e5875f1db843dfb3bfaf4907c49c6628b9014b72f40fc655ff604a033ba604e253ff)
+
+> [PR to Collab](https://github.com/mtulio/mtulio.labs/pull/8) (feel free to review)
+
+> [PR Preview](https://mtuliolabs-git-article-ocp-aws-idp-oidc-mtulio.vercel.app/articles/ocp-idp-aws-oidc/)
+
+> Estimated time to publish: 10 June
+
+> Series Name: OpenShift Security in AWS
+
+> Series Post: #1 OIDC Deep Dive;
+
+> Series post id: #2
+
+METADATA_END-->

@@ -1,6 +1,6 @@
-# Installing OpenShift in AWS with STS (manual-STS) using private S3 Bucket for an OpenID Connect endpoint
+# Use private S3 Bucket when installing OpenShift in AWS with manual authentication mode with STS
 
-In this article, I will share hands-on steps to replace the default public endpoint used by IAM OpenID Connect (OIDC) from a public S3 Bucket to a CloudFront Distribution URL, when installing an OpenShift cluster with STS support.
+In this article, I will share the hands-on steps to replace the default public endpoint used by AWS IAM OpenID Connect (OIDC) from a public S3 Bucket to a CloudFront Distribution URL, when installing an OpenShift cluster with STS support.
 
 
 ## Table Of Contents
@@ -30,11 +30,11 @@ In this article, I will share hands-on steps to replace the default public endpo
 
 ### _Quick recap_<a name="summary-recap"></a>
 
-The endpoint identifier, that also names the OpenID Connector resource, should be public access as it's used by IAM managed service to retrieve the public keys (JWKS) used on `ProjectedServiceAccountToken` JSON web tokens. This way external systems, like IAM, can validate and accept the Kubernetes-issued OIDC tokens.
+The endpoint identifier, that also names the OpenID Connector resource (IAM OIDC), should be public access as it's used by IAM managed service to retrieve the public keys (JWKS) used on `ProjectedServiceAccountToken` (JSON web tokens projected to the pod). This way external systems, like IAM, can validate and accept the Kubernetes-issued OIDC tokens.
 
-The `ccoctl` is the utility used to automate the OIDC setup to install an OpenShift cluster in AWS with STS support.
+The `ccoctl` is the utility used to automate the OIDC setup to install an OpenShift cluster in AWS with manual authentication mode with STS.
 
-Currently, the default `ccoctl` deployment creates one public S3 Bucket per cluster with JWKS objects, directly exposing the Bucket's URL the OIDC discovery endpoint. In some AWS Accounts, public buckets or objects are unwanted or blocked. This is the main motivation to explore this topic and share some options we have nowadays to use a Bucket in a more restrictive mode.
+Currently, the default `ccoctl` deployment creates one public S3 Bucket per cluster with JWKS objects, directly exposing the Bucket's URL as the OIDC discovery endpoint. In some AWS Accounts, public buckets or objects are unwanted or blocked. This is the main motivation to explore this topic and share some other options to use a Bucket in a more restrictive mode.
 
 If you would like to know more about this topic, I highly advise you read:
 - [AWS Doc: Restricting access to Amazon S3 content by using an origin access identity (OAI)](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
@@ -679,7 +679,7 @@ Suggestions for the next topics:
 - [EKS Workshop: IAM Roles for Service Account](https://www.eksworkshop.com/beginner/110_irsa/)
 - [AWS STS API: AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
 
-<!--METADATA_START-->
+<!--METADATA_START
 
 __meta_info__:
 
