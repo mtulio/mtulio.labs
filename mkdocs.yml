@@ -239,6 +239,7 @@ nav:
     - OpenShift Network:
       - Install OpenShift with compute on the edge using AWS Local Zones: articles/ocp-aws-local-zones-day-0.md
       - Extend OpenShift to the edge with AWS Local Zones: articles/ocp-aws-local-zones-day-2.md
+      - Benchmark the edge deployments with AWS Local Zones: articles/ocp-aws-local-zones-app-alb.md
     - OpenShift Ingress:
       - Using multiple AWS ALB Operator on OpenShift: articles/ocp-aws-local-zones-app-alb.md
 
