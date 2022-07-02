@@ -43,6 +43,7 @@ If you would like to know more about this topic, I highly advise you read:
 ### _Goal_<a name="summary-goal"></a>
 
 We will walk through those steps to:
+
 - create one CloudFront Distribution to be used as the public endpoint for OIDC
 - create one private S3 Bucket
 - create one [origin access identity (OAI) to access the S3 from CloudFront Distribution](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
@@ -645,11 +646,13 @@ As you can see, I didn’t find any restriction to using CloudFront as a public 
 I would also like to mention that there is no difference/impact in terms of cluster security, as the cluster does not access the OIDC URL. So, that change is more for the AWS account security compliance.
 
 I can also see some advantages when writing this article, like expanding the solution when you're operating many accounts with many clusters thus simplifying the life of DevSecOps teams:
+
 - Centralize the management of the OIDC files into one single entry point;
 - Create your own DNS domain for the OIDC identifier;
 - Flexibility to create a 'multi-tenant' solution storing many JWKS from the different clusters in the same bucket; or it could be in different buckets using the same entry point (CloudFront) routing to different origins (S3 Buckets).
 
 Furthermore, it would be nice to have:
+
 - AWS to implement the OIDC private access to the thumbprints instead of a public HTTPS*, this way it would be possible to set a couple of S3 bucket policies, allowing only OIDC ARN principal;
 - `ccoctl` utility to create the steps using CloudFront by default;
 - `openshift-installer` to embed the `ccoctl` steps/automation when using manual-STS;
@@ -660,6 +663,7 @@ Furthermore, it would be nice to have:
 > [1] _"The returned Issuer location MUST be a URI RFC 3986 [RFC3986] with a scheme component that MUST be HTTPS, a host component, and optionally, port and path components and no query or fragment components."_ [https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery]
 
 Suggestions for the next topics:
+
 - Create one multi-tenant bucket with custom DNS on CloudFront to serve JWKS files from multiple clusters
 - Evaluate the following options to serve public URLs to IAM OIDC, like:
   - Lambda function serving JWKS files directly or reading from S3 bucket restricted to the ARN function, using one option below as the URL entry point*:
