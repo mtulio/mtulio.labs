@@ -83,8 +83,6 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-public-1" ] ]
-      - Key: kubernetes.io/role/elb
-        Value: 1
   PublicSubnet2:
     Type: "AWS::EC2::Subnet"
     Condition: DoAz2
@@ -97,8 +95,6 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-public-2" ] ]
-      - Key: kubernetes.io/role/elb
-        Value: 1
   PublicSubnet3:
     Type: "AWS::EC2::Subnet"
     Condition: DoAz3
@@ -111,8 +107,6 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-public-3" ] ]
-      - Key: kubernetes.io/role/elb
-        Value: 1
 
   InternetGateway:
     Type: "AWS::EC2::InternetGateway"
@@ -167,8 +161,6 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-private-1" ] ]
-      - Key: kubernetes.io/role/internal-elb
-        Value: 1
   PrivateRouteTable:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -219,8 +211,6 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-private-2" ] ]
-      - Key: kubernetes.io/role/internal-elb
-        Value: 1
   PrivateRouteTable2:
     Type: "AWS::EC2::RouteTable"
     Condition: DoAz2
@@ -279,8 +269,6 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-private-3" ] ]
-      - Key: kubernetes.io/role/internal-elb
-        Value: 1
   PrivateRouteTable3:
     Type: "AWS::EC2::RouteTable"
     Condition: DoAz3
