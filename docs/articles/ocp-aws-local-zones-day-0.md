@@ -546,9 +546,10 @@ Tests performed:
 - 2: Install a cluster with LB subnets tagging on the zones on the parent region and `unmanaged` to the LZ subnet. Result: success. The discoverer ignored the LZ subnet
 - 3A: Install a cluster with no LB subnets tagging, and unmanaged on LZ subnet: Result: Succes
 - 3B: Install the ELB Operator on the LZ subnet which has an `unmanaged` tag. Result: Controller is not finding the VPC tagged by cluster tag
-- 4: Install with tags: SB for LB, LZ Unmanaged, VPC cluster shared. Results: OK. There were wrong credentials granted to the controller, so the tag for VPC may be useless. Need to run more tests
-- 5: Install with tags: SB for LB. Results: Success
+- 4: Install with tags: Subn for LB, LZ Unmanaged, VPC cluster shared. Results: OK. There were wrong credentials granted to the controller, so the tag for VPC may be useless. Need to run more tests
+- 5: Install with tags: Subn for LB. Results: Success
 - 6: Install #4 + using NLB as default. Result: Success. The NLB has more unrestrictive security group rules, installing the compute nodes in the public subnets could expose the node ports directly to the internet.
+- 7: Install with tags on Subn for LZ, No LB tags on All Subn. Results: Success. We don't need the Sub ELB tags on the parent zone, we need the unmanaged on the LZ zone
 
 ## References <a name="references"></a>
 
