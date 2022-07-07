@@ -1,18 +1,4 @@
-<!--METADATA_START-->
-
-# [review] Install OpenShift cluster in the edge with AWS Local Zones
-
-__info__:
-
-> Status: WIP
-
-> [PR](https://github.com/mtulio/mtulio.labs/pull/9):
-
-> [PR Preview](https://mtuliolabs-git-article-ocp-aws-lz-mtulio.vercel.app/articles/ocp-aws-local-zones-day-0/)
-
-> Preview on [Dev.to](#)
-
-<!--METADATA_END-->
+# Install OpenShift cluster in the edge with AWS Local Zones
 
 This article describes the steps to install the OpenShift cluster in an existing VPC with Local Zones subnets.
 
@@ -35,24 +21,29 @@ This article describes the steps to install the OpenShift cluster in an existing
 
 ## Summary <a name="summary"></a>
 
-### What you need to know
-
-> TODO. Ref. Day-2 article
-
-- Installing a cluster with network customizations: https://docs.openshift.com/container-platform/4.6/installing/installing_aws/installing-aws-network-customizations.html
-
-
 ### Reference Architecture
 
-> TODO. Ref. Day-2 article
+The following network assets will be creted in this article:
+
+- 1 VPC with CIDR 10.0.0.0/16
+- 4 Public subnets on the zones: us-east-1a, us-east-1b, us-east-1c, us-east-1-nyc-1a
+- 3 Private subnets on the zones: us-east-1a, us-east-1b, us-east-1c
+- 3 NAT Gateway, one per private subnet
+- 1 Internet gateway
+- 4 route tables, 3 for private subnets and one for public subnets
+
+The following OpenShift cluster nodes will be created:
+
+- 3 Control Plane nodes running in the subnets on the "parent region" (us-east-1{a,b,c})
+- 3 Compute nodes (Machine Set) running in the subnets on the "parent region" (us-east-1{a,b,c})
+- 1 Compute node (Machine Set) running in the edge location us-east-1-nyc-1a (NYC Local Zone)
 
 ### Requirements and considerations
 
-> TODO. Ref. Day-2 article
+- OpenShift CLI (`oc`)
+- AWS CLI (`aws`)
 
 ### Preparing the environment
-
-> Status: Waiting Review
 
 - Export the common environment variables (change me)
 
@@ -272,7 +263,7 @@ cp -v ${PWD}/install-config.yaml \
 
 ### Create the installer manifests <a name="steps-create-manifests"></a>
 
-- Create manifests
+- Create the manifests
 
 ```bash
 ./openshift-install create manifests
@@ -520,27 +511,10 @@ aws cloudformation delete-stack --stack-name ${STACK_LZ}
 aws cloudformation delete-stack --stack-name ${STACK_VPC}
 ```
 
-## Final notes / Conclusion <a name="review"></a>
+## Tests performed <a name="tests"></a>
 
-> WIP/Review
-
-Goal review: Install one OpenShift cluster...DONE
-
-Resources produced:
-
-- UPI CloudFormation template for VPC reviewed/updated
-- New CloudFormation template to create Local Zone subnets created
-- Steps for OpenShift 4.11 installing with support to create compute nodes in Local Zones
-
-Takeaways / Important notes:
-
-- All the subnets should be tagged properly with the correct tag to be discovered by Ingress Controller
-- The LocalZone subnets **should** have the tag cluster to "unmanaged"
-- Local Zones do not support Nat Gateways, so there are two options for nodes on Local Zones to access the internet:
-  - 1) Use public subnet on Local Zone and map the public IP to the instance (Machine spec). There are no security constraints as the Security Group rules block all the access outside the VPC (default installation). The NLB has more unrestrictive rules on the security groups, so option 2 should be better until it is not improved.
-  - 2) Create the private subnet, associating the Local Zones subnet to one parent region route table, then create the machine in the private subnet without mapping public IP.
-
-Tests performed:
+<!--
+Tests log:
 
 - 1: Install a cluster with LB subnets tagging. Result: fail, the Controller discoverer added the LZ subnet to the list to create the IG
 - 2: Install a cluster with LB subnets tagging on the zones on the parent region and `unmanaged` to the LZ subnet. Result: success. The discoverer ignored the LZ subnet
@@ -550,6 +524,103 @@ Tests performed:
 - 5: Install with tags: Subn for LB. Results: Success
 - 6: Install #4 + using NLB as default. Result: Success. The NLB has more unrestrictive security group rules, installing the compute nodes in the public subnets could expose the node ports directly to the internet.
 - 7: Install with tags on Subn for LZ, No LB tags on All Subn. Results: Success. We don't need the Sub ELB tags on the parent zone, we need the unmanaged on the LZ zone
+- 8: Install with tag kubernetes.io/role/elb=0 for LZ, and no tags for all Subn. Results: Failed. The Ingress does not look to the ELB tag and tries to add the subnet to the default router lb. It was fixed only when I added kubernetes.io/cluster/unmanaged=true tag (It is OK for provided network, but can be a problem on installer)
+- 9: Install with LB tags on parent region, and no tags on LZ subnet. Result: failed
+- 10: VPC Tag, LZ unmanaged tag. Result: Success
+- 11: Check if the installer modifies the subnets to cluster tags when installing in existing VPCs
+-->
+
+A quick review of the goal of this post:
+
+- install an OpenShift cluster successfully in existing VPC which has, at least one, subnet on the Local Zone
+- Make sure all the cluster operators has been finished without issues
+- Make sure the Local Zone subnet can be used further deploying ingress exclusively for it using AWS ELB Operator (Local Zone supports only Application Load Balancers)
+
+Said that, several combinations of tagging were executed to find the correct approach to install a cluster in existing VPC without falling into the Load Balancer controller add the Local Zone subnet automatically to the default router - which should be located only in the subnets in the parent region (non-edge/Local Zones).
+
+The following matrix was created to document all the tests performed and the results:
+
+| #   | VPC tag | ELB tag | LZ tag | Res Install | Res ELB Op | Desc |
+| --  | --        | --        | --          | --          | --          | -- |
+| 1   | --        | X         | --          | Fail        | NT          | `ERR#1` |
+| 2   | --        | X         | X           | Success     | NT          | -- |
+| 3A  | --        | --        | X           | Success     | NT          | -- |
+| 3B  | --        | --        | X           | Success     | Failed      | `ERR#2`: ELB Oper expects cluster tag on VPC |
+| 4   | X         | X         | X           | Success     | Success     | Needs retest, creds issues |
+| 5   | X         | X         | X           | Success     | Success     | -- |
+| 6   | X         | X         | X           | Success     | Success     | NLB as default ingress |
+| 7   | --        | --        | X           | Success     | NT          | -- |
+| 8   | --        | --        | X*          | Failed      | NT          | `ERR#1`: `*elb=0`: IG Controller ignored the '0' value |
+| 9   | X         | X         | --          | Failed      | NT          | `ERR#1`: Controller tries to add the LZ Subnet |
+| 10  | X         | --        | X           | Success | Success | -- |
+
+- `VPC tag` is the cluster tag creted on the VPC `kubernetes.io/cluster/<infraID>=.*`
+- `ELB tag` is the Load Balancer tags created on the subnets on the parent zone (only) used by [Controler Subnet Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/): `kubernetes.io/role/elb=1` or `kubernetes.io/role/internal-elb=1`
+- `LZ tag` is the "unmanaged" cluster tag set on the Local Zone subnet (only): `kubernetes.io/cluster/unmanaged=true`
+- `Res Install` is the result of the installer execution
+- `Res ELB Oper` is the result of the setup of ALB Operator and provisioning the ingress in the Local Zone Subnet (only)
+
+
+`ERR#1`: Error when KCM tries to add the Local Zone subnet (`oc get co`):
+```
+ingress                                                  False       True          True       92s     The "default" ingress controller reports Available=False: IngressControllerUnavailable: One or more status conditions indicate unavailable: LoadBalancerReady=False (SyncLoadBalancerFailed: The service-controller component is reporting SyncLoadBalancerFailed events like: Error syncing load balancer: failed to ensure load balancer: ValidationError: You cannot have any Local Zone subnets for load balancers of type 'classic'...
+```
+
+`ERR#2`: ELB Controller cannot find the VPC cluster tag (`oc logs pod/aws-load-balancer-operator-controller-manager-[redacted] -n aws-load-balancer-operator`)
+```
+1.6572192750063934e+09	ERROR	setup	failed to get VPC ID	{"error": "no VPC with tag \"kubernetes.io/cluster/lzdemo-b88kd\" found"}
+main.main
+	/workspace/main.go:133
+runtime.main
+	/usr/local/go/src/runtime/proc.go:255
+```
+
+### Expectations
+
+For default router/ingress/controller:
+
+- Should not auto discovery all the subnets on the VPC when the subnets has been set on the install-config.yaml
+- Should not auto discovery all the subnets on the VPC when the `kubernetes.io/role/elb=1` has been added to public subnets
+- Should not try to add subnets not supported (Local Zones, Wavelength) to the technology used by Load Balancer (CLB/NLB) on the ingress
+- The controller auto discover ignores the `kubernetes.io/role/elb=0`, so we can specify what subnets we would not like to be added/used by Load Balancer
+
+For the AWS ELB Operator/Controller:
+
+- Must not expect cluster tag set on the VPC as it is not required when installing clusters in existing VPCs. [See the documentation fragment](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-vpc.html#installation-custom-aws-vpc-requirements_installing-aws-vpc).
+- Should not add all the nodes on the target groups, only the nodes which is running the service pods, or compute nodes which is in the zones of ALB. It will: 1) decrease the number of Health checks arriving to nodes not running the application; 2) decrease the number of unused nodes on the targets
+
+For the uninstalling:
+
+- Any ELB Created by ALB Operator should be deleted on the installer destroy flow
+- Any SGs created to attach to ELB should be deleted
+
+
+## Final notes / Conclusion <a name="review"></a>
+
+The OpenShift cluster can be installed successfully in existing VPC which has subnets in the Local Zones when the tags has been set correctly. So new Machines Sets can be added to any new location.
+
+It was not found any technical blocker to install OpenShift cluster in existing VPC which has subnets in AWS Local Zones, although there is a sort of configuration to be asserted to avoid issues on the default router and ELB Operator.
+
+As described on the steps section, the setup created one Machine Set setting it to unscheduled, creating the node-role.kubernetes.io/edge=’’. The suggestion to create a custom MachineSet named “edge” was to keep easy the management of resources operating in the Local Zones, which is in general more expensive than the parent zone (the costs are almost 20%). This is a design pattern, the label topology.kubernetes.io/zone can be mixed with taint rules when operating in many locations.
+
+The installation process runs correctly as Day-0 Operation, the only limitation we have found when installing was the ingress controller trying to discover all the public subnets on the VPC to create the service for default router. The workaround was provided by **tagging** the Local Zone subnets with `kubernetes.io/cluster/unmanaged=true` to avoid the [Subnets Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/) include the Local Zone Subnets into the default router.
+
+Additionally, on when installing the ALB Operator in Day 2 (available on 4.11), the operator requires the cluster tag `kubernetes.io/cluster/<infraID>=.*` to run successfully, althrough the installer does not requires it when installing a cluster in existing VPC[1]. The steps to use ALB on services deployed in Local Zones exploring the low-latency feature are not covered in this document, an experiment creating the operator from source can be found [here](https://github.com/openshift/aws-load-balancer-operator#aws-load-balancer-operator).
+
+Resources produced:
+
+- UPI CloudFormation template for VPC reviewed/updated
+- New CloudFormation template to create Local Zone subnets created
+- Steps for OpenShift 4.11 installing with support to create compute nodes in Local Zones
+
+Takeaways / Important notes:
+
+- The Local Zone subnets **should** have the tag `kubernetes.io/cluster/unmanaged=true` to avoid the Subnet Discovery for load balancer controller automatically add the subnet located on the Local Zone to the default router.
+- The VPC **should** have the tag `kubernetes.io/cluster/<infraID>=shared` to install correctly the AWS ELB Operator (not covered in this post)
+- Local Zones do not support Nat Gateways, so there are two options for nodes on Local Zones to access the internet:
+  1) Create the private subnet, associating the Local Zones subnet to one parent region route table, then create the machine in the private subnet without mapping public IP.
+  2) Use public subnet on Local Zone and map the public IP to the instance (Machine spec). There are no security constraints as the Security Group rules block all the access outside the VPC (default installation). The NLB has more unrestrictive rules on the security groups. Option 1 should be better until it is not improved. That option also implies in extra data transfer fees from the instance located on the Local Zone to the parent zone, in addition to the standard costs to the internet.
+
 
 ## References <a name="references"></a>
 
@@ -558,3 +629,19 @@ Tests performed:
 - [AWS EKS User Guide/Creating a VPC for your Amazon EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/creating-a-vpc.html)
 - [AWS Load Balancer Controller/Annotations/subnets](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/service/annotations/#subnets)
 - [AWS Load Balancer Controller/Subnet Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/)
+
+
+
+<!--METADATA_START
+
+__info__:
+
+> Status: WIP
+
+> [PR](https://github.com/mtulio/mtulio.labs/pull/9):
+
+> [PR Preview](https://mtuliolabs-git-article-ocp-aws-lz-mtulio.vercel.app/articles/ocp-aws-local-zones-day-0/)
+
+> Preview on [Dev.to](#)
+
+METADATA_END-->
