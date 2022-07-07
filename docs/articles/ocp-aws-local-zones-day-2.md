@@ -1,21 +1,26 @@
 # Extending OpenShift compute nodes to the edge with AWS Local Zones
-<!--METADATA_START
-
--->
-
-__info__:
-
-> Status: Waiting for review
-
-> [PR](https://github.com/mtulio/mtulio.labs/pull/9) : please review it! =]
-
-> [PR Preview](https://mtuliolabs-git-article-ocp-aws-lz-mtulio.vercel.app/articles/ocp-aws-local-zones-day-2/)
-
-> Preview on [Dev.to](https://dev.to/mtulio/extend-the-compute-nodes-of-red-hat-openshift-to-the-aws-local-zones-3ila-temp-slug-3175426?preview=a8f003668e3e7b34397193b446b0445e3aff8fddf94a1ee0a3c029eb42e1993a62806d842901646c28e69af1dd5f2d262ae53de215574fd2cacc6b15)
-
-<!--METADATA_END-->
 
 Let's talk about delivering single-digit millisecond latency applications to end-users on [OpenShift Cloud Platform](https://www.redhat.com/en/technologies/cloud-computing/openshift) clusters using [AWS Local Zones](https://aws.amazon.com/about-aws/global-infrastructure/localzones).
+
+**Table Of Contents**:
+
+- [Summary](#summary)
+- [Extend the VPC to Local Zones subnets](#extend-vpc)
+  - [Steps to Create the Subnet](#extend-step-subnets)
+  - [Choosing the Instance Type](#extend-instance)
+- [Create new Machines](#create-machine)
+- [Deploy the Application in the edge](#deploy-app)
+  - [Install the ALB Operator](#uc-deploy-elb-operator)
+  - [Deploy the Application](#uc-deploy-app)
+- [Test and Benchmark](#uc-benchmark)
+  - [Testing from (`Client#1`) / Brazil](#uc-benchmark-cli1)
+  - [Testing from (`Client#2`) / NYC](#uc-benchmark-cli2)
+  - [Testing from (`Client#3`) / California](#uc-benchmark-cli3)
+  - [Benchmark Review](#uc-benchmark-review)
+- [Final notes / Conclusion](#conclusion)
+- [References](#references)
+
+## Summary <a name="summary"></a>
 
 AWS Local Zones were created to locate Cloud Infrastructure closer to the large cities and IT centers, helping businesses to deliver their solutions to end-users faster.
 
@@ -28,7 +33,7 @@ As always, you need to design your application architecture to take advantage of
 I will walk through the solution example which can rely on user-close infrastructure while describing the steps to enable and create the resources in an OpenShift Cluster installed on AWS, then finally deploy one sample application running in the edge networks, and collect the latency from different locations (users) to different zone groups (parent/main region and Local Zones).
 
 
-**User Story**
+**Use Case**
 
 - As a company with hybrid cloud architecture, I would like to process real-time machine learning models in AWS specialized instances closer to my application.
 - As a Regional Bakery operating within the eastern US, I want to deliver custom cakes to the city where my customers are, advertising the closest stores with availability and an estimated delivery time.
@@ -42,13 +47,13 @@ For that reason, it’s important to make sure that your architecture will take 
 
 To go deeper into the details about the limitations and pricing, check the [Local Zones](https://aws.amazon.com/about-aws/global-infrastructure/localzones/features/) and [EC2 pricing](https://aws.amazon.com/ec2/pricing/on-demand/) page.
 
-## **Reference Architecture**
+### Reference Architecture
 
 The demo application used in this article takes advantage of the users' geo-location to deliver the content. Look at the diagram:
 
 ![AWS OpenShift architecture on AWS Local Zones](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/7bjy9iixe4i73ivtbm53.png)
 
-## **Requirements and considerations**
+### Requirements and considerations
 
 _Requirements_:
 
@@ -59,9 +64,10 @@ _Requirements_:
 _Considerations_:
 
 The version of components used in this post:
+
 - OpenShift/Kubernetes cluster: `4.10.10`
 
-## **Extend the VPC to Local Zones subnets**
+## Extend the VPC to Local Zones subnets <a name="extend-vpc"></a>
 
 The first step is to choose the locations you want to use to opt-in on AWS EC2 configuration - it's opt-out by default.
 
@@ -110,7 +116,7 @@ aws ec2 modify-availability-zone-group \
     --opt-in-status opted-in
 ```
 
-### **_Steps to Create the Subnet_**
+### Steps to Create the Subnets <a name="extend-step-subnets"></a>
 
 It's necessary to choose the CIDR available on your VPC to create the subnet in the new location. In this case, I am using the following CIDRs:
 - New York: 10.0.216.0/24
@@ -227,7 +233,7 @@ aws ec2 associate-route-table \
 
 All of the network configurations have been set for the new locations.
 
-### **Choosing the Instance Type**
+### Choosing the Instance Type <a name="extend-instance"></a>
 
 As I've mentioned, the Compute family and sizes are very limited on Local Zones, you can query the AWS API to check what instance types are available for each location:
 
@@ -249,7 +255,7 @@ We will use the instance `t3.medium`. Set the `INSTANCE_TYPE` environment variab
 INSTANCE_TYPE="t3.medium"
 ```
 
-## **Create new Machines in the Local Zone**
+## Create new Machines in the Local Zone <a name="create-machine"></a>
 
 This section describes the steps needed to create the `MachineSet` resources, which manage Machines in the recently created zones.
 
@@ -387,7 +393,16 @@ $ oc get nodes \
 
 All set! Your Machines are ready to run your workloads.
 
-## **Setup ALB Operator**
+## Deploy the Application in the edge <a name="deploy-app"></a>
+
+To use the new Machine running in the Local Zone, I will:
+
+- create a custom ingress using AWS ALB Operator (only ALB is supported on the Local Zones!)
+- the ingress will deploy one ALB using the subnet on the Local Zone
+- deploy one custom application and place it on the machine running in the Local Zone location
+- expose the sample application to the custom router
+
+### Install the ALB Operator <a name="uc-deploy-elb-operator"></a>
 
 We will use the [Application Load Balancer Operator](https://github.com/openshift/aws-load-balancer-operator) to install the ALB Controller to be able to create ingress using the AWS Application Load Balancer. The installation will be performed from the source code, you can read more options on the project page.
 
@@ -460,7 +475,7 @@ status:
     - subnet-0e3bbcb042149a250
 ```
 
-## **Deploy the Application**
+### Deploy the Application <a name="uc-deploy-app"></a>
 
 Now it's time for action! In this section, we will deploy one sample application that extracts the public `clientIp` (from HTTP request headers), and the `serverIp` (discovered when the app is initialized), returning it to the user.
 
@@ -728,7 +743,7 @@ $ curl -s http://${APP_URL_NYC}/ |jq .serverInfo.address
 "15.181.162.164"
 ```
 
-## **Test and Benchmark**
+## Test and Benchmark <a name="uc-benchmark"></a>
 
 Now it's time to make some measurements with `curl`.
 
@@ -737,7 +752,7 @@ We've run tests from 3 different sources to measure the total time to 3 differen
 - Client#2's Location: Digital Ocean/NYC3 (New York)
 - Client#3's Location: Digital Ocean/SFN (San Francisco)
 
-### Setup curl
+**Setup curl config files and functions**
 
 Create the file `curl-format-all.txt`:
 ```bash
@@ -785,7 +800,7 @@ curl_batch() {
 }
 ```
 
-### Testing from (`Client#1`) / Brazil
+### Testing from (`Client#1`) / Brazil <a name="uc-benchmark-cli1"></a>
 
 Client's information:
 - IP Address' Geo Location
@@ -856,7 +871,7 @@ time_starttransfer:  0.287794 Sec
         time_total:  0.287832 Sec
 ```
 
-### Testing from (`Client#2`) / NYC
+### Testing from (`Client#2`) / NYC <a name="uc-benchmark-cli2"></a>
 
 Client's information:
 - IP Address' Geo Location
@@ -926,9 +941,11 @@ time_starttransfer:  0.089609 Sec
         time_total:  0.089729 Sec
 ```
 
+<!--
 <table align="center"><tr><td>
 <img src="https://acegif.com/wp-content/uploads/2020/b72nv6/partyparrt-40.gif">
 </td></tr></table>
+-->
 
 Now we can see the advantage of operating on the edge delivering applications to a client close to the server, some insights from the values above:
 - The time to connect to the NYC zone was 3x faster than the parent region, and 10x faster than the location far from the user
@@ -940,7 +957,7 @@ Now we can see the advantage of operating on the edge delivering applications to
 <img src="https://i.stack.imgur.com/XGlad.gif">
 </td></tr></table>
 
-### Testing from (`Client#3`) / California
+### Testing from (`Client#3`) / California <a name="uc-benchmark-cli3"></a>
 
 Client's information:
 - IP Address' Geo Location
@@ -1011,7 +1028,7 @@ time_starttransfer:  0.164575 Sec
         time_total:  0.164649 Sec
 ```
 
-### Benchmark Review
+### Benchmark Review <a name="uc-benchmark-review"></a>
 
 Let's move to the end of this benchmark by collecting more data points to normalize the results from the client and servers described above.
 
@@ -1058,7 +1075,7 @@ The difference in `ms` compared to the parent region  (negative is slower):
 | US-CA | 0 | -2.6392 | -14.5419 |
 
 
-## **Conclusion**
+## Final notes / Conclusion <a name="conclusion"></a>
 
 One of the biggest challenges in delivering solutions is to improve application performance. This includes many layers, one of which is the infrastructure. Having an option to deliver low latency to the end-users with low code efforts is a big advantage in time to market.
 
@@ -1079,9 +1096,23 @@ If you would like to further explore any topic described here, feel free to leav
 
 Thanks for reaching the end of this research with me! :)
 
-**References**
+## References <a name="references"></a>
 
 - [Red Hat OpenShift IPI Installer on AWS]()
 - [AWS Local Zones](https://aws.amazon.com/about-aws/global-infrastructure/localzones/features/)
 - [AWS Wavelenght](https://aws.amazon.com/wavelength/)
 - [Red Hat OpenShift on Wavelenght](https://cloud.redhat.com/blog/running-an-openshift-worker-node-on-aws-wavelength-for-edge-applications)
+
+<!--METADATA_START
+
+__info__:
+
+> Status: Waiting for review
+
+> [PR](https://github.com/mtulio/mtulio.labs/pull/9) : please review it! =]
+
+> [PR Preview](https://mtuliolabs-git-article-ocp-aws-lz-mtulio.vercel.app/articles/ocp-aws-local-zones-day-2/)
+
+> Preview on [Dev.to](https://dev.to/mtulio/extend-the-compute-nodes-of-red-hat-openshift-to-the-aws-local-zones-3ila-temp-slug-3175426?preview=a8f003668e3e7b34397193b446b0445e3aff8fddf94a1ee0a3c029eb42e1993a62806d842901646c28e69af1dd5f2d262ae53de215574fd2cacc6b15)
+
+METADATA_END-->
