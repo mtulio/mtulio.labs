@@ -234,7 +234,7 @@ mapfile -t -O "${#SUBNETS[@]}" SUBNETS < <(aws cloudformation describe-stacks \
 
 - Create the `install-config.yaml` file, setting the subnets recently created (**parent region only**)
 
-> Adapt it as your usage, the requirement is to set the field `platform.aws.subnets` with the subnet IDs
+> Adapt it as your usage, the requirement is to set the field `platform.aws.subnets` with the subnet IDs recently created
 
 ```bash
 cat <<EOF > ${PWD}/install-config.yaml
@@ -291,7 +291,9 @@ export SUBNET_ID=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}"
 
 - Create the Machine Set for `nyc1` nodes
 
-> `publicIp: true` will be used as the Local Zone subnet is public.
+> `publicIp: true` should be set to deploy the node in the public subnet in Local Zone.
+
+> The public IP mapping is used merely to get access to the internet (required), optionally you can modify the network topology to use a private subnet, associating correctly the Local Zone private subnet to a valid route table that has correct routing entries to the internet. Or explore the disconnected installations. None of those options will be covered in this article.
 
 ```bash
 cat <<EOF > manifests/99_openshift-cluster-api_worker-machineset-nyc1.yaml
