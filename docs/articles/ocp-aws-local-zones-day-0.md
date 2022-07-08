@@ -23,7 +23,7 @@ This article describes the steps to install the OpenShift cluster in an existing
 
 ### Reference Architecture
 
-The following network assets will be creted in this article:
+The following network assets will be created in this article:
 
 - 1 VPC with CIDR 10.0.0.0/16
 - 4 Public subnets on the zones: us-east-1a, us-east-1b, us-east-1c, us-east-1-nyc-1a
@@ -554,7 +554,7 @@ The following matrix was created to document all the tests performed and the res
 | 9   | X         | X         | --          | Failed      | NT          | `ERR#1`: Controller tries to add the LZ Subnet |
 | 10  | X         | --        | X           | Success | Success | -- |
 
-- `VPC tag` is the cluster tag creted on the VPC `kubernetes.io/cluster/<infraID>=.*`
+- `VPC tag` is the cluster tag created on the VPC `kubernetes.io/cluster/<infraID>=.*`
 - `ELB tag` is the Load Balancer tags created on the subnets on the parent zone (only) used by [Controler Subnet Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/): `kubernetes.io/role/elb=1` or `kubernetes.io/role/internal-elb=1`
 - `LZ tag` is the "unmanaged" cluster tag set on the Local Zone subnet (only): `kubernetes.io/cluster/unmanaged=true`
 - `Res Install` is the result of the installer execution
@@ -587,7 +587,7 @@ For default router/ingress/controller:
 For the AWS ELB Operator/Controller:
 
 - Must not expect cluster tag set on the VPC as it is not required when installing clusters in existing VPCs. [See the documentation fragment](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-vpc.html#installation-custom-aws-vpc-requirements_installing-aws-vpc).
-- Should not add all the nodes on the target groups, only the nodes which is running the service pods, or compute nodes which is in the zones of ALB. It will: 1) decrease the number of Health checks arriving to nodes not running the application; 2) decrease the number of unused nodes on the targets
+- Should not add all the nodes on the target groups, only the nodes which are running the service pods, or compute nodes which are in the zones of ALB. It will: 1) decrease the number of Health checks arriving to nodes not running the application; 2) decrease the number of unused nodes on the targets
 
 For the uninstalling:
 
@@ -597,15 +597,15 @@ For the uninstalling:
 
 ## Final notes / Conclusion <a name="review"></a>
 
-The OpenShift cluster can be installed successfully in existing VPC which has subnets in the Local Zones when the tags has been set correctly. So new Machines Sets can be added to any new location.
+The OpenShift cluster can be installed successfully in existing VPC which has subnets in the Local Zones when the tags have been set correctly. So new Machines Sets can be added to any new location.
 
 It was not found any technical blocker to install OpenShift cluster in existing VPC which has subnets in AWS Local Zones, although there is a sort of configuration to be asserted to avoid issues on the default router and ELB Operator.
 
 As described on the steps section, the setup created one Machine Set setting it to unscheduled, creating the node-role.kubernetes.io/edge=’’. The suggestion to create a custom MachineSet named “edge” was to keep easy the management of resources operating in the Local Zones, which is in general more expensive than the parent zone (the costs are almost 20%). This is a design pattern, the label topology.kubernetes.io/zone can be mixed with taint rules when operating in many locations.
 
-The installation process runs correctly as Day-0 Operation, the only limitation we have found when installing was the ingress controller trying to discover all the public subnets on the VPC to create the service for default router. The workaround was provided by **tagging** the Local Zone subnets with `kubernetes.io/cluster/unmanaged=true` to avoid the [Subnets Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/) include the Local Zone Subnets into the default router.
+The installation process runs correctly as Day-0 Operation, the only limitation we have found when installing was the ingress controller trying to discover all the public subnets on the VPC to create the service for the default router. The workaround was provided by **tagging** the Local Zone subnets with `kubernetes.io/cluster/unmanaged=true` to avoid the [Subnets Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/) including the Local Zone Subnets into the default router.
 
-Additionally, on when installing the ALB Operator in Day 2 (available on 4.11), the operator requires the cluster tag `kubernetes.io/cluster/<infraID>=.*` to run successfully, althrough the installer does not requires it when installing a cluster in existing VPC[1]. The steps to use ALB on services deployed in Local Zones exploring the low-latency feature are not covered in this document, an experiment creating the operator from source can be found [here](https://github.com/openshift/aws-load-balancer-operator#aws-load-balancer-operator).
+Additionally, when installing the ALB Operator in Day 2 (available on 4.11), the operator requires the cluster tag `kubernetes.io/cluster/<infraID>=.*` to run successfully, although the installer does not require it when installing a cluster in existing VPC[1]. The steps to use ALB on services deployed in Local Zones exploring the low-latency feature are not covered in this document, an experiment creating the operator from source can be found [here](https://github.com/openshift/aws-load-balancer-operator#aws-load-balancer-operator).
 
 Resources produced:
 
@@ -619,7 +619,7 @@ Takeaways / Important notes:
 - The VPC **should** have the tag `kubernetes.io/cluster/<infraID>=shared` to install correctly the AWS ELB Operator (not covered in this post)
 - Local Zones do not support Nat Gateways, so there are two options for nodes on Local Zones to access the internet:
   1) Create the private subnet, associating the Local Zones subnet to one parent region route table, then create the machine in the private subnet without mapping public IP.
-  2) Use public subnet on Local Zone and map the public IP to the instance (Machine spec). There are no security constraints as the Security Group rules block all the access outside the VPC (default installation). The NLB has more unrestrictive rules on the security groups. Option 1 should be better until it is not improved. That option also implies in extra data transfer fees from the instance located on the Local Zone to the parent zone, in addition to the standard costs to the internet.
+  2) Use a public subnet on Local Zone and map the public IP to the instance (Machine spec). There are no security constraints as the Security Group rules block all the access outside the VPC (default installation). The NLB has more unrestrictive rules on the security groups. Option 1 should be better until it is not improved. That option also implies extra data transfer fees from the instance located on the Local Zone to the parent zone, in addition to the standard costs to the internet.
 
 
 ## References <a name="references"></a>
