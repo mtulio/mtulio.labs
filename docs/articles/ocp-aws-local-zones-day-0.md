@@ -1,6 +1,6 @@
 # Install OpenShift cluster in the edge with AWS Local Zones
 
-This article describes the steps to install the OpenShift cluster in an existing VPC with Local Zones subnets.
+This article describes the steps to [install the OpenShift cluster in an existing VPC](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-vpc.html) with Local Zones subnets, extending compute nodes to the edge locations with [MachineSets](https://docs.openshift.com/container-platform/4.10/machine_management/creating_machinesets/creating-machineset-aws.html).
 
 **Table Of Contents**:
 
@@ -38,7 +38,7 @@ The following OpenShift cluster nodes will be created:
 - 3 Compute nodes (Machine Set) running in the subnets on the "parent region" (us-east-1{a,b,c})
 - 1 Compute node (Machine Set) running in the edge location us-east-1-nyc-1a (NYC Local Zone)
 
-### Requirements and considerations
+### Requirements
 
 - OpenShift CLI (`oc`)
 - AWS CLI (`aws`)
@@ -62,6 +62,42 @@ oc adm release extract \
 
 tar xvfz openshift-client-linux-${VERSION}.tar.gz
 tar xvfz openshift-install-linux-${VERSION}.tar.gz
+```
+
+### Opt-in the Local Zone locations
+
+For each Local Zone location, you must opt-in on the EC2 configuration - it's opt-out by default.
+
+You can use the `describe-availability-zones` to check the location available in the region running your cluster.
+
+Export the region of your OpenShift cluster will be created:
+
+```bash
+export CLUSTER_REGION="us-east-1"
+```
+
+Check the AZs available in your region:
+
+```bash
+aws ec2 describe-availability-zones \
+    --filters Name=region-name,Values=${CLUSTER_REGION} \
+    --query 'AvailabilityZones[].ZoneName' \
+    --all-availability-zones
+```
+
+Depending on the region, that list can be long. Things you need to know:
+
+- `${REGION}[a-z]` : Availability Zones available in the Region (parent)
+- `${REGION}-LID-N[a-z]` : Local Zones available, where `LID-N` is the location identifier, and `[a-z]` is the zone identifier.
+- `${REGION}-wl1-LID-wlz-[1-9]` : [Available Wavelength zones](https://aws.amazon.com/wavelength/)
+
+
+Opt-in the location to your AWS Account - in this example `US East (New York)`:
+
+```bash
+aws ec2 modify-availability-zone-group \
+    --group-name "${CLUSTER_REGION}-nyc-1a" \
+    --opt-in-status opted-in
 ```
 
 ## Steps to create the Cluster <a name="steps-create"></a>
@@ -115,7 +151,8 @@ cat <<EOF | envsubst > ./stack-vpc-vars.json
 EOF
 ```
 
-- Download the [CloudFormation Template for VPC stack](./assets/ocp-aws-local-zones-day-0_cfn-net-vpc.yaml)
+- Download the <a href="https://raw.githubusercontent.com/mtulio/mtulio.labs/2c1d3761b5f21a94d8a458db48636c4c2d8a478f/docs/articles/assets/ocp-aws-local-zones-day-0_cfn-net-vpc.yaml" target="_blank">CloudFormation Template for VPC stack</a>
+
 
 - Create the VPC Stack
 
@@ -194,7 +231,7 @@ cat <<EOF | envsubst > ./stack-lz-vars-${LZ_ZONE_SHORTNAME}.json
 EOF
 ```
 
-- Download the [CloudFormation Template for Local Zone subnet stack](./assets/ocp-aws-local-zones-day-0_cfn-net-lz.yaml)
+- Download the [CloudFormation Template for Local Zone subnet stack](https://raw.githubusercontent.com/mtulio/mtulio.labs/2c1d3761b5f21a94d8a458db48636c4c2d8a478f/docs/articles/assets/ocp-aws-local-zones-day-0_cfn-net-lz.yaml)
 
 - Create the Local Zones subnet stack
 
@@ -285,15 +322,19 @@ export CLUSTER_ID="$(awk '/infrastructureName: / {print $2}' manifests/cluster-i
 ```bash
 export INSTANCE_TYPE="c5d.2xlarge"
 
-export AMI_ID=$(grep ami openshift/99_openshift-cluster-api_worker-machineset-0.yaml | tail -n1 |awk '{print$2}')
-export SUBNET_ID=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}" | jq -r .Stacks[0].Outputs[0].OutputValue)
+export AMI_ID=$(grep ami \
+  openshift/99_openshift-cluster-api_worker-machineset-0.yaml \
+  | tail -n1 | awk '{print$2}')
+export SUBNET_ID=$(aws cloudformation describe-stacks \
+  --stack-name "${STACK_LZ}" \
+  | jq -r .Stacks[0].Outputs[0].OutputValue)
 ```
 
 - Create the Machine Set for `nyc1` nodes
 
 > `publicIp: true` should be set to deploy the node in the public subnet in Local Zone.
 
-> The public IP mapping is used merely to get access to the internet (required), optionally you can modify the network topology to use a private subnet, associating correctly the Local Zone private subnet to a valid route table that has correct routing entries to the internet. Or explore the disconnected installations. None of those options will be covered in this article.
+> The public IP mapping is used merely to get access to the internet (required), optionally you can modify the network topology to use a private subnet, associating correctly the Local Zone private subnet to a valid route table that has correct routing entries to the internet. Or explore the [disconnected installations](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-restricted-networks-aws-installer-provisioned.html). None of those options will be covered in this article.
 
 ```bash
 cat <<EOF > manifests/99_openshift-cluster-api_worker-machineset-nyc1.yaml
@@ -361,14 +402,11 @@ spec:
 EOF
 ```
 
-
 #### Create IngressController manifest to use NLB (optional) <a name="steps-create-manifests-ic"></a>
 
-> The `4.11.0-fc.0` still installing Classic LB. This option will force to use the NLB by default.
+The OCP version used in this article, is using Classic Load Balancer as default router. This option will force to use the NLB by default.
 
-> Optional as the intention in this article is to validate the default IPI behavior. NLB is nice to have by default, should be tested either.
-
-> Section based on the [official documentation](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-network-customizations.html#nw-aws-nlb-new-cluster_installing-aws-network-customizations).
+> This section is based on the [official documentation](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-network-customizations.html#nw-aws-nlb-new-cluster_installing-aws-network-customizations).
 
 - Create the IngressController manifest to use NLB by default
 
@@ -394,13 +432,11 @@ EOF
 
 ### Update the VPC tag with the InfraID <a name="steps-create-update-vpc"></a>
 
-- Update the VPC cluster tag
+This step is required when the [ELB Operator (not covered)](https://github.com/openshift/aws-load-balancer-operator) will be installed. It will update the InfraID value on the VPC "cluster tag".
 
-> Required when installing the ELB Operator: `ERROR setup failed to get VPC ID  {"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`
+> Common error when installing the ELB Operator without setting the cluster tag: `ERROR setup failed to get VPC ID  {"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`
 
-> Q. to NE: Is it a bug? Should it be required? Can we use VPCs owned by subnets where the cluster was installed?
-
-1. Edit the VPC var file
+1. Edit the CloudFormation Template var file of the VPC stack
 
 ```bash
 cat <<EOF | envsubst > ./stack-vpc-vars.json
@@ -479,7 +515,8 @@ $ oc get co -o json \
 - Machines in Local Zones
 
 ```bash
-$ oc get machines -n openshift-machine-api -l machine.openshift.io/zone=us-east-1-nyc-1a
+$ oc get machines -n openshift-machine-api \
+  -l machine.openshift.io/zone=us-east-1-nyc-1a
 NAME                                       PHASE     TYPE          REGION      ZONE               AGE
 lzdemo-ds2dn-edge-us-east-1-nyc-1a-6645q   Running   c5d.2xlarge   us-east-1   us-east-1-nyc-1a   12m
 ```
@@ -520,7 +557,7 @@ The OpenShift cluster can be installed successfully in existing VPC which has su
 
 It was not found any technical blocker to install OpenShift cluster in existing VPC which has subnets in AWS Local Zones, although there is a sort of configuration to be asserted to avoid issues on the default router and ELB Operator.
 
-As described on the steps section, the setup created one Machine Set setting it to unscheduled, creating the node-role.kubernetes.io/edge=’’. The suggestion to create a custom MachineSet named “edge” was to keep easy the management of resources operating in the Local Zones, which is in general more expensive than the parent zone (the costs are almost 20%). This is a design pattern, the label topology.kubernetes.io/zone can be mixed with taint rules when operating in many locations.
+As described on the steps section, the setup created one Machine Set setting it to unscheduled, creating the `node-role.kubernetes.io/edge=''`. The suggestion to create a custom MachineSet named `edge` was to keep easy the management of resources operating in the Local Zones, which is in general more expensive than the parent zone (the costs are almost 20%). This is a design pattern, the label topology.kubernetes.io/zone can be mixed with taint rules when operating in many locations.
 
 The installation process runs correctly as Day-0 Operation, the only limitation we have found when installing was the ingress controller trying to discover all the public subnets on the VPC to create the service for the default router. The workaround was provided by **tagging** the Local Zone subnets with `kubernetes.io/cluster/unmanaged=true` to avoid the [Subnets Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/) including the Local Zone Subnets into the default router.
 
