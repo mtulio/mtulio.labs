@@ -1,3 +1,4 @@
 # Base
 ansible>=2.11
 jmespath
+boto3
