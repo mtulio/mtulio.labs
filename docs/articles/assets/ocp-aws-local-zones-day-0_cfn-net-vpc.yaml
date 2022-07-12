@@ -10,7 +10,7 @@ Parameters:
     Description: ClusterName used to prefix resource names
   ClusterInfraId:
     Type: String
-    Default: "unmanaged"
+    Default: "TBD"
     Description: ClusterInfraId used to tag required resources
   VpcCidr:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
@@ -71,6 +71,8 @@ Resources:
         Value: !Join [ "", [ !Ref ClusterName, "-vpc" ] ]
       - Key: !Join [ "", [ "kubernetes.io/cluster/", !Ref ClusterInfraId ] ]
         Value: "shared"
+      - Key: "kubernetes.io/role/elb"
+        Value: "1"
 
   PublicSubnet:
     Type: "AWS::EC2::Subnet"
@@ -83,6 +85,11 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-public-1" ] ]
+      - Key: !Join [ "", [ "kubernetes.io/cluster/", !Ref ClusterInfraId ] ]
+        Value: "shared"
+      - Key: "kubernetes.io/role/elb"
+        Value: "1"
+
   PublicSubnet2:
     Type: "AWS::EC2::Subnet"
     Condition: DoAz2
@@ -95,6 +102,11 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-public-2" ] ]
+      - Key: !Join [ "", [ "kubernetes.io/cluster/", !Ref ClusterInfraId ] ]
+        Value: "shared"
+      - Key: "kubernetes.io/role/elb"
+        Value: "1"
+
   PublicSubnet3:
     Type: "AWS::EC2::Subnet"
     Condition: DoAz3
@@ -107,6 +119,10 @@ Resources:
       Tags:
       - Key: Name
         Value: !Join [ "", [ !Ref ClusterName, "-public-3" ] ]
+      - Key: !Join [ "", [ "kubernetes.io/cluster/", !Ref ClusterInfraId ] ]
+        Value: "shared"
+      - Key: "kubernetes.io/role/elb"
+        Value: "1"
 
   InternetGateway:
     Type: "AWS::EC2::InternetGateway"

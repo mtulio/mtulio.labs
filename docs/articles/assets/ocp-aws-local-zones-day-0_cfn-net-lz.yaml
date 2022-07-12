@@ -6,6 +6,10 @@ Parameters:
   ClusterName:
     Description: ClusterName used to prefix resource names
     Type: String
+  ClusterInfraId:
+    Type: String
+    Default: "TBD"
+    Description: ClusterInfraId used to tag required resources
   VpcId:
     Description: VPC Id
     Type: String
@@ -37,8 +41,8 @@ Resources:
         Value: !Join
           - ""
           - [ !Ref ClusterName, "-public-", !Ref LocalZoneNameShort, "-1" ]
-      - Key: kubernetes.io/cluster/unmanaged
-        Value: "true"
+      - Key: !Join [ "", [ "kubernetes.io/cluster/", !Ref ClusterInfraId ] ]
+        Value: "shared"
 
   PublicSubnetRouteTableAssociation:
     Type: "AWS::EC2::SubnetRouteTableAssociation"

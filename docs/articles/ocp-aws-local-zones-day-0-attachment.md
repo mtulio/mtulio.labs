@@ -19,6 +19,20 @@ Tests log:
 - 9: Install with LB tags on parent region, and no tags on LZ subnet. Result: failed
 - 10: VPC Tag, LZ unmanaged tag. Result: Success
 - 11: Set the LZ Subnet tag to kubernetes.io/cluster/<infraID>=unmanaged and observe the behavior. Result: Failed. The installer did not touch on this subnet, but the ingress operator failed trying to add the LZ subnet to the balancer.
+
+- 13
+kubernetes getNodeConditionPredicate
+func (s *Controller) getNodeConditionPredicate() NodeConditionPredicate {
+	// LabelNodeExcludeBalancers specifies that the node should not be considered as a target
+	// for external load-balancers which use nodes as a second hop (e.g. many cloud LBs which only
+	// understand nodes). For services that use externalTrafficPolicy=Local, this may mean that
+	// any backends on excluded nodes are not reachable by those external load-balancers.
+	// Implementations of this exclusion may vary based on provider.
+	LabelNodeExcludeBalancers = "node.kubernetes.io/exclude-from-external-load-balancers"
+
+kubernetes:vendor/k8s.io/legacy-cloud-providers/aws/aws.go
+func (c *Cloud) findELBSubnets(internalELB bool) ([]string, error) {
+
 -->
 
 A quick review of the goal of this post:
@@ -45,6 +59,7 @@ The following matrix was created to document all the tests performed and the res
 | 9   | X         | X         | --          | Failed      | NT          | `ERR#1`: Controller tries to add the LZ Subnet |
 | 10  | X         | --        | X           | Success     | Success     | -- |
 | 11  | X         | --        | X*          | Failed      | NT          | `ERR#1`: set tag `kubernetes.io/cluster/<infraID>=unmanaged` 4.11.0-rc.1 |
+| 12  | X         | X        | X*          | TBD      | TBD          | `4.11.0-rc.1`. *Set tag `kubernetes.io/cluster/<infraID>=shared` on LZ subnet + ELB Tags on pub subnets (non-LZ)  |
 
 - `VPC tag` is the cluster tag created on the VPC `kubernetes.io/cluster/<infraID>=.*`
 - `ELB tag` is the Load Balancer tags created on the subnets on the parent zone (only) used by [Controler Subnet Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/): `kubernetes.io/role/elb=1` or `kubernetes.io/role/internal-elb=1`

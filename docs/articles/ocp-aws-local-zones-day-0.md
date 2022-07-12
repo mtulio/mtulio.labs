@@ -48,6 +48,7 @@ The following OpenShift cluster nodes will be created:
 - Export the common environment variables (change me)
 
 ```bash
+export CLUSTER_REGION="us-east-1"
 export VERSION=4.11.0-rc.1
 export PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json
 export SSH_PUB_KEY_FILE="${HOME}/.ssh/id_rsa.pub"
@@ -69,12 +70,6 @@ tar xvfz openshift-install-linux-${VERSION}.tar.gz
 For each Local Zone location, you must opt-in on the EC2 configuration - it's opt-out by default.
 
 You can use the `describe-availability-zones` to check the location available in the region running your cluster.
-
-Export the region of your OpenShift cluster will be created:
-
-```bash
-export CLUSTER_REGION="us-east-1"
-```
 
 Check the AZs available in your region:
 
@@ -151,7 +146,7 @@ cat <<EOF | envsubst > ./stack-vpc-vars.json
 EOF
 ```
 
-- Download the <a href="https://raw.githubusercontent.com/mtulio/mtulio.labs/2c1d3761b5f21a94d8a458db48636c4c2d8a478f/docs/articles/assets/ocp-aws-local-zones-day-0_cfn-net-vpc.yaml" target="_blank">CloudFormation Template for VPC stack</a>
+- Download the <a href="./assets/ocp-aws-local-zones-day-0_cfn-net-vpc.yaml" target="_blank">CloudFormation Template for VPC stack</a>
 
 
 - Create the VPC Stack
@@ -231,7 +226,7 @@ cat <<EOF | envsubst > ./stack-lz-vars-${LZ_ZONE_SHORTNAME}.json
 EOF
 ```
 
-- Download the [CloudFormation Template for Local Zone subnet stack](https://raw.githubusercontent.com/mtulio/mtulio.labs/2c1d3761b5f21a94d8a458db48636c4c2d8a478f/docs/articles/assets/ocp-aws-local-zones-day-0_cfn-net-lz.yaml)
+- Download the [CloudFormation Template for Local Zone subnet stack](./assets/ocp-aws-local-zones-day-0_cfn-net-lz.yaml)
 
 - Create the Local Zones subnet stack
 
@@ -463,6 +458,39 @@ cat <<EOF | envsubst > ./stack-vpc-vars.json
   }
 ]
 EOF
+
+cat <<EOF | envsubst > ./stack-lz-vars-${LZ_ZONE_SHORTNAME}.json
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "${CLUSTER_NAME}"
+  },
+  {
+    "ParameterKey": "ClusterInfraId",
+    "ParameterValue": "${CLUSTER_ID}"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "${VPC_ID}"
+  },
+  {
+    "ParameterKey": "PublicRouteTableId",
+    "ParameterValue": "${VPC_RTB_PUB}"
+  },
+  {
+    "ParameterKey": "LocalZoneName",
+    "ParameterValue": "${LZ_ZONE_NAME}"
+  },
+  {
+    "ParameterKey": "LocalZoneNameShort",
+    "ParameterValue": "${LZ_ZONE_SHORTNAME}"
+  },
+  {
+    "ParameterKey": "PublicSubnetCidr",
+    "ParameterValue": "${LZ_ZONE_CIDR}"
+  }
+]
+EOF
 ```
 
 2. Update the stack
@@ -472,6 +500,11 @@ aws cloudformation update-stack \
   --stack-name ${STACK_VPC} \
   --template-body file://${STACK_VPC_TPL} \
   --parameters file://${STACK_VPC_VARS}
+
+aws cloudformation update-stack \
+  --stack-name ${STACK_LZ} \
+  --template-body file://${STACK_LZ_TPL} \
+  --parameters file://${STACK_LZ_VARS}
 ```
 
 
