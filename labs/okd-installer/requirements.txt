@@ -1,4 +1,4 @@
 # Base
-ansible>=2.11
+ansible>=4
 jmespath
 boto3
