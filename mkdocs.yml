@@ -94,6 +94,7 @@ nav:
         - Machine resize: playbooks/openshift/resize-machines.md
         - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
         - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
+        - Hacking CCO STS manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
         - Create custom release: playbooks/openshift/dev-custom-release.md

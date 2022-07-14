@@ -3,16 +3,19 @@
 The steps below describes how to create EC2 instances using AWS CLI using credentials provided by STS when using OCP cluster with short-lived credentials in manual authentication mode.
 
 References:
+
 - [OpenShift CCO with manual credentials with STS](https://docs.openshift.com/container-platform/4.10/authentication/managing_cloud_provider_credentials/cco-mode-sts.html)
 - [aws cli run-instance](https://docs.aws.amazon.com/cli/latest/reference/ec2/run-instances.html)
 
 
 Required tools:
+
 - jq
 - aws cli
 - oc
 
 Required permissions:
+
 - authenticated with AWS user which has IAM Role List grants
 - authenticated with OCP User with cluster-admin grants
 
