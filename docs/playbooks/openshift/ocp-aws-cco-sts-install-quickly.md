@@ -1,8 +1,8 @@
-# OCP on AWS - Install cluster with STS with single command
+# OCP on AWS - Install cluster with STS with a single command
 
 Install the OCP cluster on AWS with manual Authentication with STS with a single command.
 
-The motivation of this playbook is to create a default cluster with STS support running a single command, without customizations, avoiding following many steps - most used in laboratory environments as it is setting the installer to use non-HA environment (single AZ).
+The motivation of this playbook is to create a default cluster with STS support running a single command, without customizations, avoiding following many steps - most used in laboratory environments as it is setting the installer to use a non-HA environment (single AZ).
 
 ## Steps
 
@@ -34,7 +34,7 @@ install_clients() {
 
   if [[ $need_install == true ]]
   then
-    echo ">> Clients - oc or openshift-install not found on the current dir, downlading..."
+    echo ">> Clients - oc or openshift-install not found on the current dir, downloading..."
     oc adm release extract \
       --tools quay.io/openshift-release-dev/ocp-release:${VERSION}-x86_64 \
       -a ${PULL_SECRET_FILE}
@@ -46,7 +46,7 @@ install_clients() {
   echo "> Clients - checking existing clients [ccoctl]"
   if [[ ! -x ./ccoctl ]]
   then
-    echo ">> Clients - ccoctl not found on the current dir, downlading..."
+    echo ">> Clients - ccoctl not found on the current dir, downloading..."
     RELEASE_IMAGE=$(./openshift-install version | awk '/release image/ {print $3}')
     CCO_IMAGE=$(oc adm release info --image-for='cloud-credential-operator' $RELEASE_IMAGE)
     ./oc image extract $CCO_IMAGE --file="/usr/bin/ccoctl" -a ${PULL_SECRET_FILE}
@@ -101,7 +101,7 @@ cco_destroy() {
 
 setup_installer() {
   echo "> Creating install-config.yaml"
-  # Create single-AZ install config
+  # Create a single-AZ install config
   mkdir -p ${INSTALL_DIR}
   cat <<EOF | envsubst > ${INSTALL_DIR}/install-config.yaml
 apiVersion: v1
@@ -142,15 +142,15 @@ destroy_cluster() {
 }
 ```
 
-- Create the cluster with name "labsts":
+- Create the cluster with the name "labsts":
 
 ```bash
-CLUSTER_NAME="labsts" &&\
+CLUSTER_NAME="labsts07" &&\
   CLUSTER_BASE_DOMAIN="devcluster.openshift.com" &&\
   create_cluster $CLUSTER_NAME
 ```
 
-- Destroy the cluster with name "`$CLUSTER_NAME`":
+- Destroy the cluster with the name "`$CLUSTER_NAME`":
 
 ```bash
 destroy_cluster $CLUSTER_NAME

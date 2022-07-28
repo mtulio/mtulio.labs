@@ -1,6 +1,6 @@
 # OCP on AWS - Hacking STS running instance using CLI
 
-The steps below describes how to create EC2 instances using AWS CLI using credentials provided by STS when using OCP cluster with short-lived credentials in manual authentication mode.
+The steps below describe how to create EC2 instances using AWS CLI using credentials provided by STS when using an OCP cluster with short-lived credentials in manual authentication mode.
 
 References:
 
@@ -22,7 +22,7 @@ Required permissions:
 
 ### Check permissions IAM vs CCO
 
-- Make sure the session (user, role or instance profile) have enough permissions to run the IAM operations. These permissions are required:
+- Make sure the session (user, role, or instance profile) has enough permissions to run the IAM operations. These permissions are required:
 ```
 iam:GetPolicy
 iam:GetPolicyVersion
@@ -45,7 +45,7 @@ sts:GetCallerIdentity
 
 ```bash
 test_credentials() {
-    # get token path
+    # get the token path
     TOKEN_PATH=$(oc get secrets aws-cloud-credentials \
         -n openshift-machine-api \
         -o jsonpath='{.data.credentials}' |\
@@ -159,7 +159,7 @@ run_instance_worker() {
 
     echo "# Extracting values from machine base manifest [${WORKER_MACHINE_COPY}]..."
 
-    # Setting default machine path (if there's no custom fields, otherwise you should adapt it)
+    # Setting default machine path (if there are no custom fields, otherwise you should adapt it)
     REGION=$(jq -r '.metadata.labels["machine.openshift.io/region"]' ${WORKER_MACHINE_COPY})
     AMI_ID=$(jq -r .spec.providerSpec.value.ami.id ${WORKER_MACHINE_COPY})
 
@@ -243,13 +243,13 @@ tar cfz cco-check.tar.gz cco-check*
 
 ## FAQ
 
-### What happens when there is missing RunInstance permissions
+### What happens when there are missing RunInstance permissions
 
-A) What happens when the IAM Role policiy has no ec2:RunInstance permission on the inline policy created by CCO?
+A) What happens when the IAM Role policy has no ec2:RunInstance permission on the inline policy created by CCO?
 
 **Steps to reproduce:**
 
-- Remove ec2:RunInstnace from inline policy for IAM Role XX
+- Remove ec2:RunInstnace from an inline policy for IAM Role `$CLUSTER_NAME-openshift-machine-api-aws-cloud-credentials`
 - Run the `aws ec2 run-instance (...)`
 
 **Expected results:**
@@ -291,12 +291,12 @@ echo $(aws sts decode-authorization-message \
 }
 ```
 
-B) What happens when the IAM Role XX has the permission boundaries set to block ec2:RunInstance operations?
+B) What happens when the IAM Role `$CLUSTER_NAME-openshift-machine-api-aws-cloud-credentials` has permission boundaries set to block ec2:RunInstance operations?
 
 
 **Steps to reproduce:**
 
-- Create the policy with the below permission document, attach it to the IAM Role XX
+- Create the policy with the below permission document, and attach it to the IAM Role `$CLUSTER_NAME-openshift-machine-api-aws-cloud-credentials`
 ```json
 {
    "Version": "2012-10-17",
@@ -329,7 +329,7 @@ $ run_instance_worker "03" | tee -a cco-check-run-worker-03.log
 
 An error occurred (UnauthorizedOperation) when calling the RunInstances operation: You are not authorized to perform this operation. Encoded authorization failure message: <redacted:$ERROR_MESSAGE>
 ```
-- Decode the error message - attention on the field `explicitDeny=false`:
+- Decode the error message - attention to the field `explicitDeny=true`:
 ```json
 $ echo $(aws sts decode-authorization-message \
 >     --encoded-message $ERROR_MESSAGE \
