@@ -95,6 +95,8 @@ nav:
         - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
         - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
         - Hacking CCO STS manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
+        - Quickly install an OCP cluster in AWS with STS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
+        - AWS STS - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
         - Create custom release: playbooks/openshift/dev-custom-release.md
