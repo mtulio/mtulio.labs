@@ -62,6 +62,26 @@ security_groups:
       - proto: all
         cidr_ip: 0.0.0.0/0
 
+  - name: "{{ cluster_state.infra_id }}-vpce-ec2"
+    description: Security Group for EC2 VPC Endpoint
+    purge_tags: no
+    tags: "{{ cluster_state.tags | combine({'Name':cluster_state.infra_id+'-vpce-ec2'}) }}"
+    purge_rules: true
+    rules:
+      - proto: tcp
+        cidr_ip: 10.0.0.0/8
+        ports:
+        - 443
+        rule_desc: allow VPC CIDR on port 443
+
+    purge_rules_egress: true
+    rules_egress:
+      - proto: tcp
+        cidr_ip: 0.0.0.0/0
+        ports:
+        - 443
+        rule_desc: allow VPC CIDR on port 443
+
 cloud_networks:
   ## AWS US East 1 (HA topology)
   - name: "{{ cluster_state.infra_id }}-vpc"
@@ -151,3 +171,13 @@ cloud_networks:
           - "{{ cluster_state.infra_id }}-rt-private-1a"
           - "{{ cluster_state.infra_id }}-rt-private-1b"
           - "{{ cluster_state.infra_id }}-rt-private-1c"
+
+      - name: ec2
+        service: com.amazonaws.us-east-1.ec2
+        type: Interface
+        security_group_names:
+          - "{{ cluster_state.infra_id }}-vpce-ec2"
+        subnet_names:
+          - "{{ cluster_state.infra_id }}-net-private-1a"
+          - "{{ cluster_state.infra_id }}-net-private-1b"
+          - "{{ cluster_state.infra_id }}-net-private-1c"
