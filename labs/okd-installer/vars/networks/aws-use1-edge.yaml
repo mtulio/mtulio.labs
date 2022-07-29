@@ -62,6 +62,26 @@ security_groups:
       - proto: all
         cidr_ip: 0.0.0.0/0
 
+  - name: "{{ cluster_state.infra_id }}-vpce-ec2"
+    description: Security Group for EC2 VPC Endpoint
+    purge_tags: no
+    tags: "{{ cluster_state.tags | combine({'Name':cluster_state.infra_id+'-vpce-ec2'}) }}"
+    purge_rules: true
+    rules:
+      - proto: tcp
+        cidr_ip: 10.0.0.0/8
+        ports:
+        - 443
+        rule_desc: allow VPC CIDR on port 443
+
+    purge_rules_egress: true
+    rules_egress:
+      - proto: tcp
+        cidr_ip: 0.0.0.0/0
+        ports:
+        - 443
+        rule_desc: allow VPC CIDR on port 443
+
 cloud_networks:
   ## AWS US East 1 (HA topology)
   - name: "{{ cluster_state.infra_id }}-vpc"
@@ -72,6 +92,7 @@ cloud_networks:
     tags: "{{ cluster_state.tags | d({}) }}"
 
     internet_gateway: true
+    carrier_gateway: true
     nat_gateways:
       - name: "{{ cluster_state.infra_id }}-natgw-1a"
         subnet: "{{ cluster_state.infra_id }}-net-public-1a"
@@ -110,6 +131,11 @@ cloud_networks:
           - dest: 0.0.0.0/0
             gw_type: igw
 
+      - name: "{{ cluster_state.infra_id }}-rt-public-edge"
+        routes:
+          - dest: 0.0.0.0/0
+            gw_type: cagw
+
     subnets:
       - name: "{{ cluster_state.infra_id }}-net-public-1a"
         az: us-east-1a
@@ -143,6 +169,26 @@ cloud_networks:
         route_table: "{{ cluster_state.infra_id }}-rt-private-1c"
         map_public: false
 
+      # Edge (Local Zone) subnets
+      - name: "{{ cluster_state.infra_id }}-net-public-nyc-lz-1a"
+        az: us-east-1-nyc-1a
+        cidr: 10.0.60.0/22
+        route_table: "{{ cluster_state.infra_id }}-rt-public"
+        map_public: true
+
+      - name: "{{ cluster_state.infra_id }}-net-private-nyc-lz-1a"
+        az: us-east-1-nyc-1a
+        cidr: 10.0.64.0/22
+        route_table: "{{ cluster_state.infra_id }}-rt-private-1a"
+        map_public: false
+
+      # Edge (Wavelength) subnets
+      - name: "{{ cluster_state.infra_id }}-net-public-nyc-wlz-1"
+        az: us-east-1-wl1-nyc-wlz-1
+        cidr: 10.0.68.0/22
+        route_table: "{{ cluster_state.infra_id }}-rt-public-edge"
+        map_public: false
+
     endpoint_services:
       - name: s3
         service: com.amazonaws.us-east-1.s3
@@ -151,3 +197,14 @@ cloud_networks:
           - "{{ cluster_state.infra_id }}-rt-private-1a"
           - "{{ cluster_state.infra_id }}-rt-private-1b"
           - "{{ cluster_state.infra_id }}-rt-private-1c"
+          - "{{ cluster_state.infra_id }}-rt-public-edge"
+
+      - name: ec2
+        service: com.amazonaws.us-east-1.ec2
+        type: Interface
+        security_group_names:
+          - "{{ cluster_state.infra_id }}-vpce-ec2"
+        subnet_names:
+          - "{{ cluster_state.infra_id }}-net-private-1a"
+          - "{{ cluster_state.infra_id }}-net-private-1b"
+          - "{{ cluster_state.infra_id }}-net-private-1c"

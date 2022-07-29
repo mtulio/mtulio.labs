@@ -62,6 +62,26 @@ security_groups:
       - proto: all
         cidr_ip: 0.0.0.0/0
 
+  - name: "{{ cluster_state.infra_id }}-vpce-ec2"
+    description: Security Group for EC2 VPC Endpoint
+    purge_tags: no
+    tags: "{{ cluster_state.tags | combine({'Name':cluster_state.infra_id+'-vpce-ec2'}) }}"
+    purge_rules: true
+    rules:
+      - proto: tcp
+        cidr_ip: 10.0.0.0/8
+        ports:
+        - 443
+        rule_desc: allow VPC CIDR on port 443
+
+    purge_rules_egress: true
+    rules_egress:
+      - proto: tcp
+        cidr_ip: 0.0.0.0/0
+        ports:
+        - 443
+        rule_desc: allow VPC CIDR on port 443
+
 cloud_networks:
   ## AWS US East 1 (HA topology)
   - name: "{{ cluster_state.infra_id }}-vpc"
@@ -76,14 +96,6 @@ cloud_networks:
       - name: "{{ cluster_state.infra_id }}-natgw-1a"
         subnet: "{{ cluster_state.infra_id }}-net-public-1a"
         tags: "{{ cluster_state.tags | d({}) }}"
-        wait: false
-      - name: "{{ cluster_state.infra_id }}-natgw-1b"
-        subnet: "{{ cluster_state.infra_id }}-net-public-1b"
-        tags: "{{ cluster_state.tags | d({}) }}"
-        wait: false
-      - name: "{{ cluster_state.infra_id }}-natgw-1c"
-        subnet: "{{ cluster_state.infra_id }}-net-public-1c"
-        tags: "{{ cluster_state.tags | d({}) }}"
         wait: true
 
     route_tables:
@@ -92,18 +104,6 @@ cloud_networks:
           - dest: 0.0.0.0/0
             gw_type: natgw
             target: "{{ cluster_state.infra_id }}-natgw-1a"
-
-      - name: "{{ cluster_state.infra_id }}-rt-private-1b"
-        routes:
-          - dest: 0.0.0.0/0
-            gw_type: natgw
-            target: "{{ cluster_state.infra_id }}-natgw-1b"
-
-      - name: "{{ cluster_state.infra_id }}-rt-private-1c"
-        routes:
-          - dest: 0.0.0.0/0
-            gw_type: natgw
-            target: "{{ cluster_state.infra_id }}-natgw-1c"
 
       - name: "{{ cluster_state.infra_id }}-rt-public"
         routes:
@@ -116,31 +116,11 @@ cloud_networks:
         cidr: 10.0.16.0/22
         route_table: "{{ cluster_state.infra_id }}-rt-public"
         map_public: true
-      - name: "{{ cluster_state.infra_id }}-net-public-1b"
-        az: us-east-1b
-        cidr: 10.0.20.0/22
-        route_table: "{{ cluster_state.infra_id }}-rt-public"
-        map_public: true
-      - name: "{{ cluster_state.infra_id }}-net-public-1c"
-        az: us-east-1c
-        cidr: 10.0.24.0/22
-        route_table: "{{ cluster_state.infra_id }}-rt-public"
-        map_public: true
 
       - name: "{{ cluster_state.infra_id }}-net-private-1a"
         az: us-east-1a
         cidr: 10.0.48.0/22
         route_table: "{{ cluster_state.infra_id }}-rt-private-1a"
-        map_public: false
-      - name: "{{ cluster_state.infra_id }}-net-private-1b"
-        az: us-east-1b
-        cidr: 10.0.52.0/22
-        route_table: "{{ cluster_state.infra_id }}-rt-private-1b"
-        map_public: false
-      - name: "{{ cluster_state.infra_id }}-net-private-1c"
-        az: us-east-1c
-        cidr: 10.0.56.0/22
-        route_table: "{{ cluster_state.infra_id }}-rt-private-1c"
         map_public: false
 
     endpoint_services:
@@ -149,5 +129,11 @@ cloud_networks:
         route_tables:
           - "{{ cluster_state.infra_id }}-rt-public"
           - "{{ cluster_state.infra_id }}-rt-private-1a"
-          - "{{ cluster_state.infra_id }}-rt-private-1b"
-          - "{{ cluster_state.infra_id }}-rt-private-1c"
+
+      - name: ec2
+        service: com.amazonaws.us-east-1.ec2
+        type: Interface
+        security_group_names:
+          - "{{ cluster_state.infra_id }}-vpce-ec2"
+        subnet_names:
+          - "{{ cluster_state.infra_id }}-net-private-1a"
