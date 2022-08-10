@@ -58,6 +58,32 @@ sed -is "s/$(whoami)/user/g" $REC_FILE
 asciinema rec -c "asciinema play -s ${speed} $1" ${REC_FILE_NEW}
 ```
 
+## Tool: asciinema-edit
+
+Project: https://github.com/cirocosta/asciinema-edit
+
+- install
+
+```
+go get -u -v github.com/cirocosta/asciinema-edit
+```
+
+- cut some parts of the cast
+
+```
+asciinema-edit cut \
+    --start=564.732 --end=5004.864 \
+    opct-demo-01-run-02.cast > opct-demo-01-run-03.cast
+```
+
+- speed up some parts of the cast
+
+```
+asciinema-edit speed \
+    --factor 10 --start=55.995835 --end=249.623772 \
+    opct-demo-01-run-04.cast > opct-demo-01-run-05.cast
+```
+
 ## Reference
 
 - https://asciinema.org/
