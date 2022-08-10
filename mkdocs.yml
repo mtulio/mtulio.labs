@@ -101,6 +101,7 @@ nav:
         - Build components: playbooks/openshift/dev-build-components.md
         - Create custom release: playbooks/openshift/dev-custom-release.md
         - Get Credentials with CI Registry: playbooks/openshift/install-credentials-with-ci.md
+        - Extract openshift-tests utility: playbooks/openshift/dev-extract-openshift-tests.md
 
   - Notes:
     - Home: notes/README.md
