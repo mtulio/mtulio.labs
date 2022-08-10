@@ -13,7 +13,7 @@ The motivation of this playbook is to create a default cluster with STS support 
 custom_vars() {
   cat<<'EOF'> ~/.env-ocp-sts-aws
 export REGION=${CLUSTER_REGION:-'us-east-1'}
-export VERSION=${CLUSTER_VERSION:-4.10.16}
+export VERSION=${CLUSTER_VERSION:-4.11.0-rc.6}
 
 export PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json
 export SSH_PUB_KEY_FILE="${HOME}/.ssh/id_rsa.pub"
