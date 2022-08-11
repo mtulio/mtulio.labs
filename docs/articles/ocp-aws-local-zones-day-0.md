@@ -48,7 +48,7 @@ The following OpenShift cluster nodes will be created:
 - Export the common environment variables (change me)
 
 ```bash
-export VERSION=4.11.0-rc.1
+export VERSION=4.11.0
 export PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json
 export SSH_PUB_KEY_FILE="${HOME}/.ssh/id_rsa.pub"
 ```
@@ -74,6 +74,8 @@ Export the region of your OpenShift cluster will be created:
 
 ```bash
 export CLUSTER_REGION="us-east-1"
+# Using NYC Local Zone (choose yours)
+export ZONE_GROUP_NAME="${CLUSTER_REGION}-nyc-1a"
 ```
 
 Check the AZs available in your region:
@@ -96,7 +98,7 @@ Opt-in the location to your AWS Account - in this example `US East (New York)`:
 
 ```bash
 aws ec2 modify-availability-zone-group \
-    --group-name "${CLUSTER_REGION}-nyc-1a" \
+    --group-name "${ZONE_GROUP_NAME}" \
     --opt-in-status opted-in
 ```
 
