@@ -97,6 +97,7 @@ nav:
         - Hacking CCO STS manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
         - Quickly install an OCP cluster in AWS with STS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
         - AWS STS - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
+        - AWS STS - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
         - Installing Hypershift on AWS with STS: playbooks/openshift/hypershift-install-sts.md
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
