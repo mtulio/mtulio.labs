@@ -1,5 +1,10 @@
 # Extending OpenShift compute nodes to the edge with AWS Local Zones
 
+<!--METADATA_START
+> Status: Published
+> Published on [Dev.to](https://dev.to/mtulio/extending-openshift-compute-nodes-to-the-edge-with-aws-local-zones-3ban)
+METADATA_END-->
+
 Let's talk about delivering single-digit millisecond latency applications to end-users on [OpenShift Cloud Platform](https://www.redhat.com/en/technologies/cloud-computing/openshift) clusters using [AWS Local Zones](https://aws.amazon.com/about-aws/global-infrastructure/localzones).
 
 **Table Of Contents**:

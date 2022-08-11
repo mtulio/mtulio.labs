@@ -1,5 +1,11 @@
 # Install OpenShift in the cloud edge with AWS Local Zones
 
+<!--METADATA_START
+> Status: Published
+> Published on [Dev.to](https://dev.to/mtulio/install-openshift-in-the-cloud-edge-with-aws-local-zones-3nh0)
+METADATA_END-->
+
+
 This article describes the steps to [install the OpenShift cluster in an existing VPC](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-vpc.html) with Local Zones subnets, extending compute nodes to the edge locations with [MachineSets](https://docs.openshift.com/container-platform/4.10/machine_management/creating_machinesets/creating-machineset-aws.html).
 
 **Table Of Contents**:
@@ -588,19 +594,3 @@ Takeaways / Important notes:
 - [AWS EKS User Guide/Creating a VPC for your Amazon EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/creating-a-vpc.html)
 - [AWS Load Balancer Controller/Annotations/subnets](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/service/annotations/#subnets)
 - [AWS Load Balancer Controller/Subnet Auto Discovery](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/subnet_discovery/)
-
-
-
-<!--METADATA_START
-
-__info__:
-
-> Status: WIP
-
-> [PR](https://github.com/mtulio/mtulio.labs/pull/9):
-
-> [PR Preview](https://mtuliolabs-git-article-ocp-aws-lz-mtulio.vercel.app/articles/ocp-aws-local-zones-day-0/)
-
-> Preview on [Dev.to](#)
-
-METADATA_END-->

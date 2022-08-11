@@ -1,6 +1,8 @@
 <!--METADATA_START-->
 
-# [draft] Deploy low-latency applications on the edge with OpenShift, AWS Local Zones and ALB Ingress Controller
+# [draft/wip] Deploy low-latency applications on the edge with OpenShift, AWS Local Zones and ALB Ingress Controller
+
+> Article splited from Day-2, intendeed to cover only the ALB setup and Benchmark
 
 __info__:
 
