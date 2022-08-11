@@ -1,8 +1,8 @@
-# Install OpenShift cluster in the edge with AWS Local Zones and Wavelength
+# [incomplete/limited/draft] Install OpenShift cluster in the edge with AWS Local Zones and Wavelength
 
 > WIP/Paused
 
-> STATUS Note: Opened Question: How to set the NetworkInterfaces (aws cli `--network-interfaces`) in MachineSets? The example above has been ignored by MAPI
+> STATUS Note: Red Hat OpenShift does not provide a way to setup the Carrier Gateway directly, nor editing the network settings on the MachineSet. Reference: https://issues.redhat.com/browse/RFE-3045
 
 This article describes the steps to [install the OpenShift cluster in an existing VPC](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-vpc.html) with [Local Zones](https://aws.amazon.com/about-aws/global-infrastructure/localzones/) and [Wavelength](https://aws.amazon.com/wavelength/) subnets, extending compute nodes to the edge locations with [MachineSets](https://docs.openshift.com/container-platform/4.10/machine_management/creating_machinesets/creating-machineset-aws.html).
 

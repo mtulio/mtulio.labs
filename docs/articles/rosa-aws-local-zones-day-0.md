@@ -1,4 +1,4 @@
-# Extend ROSA to the edge with Local Zones and Wavelenght
+# [incomplete/limited/draft] Extend ROSA to the edge with Local Zones and Wavelenght
 
 > STATUS NOTE: Article not finished as ROSA does not support to create Machine Sets through `oc` cli, and ACM or `rosa create machinepool` does not support edge zones (error below)
 
