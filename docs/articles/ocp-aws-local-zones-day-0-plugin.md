@@ -1,5 +1,10 @@
 # Use oc plugin to install OpenShift cluster in the edge with AWS Local Zones
 
+<!--METADATA_START
+> Status: Published
+> Published on [Dev.to](https://dev.to/mtulio/use-oc-plugin-to-install-openshift-cluster-in-the-edge-with-aws-local-zones-2924)
+METADATA_END-->
+
 This post describes how to use the kubectl/oc plugin to install an OpenShift
 cluster in existing VPC with Local Zone subnet - the network resources will be also created.
 
