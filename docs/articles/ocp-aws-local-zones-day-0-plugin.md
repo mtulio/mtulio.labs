@@ -11,6 +11,7 @@ The following resources will be created:
 
 The `aws-zone` plugin is the automated way described in detail on the article ["Install OpenShift cluster in the edge with AWS Local Zones"](./ocp-aws-local-zones-day-0.md).
 
+[![asciicast](https://asciinema.org/a/514257.svg)](https://asciinema.org/a/514257)
 
 **Table Of Contents**:
 
