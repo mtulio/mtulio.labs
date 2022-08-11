@@ -1,4 +1,4 @@
-# Install OpenShift cluster in the edge with AWS Local Zones
+# Install OpenShift in the cloud edge with AWS Local Zones
 
 This article describes the steps to [install the OpenShift cluster in an existing VPC](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-aws-vpc.html) with Local Zones subnets, extending compute nodes to the edge locations with [MachineSets](https://docs.openshift.com/container-platform/4.10/machine_management/creating_machinesets/creating-machineset-aws.html).
 
@@ -7,12 +7,12 @@ This article describes the steps to [install the OpenShift cluster in an existin
 - [Summary](#summary)
 - [Steps to create the cluster](#steps-create)
   - [Create the network stack](#steps-create-net)
-    - [Create the network (VPC and dependencies)](#steps-create-net-vpc)
-    - [Create the Local Zones subnet](#steps-create-net-lz-subnet)
+      - [Create the network (VPC and dependencies)](#steps-create-net-vpc)
+      - [Create the Local Zones subnet](#steps-create-net-lz-subnet)
   - [Create the installer configuration](#steps-create-config)
   - [Create the installer manifests](#steps-create-manifests)
-    - [Create the Machine Set manifest for Local Zones pool](#steps-create-manifests-ms)
-    - [Create IngressController manifest to use NLB](#steps-create-manifests-ic)
+      - [Create the Machine Set manifest for Local Zones pool](#steps-create-manifests-ms)
+      - [Create IngressController manifest to use NLB](#steps-create-manifests-ic)
   - [Update the VPC tag with the InfraID](#steps-create-update-vpc)
   - [Install the cluster](#steps-create-install)
 - [Steps to Destroy the Cluster](#steps-destroy)
@@ -576,8 +576,9 @@ Takeaways / Important notes:
 - The Local Zone subnets **should** have the tag `kubernetes.io/cluster/unmanaged=true` to avoid the Subnet Discovery for load balancer controller automatically add the subnet located on the Local Zone to the default router.
 - The VPC **should** have the tag `kubernetes.io/cluster/<infraID>=shared` to install correctly the AWS ELB Operator (not covered in this post)
 - Local Zones do not support Nat Gateways, so there are two options for nodes on Local Zones to access the internet:
-  1) Create the private subnet, associating the Local Zones subnet to one parent region route table, then create the machine in the private subnet without mapping public IP.
-  2) Use a public subnet on Local Zone and map the public IP to the instance (Machine spec). There are no security constraints as the Security Group rules block all the access outside the VPC (default installation). The NLB has more unrestrictive rules on the security groups. Option 1 should be better until it is not improved. That option also implies extra data transfer fees from the instance located on the Local Zone to the parent zone, in addition to the standard costs to the internet.
+
+    1) Create the private subnet, associating the Local Zones subnet to one parent region route table, then create the machine in the private subnet without mapping public IP.
+    2) Use a public subnet on Local Zone and map the public IP to the instance (Machine spec). There are no security constraints as the Security Group rules block all the access outside the VPC (default installation). The NLB has more unrestrictive rules on the security groups. Option 1 should be better until it is not improved. That option also implies extra data transfer fees from the instance located on the Local Zone to the parent zone, in addition to the standard costs to the internet.
 
 
 ## References <a name="references"></a>
