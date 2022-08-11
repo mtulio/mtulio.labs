@@ -1,7 +1,9 @@
-# oc plugin to install OpenShift cluster in the edge with AWS Local Zones
+# Use oc plugin to install OpenShift cluster in the edge with AWS Local Zones
 
 This post describes how to use the kubectl/oc plugin to install an OpenShift
 cluster in existing VPC with Local Zone subnet - the network resources will be also created.
+
+The `aws-zone` plugin is the automated approach to set up the AWS VPC and Local Zone subnets for OpenShift clusters, those procedures are described in detail in the article ["Install OpenShift cluster in the edge with AWS Local Zones"](https://dev.to/mtulio/install-openshift-in-the-cloud-edge-with-aws-local-zones-3nh0).
 
 The following resources will be created:
 
@@ -9,7 +11,6 @@ The following resources will be created:
 - CloudFormation stack for Subnet located on the Local Zone (subnet and route table association)
 - OpenShift cluster
 
-The `aws-zone` plugin is the automated way described in detail on the article ["Install OpenShift cluster in the edge with AWS Local Zones"](./ocp-aws-local-zones-day-0.md).
 
 [![asciicast](https://asciinema.org/a/514257.svg)](https://asciinema.org/a/514257)
 
@@ -23,14 +24,16 @@ The `aws-zone` plugin is the automated way described in detail on the article ["
 
 ## Install/enable plugin <a name="install"></a>
 
-To extend the kubectl/oc commands you just need to save the binary/script on the format `kubectl-plugin_name` in any place set in your `$PATH`, so the plugin can be called running `kubectl plugin-name <options>`. As openshift CLI `oc` extends the `kubectl` binary, we can also create the file `oc-plugin_name` and use it calling `oc plugin-name <options>`
+To extend the kubectl/oc commands you just need to save the binary/script on the format `kubectl-plugin_name` in any place set in your `$PATH`, so the plugin can be called running `kubectl plugin-name <options>`. As openshift CLI `oc` extends the `kubectl` binary, we can also create the file `oc-plugin_name` and use it running `oc plugin-name <options>`
 
 To read more about kubectl plugins, read this [documentation](https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/).
+
+The plugin source code is available [here](https://github.com/mtulio/mtulio.labs/blob/article-ocp-aws-lz/labs/oc-plugins/oc-aws_zone), in my shared lab repository. Feel free to share suggestions, improvements, bugs, etc. =]
 
 Said that, let's install the plugin into the `${HOME}/bin`:
 
 ```bash
-curl -s https://raw.githubusercontent.com/mtulio/mtulio.labs/article-ocp-aws-lz-plugin/labs/oc-plugins/oc-aws_zone \
+curl -s https://raw.githubusercontent.com/mtulio/mtulio.labs/article-ocp-aws-lz/labs/oc-plugins/oc-aws_zone \
   -o ${HOME}/bin/oc-aws_zone
 ```
 
@@ -48,7 +51,7 @@ oc aws-zone
 
 ## Basic Usage/Helper <a name="usage"></a>
 
-Explore what you need on the help
+Explore what you need in the helper command (default output when no option is provided):
 
 ```bash
 $ oc aws-zone
@@ -96,3 +99,11 @@ CLUSTER_NAME=lzdemo \
     ZONE_GROUP_NAME=us-east-1-nyc-1a \
     oc aws-zone destroy-cluster
 ```
+
+## References <a name="references"></a>
+
+- [Install OpenShift in the cloud edge with AWS Local Zones](https://dev.to/mtulio/install-openshift-in-the-cloud-edge-with-aws-local-zones-3nh0)
+- [OpenShift: Installing a cluster on AWS into an existing VPC
+](https://docs.openshift.com/container-platform/4.11/installing/installing_aws/installing-aws-vpc.html)
+- [AWS Local Zones](https://aws.amazon.com/about-aws/global-infrastructure/localzones/)
+- [Extend kubectl with plugins](https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/)

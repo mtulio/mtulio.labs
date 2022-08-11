@@ -236,14 +236,12 @@ nav:
     - OpenShift OIDC:
       - Deep Dive into OpenShift IdP OIDC: articles/ocp-idp-aws-oidc.md
       - Use CloudFront for public URL of OIDC on OpenShift: articles/ocp-idp-aws-oidc-s3-pvt-cfn.md
-    - OpenShift Network:
-      - Install OpenShift with compute on the edge using AWS Local Zones: articles/ocp-aws-local-zones-day-0.md
-      - oc plugin to install OpenShift with compute on the edge using AWS Local Zones: articles/ocp-aws-local-zones-day-0-plugin.md
-      - Extend OpenShift to the edge with AWS Local Zones: articles/ocp-aws-local-zones-day-2.md
-      - Benchmark the edge deployments with AWS Local Zones: articles/ocp-aws-local-zones-app-alb.md
+    - OpenShift in the Edge:
+      - "Day-2: Extend OpenShift to the edge with AWS Local Zones": articles/ocp-aws-local-zones-day-2.md
+      - "Day-0: Install OpenShift with compute on the edge using AWS Local Zones": articles/ocp-aws-local-zones-day-0.md
+      - Use oc plugin to install OpenShift with compute on the edge using AWS Local Zones: articles/ocp-aws-local-zones-day-0-plugin.md
     - OpenShift Ingress:
-      - Using multiple AWS ALB Operator on OpenShift: articles/ocp-aws-local-zones-app-alb.md
-
+      - WIP|Using multiple AWS ALB Operator on OpenShift: articles/ocp-aws-local-zones-app-alb.md
 
   - Open Learning:
       - Home: learning/README.md
