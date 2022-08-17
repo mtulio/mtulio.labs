@@ -99,6 +99,7 @@ nav:
         - AWS STS - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
         - AWS STS - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
         - Installing Hypershift on AWS with STS: playbooks/openshift/hypershift-install-sts.md
+        - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
         - Create custom release: playbooks/openshift/dev-custom-release.md
