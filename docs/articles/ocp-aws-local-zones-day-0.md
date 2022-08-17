@@ -442,7 +442,7 @@ EOF
 
 This step is required when the [ELB Operator (not covered)](https://github.com/openshift/aws-load-balancer-operator) will be installed. It will update the InfraID value on the VPC "cluster tag".
 
-> Common error when installing the ELB Operator without setting the cluster tag: `ERROR setup failed to get VPC ID  {"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`
+> The following error is expected when installing the ELB Operator without setting the cluster tag: `ERROR setup failed to get VPC ID  {"error": "no VPC with tag \"kubernetes.io/cluster/<infra_id>\" found"}`. Covered bug [this Bug](https://bugzilla.redhat.com/show_bug.cgi?id=2105351).
 
 1. Edit the CloudFormation Template var file of the VPC stack
 
