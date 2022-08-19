@@ -1,4 +1,0 @@
----
-- name: Destroy | Provider
-  include: "{{ provider }}.yaml"
-  tags: always

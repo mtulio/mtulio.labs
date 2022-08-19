@@ -1,6 +1,0 @@
----
-- include: openshift_config_load.yaml
-
-- include: net-create.yaml
-
-- include: openshift_config_dump.yaml
