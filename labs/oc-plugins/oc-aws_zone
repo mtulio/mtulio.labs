@@ -432,7 +432,7 @@ export INSTANCE_TYPE=c5d.2xlarge"
         exit 1
     fi
 
-    manifest_machineset="manifests/99_openshift-cluster-api_worker-machineset-${ZONE_GROUP_SHORTNAME}.yaml"
+    manifest_machineset="openshift/99_openshift-cluster-api_worker-machineset-${ZONE_GROUP_SHORTNAME}.yaml"
     echo "#> Creating the MachineSet manifest ${manifest_machineset}"
     cat <<EOF > "${manifest_machineset}"
 apiVersion: machine.openshift.io/v1beta1
@@ -577,7 +577,7 @@ Available commands:
     "check-cluster"     : Check the existing OCP cluster
     "create-all"        : Create the VPC, Subnet on edge zone, then the OCP cluster in existing VPC approach
 
-Available environment variables:
+Available environment variables (ToDo description):
     VERSION
     CLIENT_OC
     CLIENT_INSTALLER
