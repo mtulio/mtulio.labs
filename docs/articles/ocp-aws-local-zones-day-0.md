@@ -159,7 +159,7 @@ cat <<EOF | envsubst > ./stack-vpc-vars.json
 EOF
 ```
 
-- Download the <a href="https://raw.githubusercontent.com/mtulio/mtulio.labs/2c1d3761b5f21a94d8a458db48636c4c2d8a478f/docs/articles/assets/ocp-aws-local-zones-day-0_cfn-net-vpc.yaml" target="_blank">CloudFormation Template for VPC stack</a>
+- Download the <a href="https://raw.githubusercontent.com/mtulio/mtulio.labs/article-ocp-aws-lz/docs/articles/assets/ocp-aws-local-zones-day-0_cfn-net-vpc.yaml" target="_blank">CloudFormation Template for VPC stack</a>
 
 
 - Create the VPC Stack
@@ -239,7 +239,7 @@ cat <<EOF | envsubst > ./stack-lz-vars-${LZ_ZONE_SHORTNAME}.json
 EOF
 ```
 
-- Download the [CloudFormation Template for Local Zone subnet stack](https://raw.githubusercontent.com/mtulio/mtulio.labs/2c1d3761b5f21a94d8a458db48636c4c2d8a478f/docs/articles/assets/ocp-aws-local-zones-day-0_cfn-net-lz.yaml)
+- Download the [CloudFormation Template for Local Zone subnet stack](https://raw.githubusercontent.com/mtulio/mtulio.labs/article-ocp-aws-lz/docs/articles/assets/ocp-aws-local-zones-day-0_cfn-net-lz.yaml)
 
 - Create the Local Zones subnet stack
 
@@ -333,6 +333,7 @@ export INSTANCE_TYPE="c5d.2xlarge"
 export AMI_ID=$(grep ami \
   openshift/99_openshift-cluster-api_worker-machineset-0.yaml \
   | tail -n1 | awk '{print$2}')
+
 export SUBNET_ID=$(aws cloudformation describe-stacks \
   --stack-name "${STACK_LZ}" \
   | jq -r .Stacks[0].Outputs[0].OutputValue)
