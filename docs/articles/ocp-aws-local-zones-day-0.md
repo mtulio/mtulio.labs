@@ -345,6 +345,9 @@ export SUBNET_ID=$(aws cloudformation describe-stacks \
 
 > The public IP mapping is used merely to get access to the internet (required), optionally you can modify the network topology to use a private subnet, associating correctly the Local Zone private subnet to a valid route table that has correct routing entries to the internet. Or explore the [disconnected installations](https://docs.openshift.com/container-platform/4.10/installing/installing_aws/installing-restricted-networks-aws-installer-provisioned.html). None of those options will be covered in this article.
 
+!!! warning "Only 4.11 is supported!"
+    The value of `spec.template.spec.providerSpec.value.apiVersion` changed from `awsproviderconfig.openshift.io/v1beta1` to `machine.openshift.io/v1beta1` on 4.11
+
 ```bash
 cat <<EOF > openshift/99_openshift-cluster-api_worker-machineset-nyc1.yaml
 apiVersion: machine.openshift.io/v1beta1
@@ -380,7 +383,7 @@ spec:
         value:
           ami:
             id: ${AMI_ID}
-          apiVersion: awsproviderconfig.openshift.io/v1beta1
+          apiVersion: machine.openshift.io/v1beta1
           blockDevices:
           - ebs:
               volumeSize: 120
