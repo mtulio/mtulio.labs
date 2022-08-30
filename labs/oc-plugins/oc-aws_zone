@@ -43,7 +43,7 @@ cmd_install_clients() {
     if [[ -z "${VERSION:-}" ]]; then
         echo "#> ERROR: Environment variable is not set: VERSION
 # Example:
-export VERSION=4.11.0"
+export VERSION=4.11.2"
         exit 1
     fi
 
@@ -662,7 +662,7 @@ Available environment variables (ToDo description):
 Examples:
     # Generic
     CLUSTER_NAME=lzdemo \\
-        VERSION=4.11.0 \\
+        VERSION=4.11.2 \\
         CLUSTER_REGION=us-east-1 \\
         ZONE_GROUP_NAME=us-east-1-nyc-1a \\
         VPC_CIDR='10.0.0.0/16' \\
@@ -675,7 +675,7 @@ Examples:
 
     # Example: create-all
     CLUSTER_NAME=lzdemo \\
-        VERSION=4.11.0 \\
+        VERSION=4.11.2 \\
         CLUSTER_REGION=us-east-1 \\
         ZONE_GROUP_NAME=us-east-1-nyc-1a \\
         VPC_CIDR='10.0.0.0/16' \\
