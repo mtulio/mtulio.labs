@@ -11,14 +11,14 @@
 
 ```bash
 $ cat ~/.aws/config 
-[profile openshift-dev]
+[default]
 region = us-east-1
 
 $ aws sts get-caller-identity --debug 2>&1 | grep 'MainThread - botocore.endpoint - DEBUG - Making request' | awk -F "url': " '{print$2}' | cut -f1 -d ' '
 'https://sts.amazonaws.com/',
 
 $ cat ~/.aws/config 
-[profile openshift-dev]
+[default]
 sts_regional_endpoints=regional
 region = us-east-1
 
@@ -30,7 +30,7 @@ $ aws sts get-caller-identity --debug 2>&1 | grep 'MainThread - botocore.endpoin
 
 ```bash
 $ cat ~/.aws/config 
-[profile openshift-dev]
+[default]
 region = us-east-1
 
 $ aws sts get-caller-identity --debug 2>&1 | grep 'MainThread - botocore.endpoint - DEBUG - Making request' | awk -F "url': " '{print$2}' | cut -f1 -d ' '
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
 ```bash
 $ cat ~/.aws/config 
-[profile openshift-dev]
+[default]
 region = us-east-1
 
 $ python3 boto-session.py 2>&1 | grep 'Sending http request:' | awk -F "url=" '{print$2}' | cut -f1 -d ' '
@@ -68,7 +68,7 @@ https://sts.amazonaws.com/,
 
 
 $ cat ~/.aws/config 
-[profile openshift-dev]
+[default]
 sts_regional_endpoints=regional
 region = us-east-1
 
