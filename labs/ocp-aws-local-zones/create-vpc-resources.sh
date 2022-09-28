@@ -63,7 +63,7 @@ export CFN_TEMPLATE_BASE="file:///home/mtulio/go/src/github.com/mtulio/installer
 
 stack_wait_for_complete() {
     local region=$1; shift
-    local stack_name=$1;
+    local stack_name=$1; shift
     local stack_status
     echo -e " > Start waiter for the stack [${stack_name}] to report as CREATE_COMPLETE..."
     while true; do
@@ -132,7 +132,7 @@ PUBLIC_RTB_ID=${PUBLIC_RTB_ID}"
 
 }
 
-create_stack_subnet() {
+create_subnet_stack() {
     local region
     local zone_name
     local subnet_cidr
@@ -162,7 +162,7 @@ create_stack_subnet() {
     #aws cloudformation wait stack-create-complete --stack-name "${subnet_name}" &
     #wait "$!"
     echo "Starting waiter..."
-    stack_wait_for_complete "${subnet_name}"
+    stack_wait_for_complete "${region}" "${subnet_name}"
 
     aws cloudformation describe-stacks \
         --region "${region}" \
