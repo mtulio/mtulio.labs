@@ -85,3 +85,14 @@ df = pd.DataFrame(data, columns=columns)
 df.set_index('region', inplace=True)
 print(df)
 ~~~
+
+
+## Local Zones instances offerings
+
+- Available [here](https://github.com/mtulio/mtulio.labs/tree/article-ocp-aws-lz/labs/ocp-aws-local-zones):
+
+```bash
+cd labs/ocp-aws-local-zones/
+pip3 install -r requirements.txt
+python ./list-instances-by-az.py
+```
