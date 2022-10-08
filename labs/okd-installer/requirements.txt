@@ -1,4 +1,9 @@
 # Base
-ansible>=4
+ansible>=6
 jmespath
+
+# AWS
 boto3
+
+# Ionos
+ionoscloud
