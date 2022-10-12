@@ -1,0 +1,15 @@
+# FROM golang:1.17-buster as builder
+FROM golang:1.18-alpine as builder
+
+COPY *.go $GOPATH/src/github.com/mtulio/mtulio.net/
+WORKDIR $GOPATH/src/github.com/mtulio/mtulio.net/
+
+RUN go mod init \
+    && go get -d -v \
+    && go build -ldflags="-s -w" -o echo-aws-get-caller-id
+
+FROM alpine:3.14
+COPY --from=builder \
+    /go/src/github.com/mtulio/mtulio.net/echo-aws-get-caller-id \
+    /usr/bin/
+CMD ["/usr/bin/echo-aws-get-caller-id"]
