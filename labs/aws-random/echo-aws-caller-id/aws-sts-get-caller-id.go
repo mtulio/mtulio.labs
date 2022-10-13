@@ -16,20 +16,18 @@ const (
 
 func main() {
 	awsConfig := &aws.Config{
-		// Set MaxRetries to a high value. It will be "ovewritten" if context deadline comes sooner.
 		MaxRetries: aws.Int(8),
 	}
+
 	awsConfig.WithLogLevel(aws.LogDebugWithHTTPBody)
 	awsConfig.CredentialsChainVerboseErrors = aws.Bool(true)
 
 	sess, err := session.NewSession(awsConfig)
-	// sess, err := session.NewSession()
 	if err != nil {
 		fmt.Printf("ERR creating session: %s\n", err.Error())
 	}
-	svc := sts.New(sess, awsConfig)
-	// svc := sts.New(sess, aws.NewConfig().WithLogLevel(aws.LogDebugWithHTTPBody))
 
+	svc := sts.New(sess, awsConfig)
 	for {
 		input := &sts.GetCallerIdentityInput{}
 		result, err := svc.GetCallerIdentity(input)
