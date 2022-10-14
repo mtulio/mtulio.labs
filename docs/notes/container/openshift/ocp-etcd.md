@@ -1,5 +1,16 @@
 # OpenShift etcd
 
+```bash
+for node in $(oc get nodes -l node-role.kubernetes.io/master='' -o jsonpath='{.items[*].metadata.name}'); do \
+    oc debug node/${node} -- chroot /host /bin/bash -c \
+        "mkdir -p /var/lib/etcd/_test_perf;\
+        podman run \
+            --volume /var/lib/etcd/_test_perf:/var/lib/etcd:Z quay.io/openshift-scale/etcd-perf;\
+            rm -rf /var/lib/etcd/_test_perf" \
+        > ./results-${node}-fio_etcd.txt;\
+done
+```
+
 ## References
 
 - [Blog/Ask an OpenShift Admin Office Hour - etcd: The heart of Kubernetes](https://cloud.redhat.com/blog/ask-an-openshift-admin-office-hour-etcd-the-heart-of-kubernetes)
