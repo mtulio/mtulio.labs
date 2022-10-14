@@ -13,7 +13,7 @@ The motivation of this playbook is to create a default cluster with STS support 
 custom_vars() {
   cat<<'EOF'> ~/.env-ocp-sts-aws
 export REGION=${CLUSTER_REGION:-'us-east-1'}
-export VERSION=${CLUSTER_VERSION:-4.11.0}
+export VERSION=${CLUSTER_VERSION:-4.11.8}
 
 export PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json
 export SSH_PUB_KEY_FILE="${HOME}/.ssh/id_rsa.pub"
@@ -69,10 +69,16 @@ cco_create() {
     --output-dir=${OUTPUT_DIR_CCO}/
 
   echo "> CCO - Extracting CredentialsRequests from release payload"
+  RELEASE_IMAGE=$(./openshift-install version | awk '/release image/ {print $3}')
   ./oc adm release extract --credentials-requests \
     --cloud=aws \
     --to=${OUTPUT_DIR_CCO}/credrequests \
     ${RELEASE_IMAGE}
+
+  if [[ ! -d ${OUTPUT_DIR_CCO}/credrequests ]]; then
+    echo "ERROR directory not found: ${OUTPUT_DIR_CCO}/credrequests"
+    return 1
+  fi
 
   sleep 5;
   AWS_IAM_OIDP_ARN=$(aws iam list-open-id-connect-providers \
@@ -85,7 +91,7 @@ cco_create() {
     --credentials-requests-dir=${OUTPUT_DIR_CCO}/credrequests \
     --identity-provider-arn=${AWS_IAM_OIDP_ARN} \
     --output-dir ${OUTPUT_DIR_CCO}
-  
+
   echo "> CCO - Copying manifests to Install directory"
   cp -rvf ${OUTPUT_DIR_CCO}/manifests/* \
     ${INSTALL_DIR}/manifests
