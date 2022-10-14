@@ -110,6 +110,10 @@ kind: Secret
 metadata:
   name: ${APP_NAME}
   namespace: ${APP_NS}
+
+$ ll cco-credrequests/manifests/
+total 4
+-rw-------. 1 user group 306 Oct 13 16:14 sample-sts-sample-echo-sts-credentials.yaml
 ```
 
 - create the secret/credential
