@@ -1,0 +1,1 @@
+[sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-dns [Suite:openshift/conformance/parallel]
