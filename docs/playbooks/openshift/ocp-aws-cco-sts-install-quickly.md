@@ -131,6 +131,11 @@ EOF
   ./openshift-install create manifests --dir $INSTALL_DIR --log-level=debug
 }
 
+patch_secrets_to_regional_endpoint() {
+  echo "Patching Credentials secrets..."
+  sed -i '/\[default\].*/a\'$'    sts_regional_endpoints = regional' $INSTALL_DIR/manifests/*-credentials.yaml
+}
+
 create_cluster() {
   CLUSTER_NAME=$1
   custom_vars
@@ -138,6 +143,9 @@ create_cluster() {
   install_clients
   setup_installer
   cco_create
+  if [[ "${PATCH_SECRETS_REGIONAL:-}" == "true" ]]; then
+    patch_secrets_to_regional_endpoint
+  fi
   ./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
 }
 
