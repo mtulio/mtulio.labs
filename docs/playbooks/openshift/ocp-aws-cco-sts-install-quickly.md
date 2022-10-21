@@ -188,3 +188,81 @@ CLUSTER_VERSION="4.11.10" &&\
 ```bash
 destroy_cluster $CLUSTER_NAME
 ```
+
+## Validation / Troubleshooting helper
+
+Some *ready* commands to validate the STS Cluster:
+
+- Check version
+- Check IssuerURL pointing to OIDC
+- Get the public keys from OIDC JWKS endpoint
+- Check the secret presented to one Component (Example machine-controllers)
+
+
+```bash
+./oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig get clusterversion
+
+
+./oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig get authentication -o json |jq -r .items[].spec.serviceAccountIssuer
+
+curl -s $(./oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig get authentication -o json |jq -r .items[].spec.serviceAccountIssuer)/keys.json
+
+./oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig get secrets -n openshift-machine-api aws-cloud-credentials -o json |jq -r .data.credentials |base64 -d
+
+```
+
+- Assume the IAM role using the projected service account token
+
+> Required: aws and oc CLI, OCP and AWS admin grants
+
+```bash
+TOKEN_PATH=$(oc get secrets aws-cloud-credentials \
+    -n openshift-machine-api \
+    -o jsonpath='{.data.credentials}' |\
+    base64 -d |\
+    grep ^web_identity_token_file |\
+    awk '{print$3}')
+
+IAM_ROLE=$(oc get secrets aws-cloud-credentials \
+    -n openshift-machine-api \
+    -o jsonpath='{.data.credentials}' |\
+    base64 -d |\
+    grep ^role_arn |\
+    awk '{print$3}')
+
+CAPI_POD=$(oc get pods -n openshift-machine-api \
+    -l api=clusterapi \
+    -o jsonpath='{.items[*].metadata.name}')
+
+TOKEN=$(oc exec -n openshift-machine-api \
+        -c machine-controller ${CAPI_POD} \
+        -- cat ${TOKEN_PATH})
+
+aws sts assume-role-with-web-identity \
+    --role-arn "${IAM_ROLE}" \
+    --role-session-name "my-session" \
+    --web-identity-token "${TOKEN}"
+```
+
+- Additionaly, check the common error patterns related to OIDC that could happen on the component logs:
+
+> See more: [KCS6965924](https://access.redhat.com/solutions/6965924)
+
+```bash
+#./oc logs -n openshift-machine-api -c machine-controller machine-api-controllers-[redacted] | grep -c InvalidIdentityToken
+
+./oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig logs -n openshift-image-registry -l name=cluster-image-registry-operator | grep -c InvalidIdentityToken
+
+./oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig logs -n openshift-image-registry -l name=cluster-image-registry-operator | grep -c WebIdentityErr
+
+./oc --kubeconfig ${INSTALL_DIR}/auth/kubeconfig logs -n openshift-image-registry -l name=cluster-image-registry-operator | grep -c 'Not authorized to perform sts:AssumeRoleWithWebIdentity\\nProgressing: \\tstatus code: 403'
+
+```
+
+- [Simulate IAM Role Permissions](./ocp-aws-cco-simulate-policy.md)
+
+## References
+
+- [Install a OCP Cluster with STS](#)
+- [KCS: InvalidIdentityToken when installing OpenShift on AWS using manual authentication mode with STS](https://access.redhat.com/solutions/6965924)
+- [KCS: Red Hat OpenShift Container Platform Machine Failed with error launching instance: You are not authorized to perform this operation](https://access.redhat.com/solutions/6969704)
