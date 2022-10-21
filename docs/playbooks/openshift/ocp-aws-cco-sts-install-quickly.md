@@ -164,6 +164,25 @@ CLUSTER_NAME="labsts07" &&\
   create_cluster $CLUSTER_NAME
 ```
 
+- Create the cluster changing the default image:
+
+```bash
+CLUSTER_VERSION="4.11.10" &&\
+  CLUSTER_NAME="labsts41110t1" &&\
+  CLUSTER_BASE_DOMAIN="devcluster.openshift.com" &&\
+  create_cluster $CLUSTER_NAME
+```
+
+- Create the cluster patching the Cloud Credential secrets to add the regional endpoint option:
+
+```bash
+  PATCH_SECRETS_REGIONAL=true &&\
+  CLUSTER_VERSION="4.12.0-ec.4" &&\
+  CLUSTER_NAME="labsts4120ec4t1" &&\
+  CLUSTER_BASE_DOMAIN="devcluster.openshift.com" &&\
+  create_cluster $CLUSTER_NAME
+```
+
 - Destroy the cluster with the name "`$CLUSTER_NAME`":
 
 ```bash
