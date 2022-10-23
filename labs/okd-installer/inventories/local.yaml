@@ -1,0 +1,12 @@
+all:
+  hosts:
+    localhost:
+      supported_providers: ["aws"]
+      supported_platforms: ["aws", "none"]
+      ansible_connection: local
+  children:
+    cloud:
+      hosts:
+        aws:
+          ansible_host: localhost
+          ansible_connection: local
