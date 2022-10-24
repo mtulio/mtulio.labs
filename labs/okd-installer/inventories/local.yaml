@@ -4,6 +4,7 @@ all:
       supported_providers: ["aws"]
       supported_platforms: ["aws", "none"]
       ansible_connection: local
+      ansible_python_interpreter: $VIRTUAL_ENV/bin/python3
   children:
     cloud:
       hosts:
