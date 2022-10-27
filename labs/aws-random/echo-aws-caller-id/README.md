@@ -19,8 +19,8 @@ This describes the steps to create the container use in this sample.
 This is optional, the container is already available on Quay.io.
 
 ```bash
-IMG=quay.io/ocp-samples/echo-aws-credentials-get-callerid:latest
-podman build -f ContainerFile ${IMG} -t .
+IMG=quay.io/ocp-samples/echo-aws-sts-get-callerid:lab
+podman build -f ContainerFile -t ${IMG} .
 podman push ${IMG}
 ```
 
