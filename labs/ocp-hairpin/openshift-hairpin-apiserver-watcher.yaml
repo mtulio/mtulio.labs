@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: apiserver-watcher
+  namespace: openshift-kube-apiserver
+spec:
+  containers:
+  - name: apiserver-watcher
+    image: "${MCO_IMAGE}"
+    command:
+      - flock
+      - --verbose
+      - --exclusive
+      - --timeout=300
+      - /rootfs/run/cloud-routes/apiserver-watcher.lock
+      - apiserver-watcher
+    args:
+    - "run"
+    - "--health-check-url=${OCP_APISERVER_INTERNAL_URL}/readyz"
+    resources:
+      requests:
+        cpu: 20m
+        memory: 50Mi
+    terminationMessagePolicy: FallbackToLogsOnError
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /rootfs
+      name: rootfs
+  hostNetwork: true
+  hostPID: true
+  priorityClassName: system-node-critical
+  tolerations:
+  - operator: "Exists"
+  restartPolicy: Always
+  volumes:
+  - name: rootfs
+    hostPath:
+      path: /
