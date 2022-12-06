@@ -37,6 +37,7 @@ Some useful commands.
 #### Moving directory to new repo
 
 Refs:
+
 - https://help.github.com/en/github/using-git/splitting-a-subfolder-out-into-a-new-repository
 
 
@@ -59,6 +60,7 @@ git push -f
 ### Squash current branch (without preserving old commits)
 
 - Example squash the oldest 3 commits
+- 
 ```
 git rebase main
 git rebase -i HEAD~3
@@ -68,4 +70,5 @@ git push -f
 ```
 
 References:
+
 - https://www.git-tower.com/learn/git/faq/git-squash
