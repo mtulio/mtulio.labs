@@ -40,9 +40,9 @@ Refs:
 - https://help.github.com/en/github/using-git/splitting-a-subfolder-out-into-a-new-repository
 
 
-## Examples
+## Ramdom Examples
 
-### Squash current branch
+### Squash current branch (without preserving old commits)
 
 ```
 git checkout feature/support-component
@@ -55,3 +55,17 @@ git status
 git commit -m 'Provider: add components'
 git push -f
 ```
+
+### Squash current branch (without preserving old commits)
+
+- Example squash the oldest 3 commits
+```
+git rebase main
+git rebase -i HEAD~3
+# edit the lines from `pick` to `squash`
+# add a commit message
+git push -f
+```
+
+References:
+- https://www.git-tower.com/learn/git/faq/git-squash
