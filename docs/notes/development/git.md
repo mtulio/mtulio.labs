@@ -60,7 +60,7 @@ git push -f
 ### Squash current branch (without preserving old commits)
 
 - Example squash the oldest 3 commits
-- 
+
 ```
 git rebase main
 git rebase -i HEAD~3
