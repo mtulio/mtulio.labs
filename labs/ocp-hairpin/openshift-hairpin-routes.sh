@@ -21,7 +21,8 @@ set -euo pipefail
 # the list of load balancer IPs that are assigned to this node
 declare -A v4vips
 declare -A v6vips
-CHAIN_NAME="azure-vips"
+CLOUD_NAME="cloud"
+CHAIN_NAME="${CLOUD_NAME}-vips"
 RUN_DIR="/run/cloud-routes"
 # Create a chan if it doesn't exist
 ensure_chain4() {
@@ -65,16 +66,16 @@ ensure_rule6() {
 initialize() {
     ensure_chain4 nat "${CHAIN_NAME}"
     ensure_chain6 nat "${CHAIN_NAME}"
-    ensure_rule4 nat PREROUTING -m comment --comment 'azure LB vip overriding for pods' -j ${CHAIN_NAME}
-    ensure_rule6 nat PREROUTING -m comment --comment 'azure LB vip overriding for pods' -j ${CHAIN_NAME}
-    ensure_rule4 nat OUTPUT -m comment --comment 'azure LB vip overriding for local clients' -j ${CHAIN_NAME}
-    ensure_rule6 nat OUTPUT -m comment --comment 'azure LB vip overriding for local clients' -j ${CHAIN_NAME}
+    ensure_rule4 nat PREROUTING -m comment --comment "${CLOUD_NAME} LB vip overriding for pods" -j ${CHAIN_NAME}
+    ensure_rule6 nat PREROUTING -m comment --comment "${CLOUD_NAME} LB vip overriding for pods" -j ${CHAIN_NAME}
+    ensure_rule4 nat OUTPUT -m comment --comment "${CLOUD_NAME} LB vip overriding for local clients" -j ${CHAIN_NAME}
+    ensure_rule6 nat OUTPUT -m comment --comment "${CLOUD_NAME} LB vip overriding for local clients" -j ${CHAIN_NAME}
     # Need this so that existing flows (with an entry in conntrack) continue,
     # even if the iptables rule is removed
-    ensure_rule4 filter FORWARD -m comment --comment 'azure LB vip existing' -m addrtype ! --dst-type LOCAL -m state --state ESTABLISHED,RELATED -j ACCEPT
-    ensure_rule6 filter FORWARD -m comment --comment 'azure LB vip existing' -m addrtype ! --dst-type LOCAL -m state --state ESTABLISHED,RELATED -j ACCEPT
-    ensure_rule4 filter OUTPUT -m comment --comment 'azure LB vip existing' -m addrtype ! --dst-type LOCAL -m state --state ESTABLISHED,RELATED -j ACCEPT
-    ensure_rule6 filter OUTPUT -m comment --comment 'azure LB vip existing' -m addrtype ! --dst-type LOCAL -m state --state ESTABLISHED,RELATED -j ACCEPT
+    ensure_rule4 filter FORWARD -m comment --comment "${CLOUD_NAME} LB vip existing" -m addrtype ! --dst-type LOCAL -m state --state ESTABLISHED,RELATED -j ACCEPT
+    ensure_rule6 filter FORWARD -m comment --comment "${CLOUD_NAME} LB vip existing" -m addrtype ! --dst-type LOCAL -m state --state ESTABLISHED,RELATED -j ACCEPT
+    ensure_rule4 filter OUTPUT -m comment --comment "${CLOUD_NAME} LB vip existing" -m addrtype ! --dst-type LOCAL -m state --state ESTABLISHED,RELATED -j ACCEPT
+    ensure_rule6 filter OUTPUT -m comment --comment "${CLOUD_NAME} LB vip existing" -m addrtype ! --dst-type LOCAL -m state --state ESTABLISHED,RELATED -j ACCEPT
 }
 remove_stale() {
     ## find extra iptables rules

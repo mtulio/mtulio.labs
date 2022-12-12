@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Script to generate the MachineConfig
+# Script to generate the MachineConfig for Hairpin connection issue on OCP.
 #
 
 set -eau
@@ -79,11 +79,13 @@ spec:
       - mode: 0644
         path: "/etc/kubernetes/manifests/apiserver-watcher.yaml"
         contents:
-          source: data:text/plain;charset=utf-8;base64,$(envsubst < ./openshift-hairpin-apiserver-watcher.yaml | base64 -w0)
+          compression: gzip
+          source: data:text/plain;charset=utf-8;base64,$(envsubst < ./openshift-hairpin-apiserver-watcher.yaml | base64 -w0 | gzip)
       - mode: 0755
         path: "/opt/libexec/openshift-hairpin-routes.sh"
         contents:
-          source: data:text/plain;charset=utf-8;base64,$(base64 -w0 < ./openshift-hairpin-routes.sh)
+          compression: gzip
+          source: data:text/plain;charset=utf-8;base64,$(base64 -w0 < ./openshift-hairpin-routes.sh | gzip)
 EOF
 
 
