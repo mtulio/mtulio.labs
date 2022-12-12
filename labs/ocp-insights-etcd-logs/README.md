@@ -17,7 +17,8 @@ podman push ${IMG}
 ## Usage
 
 - Pipe the logs of Must-gather
-```
+
+```bash
 grep -rni "apply request took too long" ${MUST_GATHER_PATH} \
     | grep -Po 'took":"([a-z0-9\.]+)"' \
     | awk -F'took":' '{print$2}' \
