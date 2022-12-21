@@ -167,6 +167,7 @@ nav:
       - python-tips: notes/development/python-tips.md
       - tool-jq: notes/development/tool-jq.md
       - yaml: notes/development/yaml.md
+      - js-md: notes/development/js-md.md
 
     - Linux:
       - cmd-find: notes/linux/cmd-find.md
