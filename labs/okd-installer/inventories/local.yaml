@@ -11,3 +11,23 @@ all:
         aws:
           ansible_host: localhost
           ansible_connection: local
+
+# OPCT AWS Group vars - Create/Delete cluster
+opct_aws:
+  hosts:
+    localhost:
+      ansible_host: localhost
+      ansible_connection: local
+      provider: aws
+      provider_region: us-east-1
+      config_provider: aws
+      config_platform: none
+      config_base_domain: devcluster.openshift.com
+      config_pull_secret_home: ".openshift/pull-secret-latest.json"
+      config_ssh_key_home: "/.ssh/id_rsa.pub"
+      certs_max_retries: 20
+      cert_wait_interval_sec: 60
+      create_registry: yes
+      destroy_bootstrap: yes
+      vars_network_topology: single-AZ
+      vars_compute_topology: single-AZ

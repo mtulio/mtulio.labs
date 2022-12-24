@@ -1,0 +1,54 @@
+---
+- name: Setup OPCT Cluster Tests - Setup test label 
+  hosts: localhost
+  gather_facts: yes
+
+  vars:
+    OKD_CLUSTES: "{{ ansible_env.HOME }}/.ansible/okd-installer/clusters"
+    OKD_CLUSTER_HOME: "{{ OKD_CLUSTES }}/{{ okd_installer_env.CONFIG_CLUSTER_NAME }}"
+    KUBECONFIG_PATH: "{{ OKD_CLUSTER_HOME }}/auth/kubeconfig"
+  
+  tasks:
+  - setup:
+    register: setup_vars
+  
+  - debug:
+      var: setup_vars
+  
+  - debug:
+      var: okd_installer_env
+  
+  - name: "Getting all nodes"
+    kubernetes.core.k8s_info:
+      # kubeconfig: "{{ KUBECONFIG_PATH }}"
+      api_version: v1
+      kind: Node
+      label_selectors:
+        - "node-role.kubernetes.io/worker"
+    register: all_nodes
+    environment:
+      KUBECONFIG: "{{ KUBECONFIG_PATH }}"
+
+  - name: Show all nodes
+    debug:
+      var: all_nodes
+
+  - name: Getting the first worker node
+    set_fact:
+      node_name: "{{ all_nodes.resources[0].metadata.name }}"
+
+  - name: Set the node label
+    kubernetes.core.k8s:
+      kubeconfig: "{{ KUBECONFIG_PATH }}"
+      state: patched
+      api_version: v1
+      kind: Node
+      name: "{{ node_name }}"
+      definition:
+        metadata:
+          labels:
+            "node-role.kubernetes.io/tests": ''
+        spec:
+          taints:
+            - effect: NoSchedule
+              key: "node-role.kubernetes.io/tests"
