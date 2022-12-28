@@ -1,3 +1,6 @@
 collections:
-- name: ionoscloudsdk.ionoscloud
 - name: community.kubernetes
+- name: community.aws
+
+  # Experimental
+#- name: ionoscloudsdk.ionoscloud

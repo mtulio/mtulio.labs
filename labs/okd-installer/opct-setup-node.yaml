@@ -9,18 +9,8 @@
     KUBECONFIG_PATH: "{{ OKD_CLUSTER_HOME }}/auth/kubeconfig"
   
   tasks:
-  - setup:
-    register: setup_vars
-  
-  - debug:
-      var: setup_vars
-  
-  - debug:
-      var: okd_installer_env
-  
   - name: "Getting all nodes"
     kubernetes.core.k8s_info:
-      # kubeconfig: "{{ KUBECONFIG_PATH }}"
       api_version: v1
       kind: Node
       label_selectors:
@@ -32,6 +22,7 @@
   - name: Show all nodes
     debug:
       var: all_nodes
+    when: debug | d(false)
 
   - name: Getting the first worker node
     set_fact:
