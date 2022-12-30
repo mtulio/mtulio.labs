@@ -3,6 +3,8 @@
   hosts: localhost
   tasks:
   - name: Create Manage Image Registry emptyDir
+    environment:
+      KUBECONFIG: "{{ kubeconfig }}"
     kubernetes.core.k8s:
       state: present
       api_version: imageregistry.operator.openshift.io/v1

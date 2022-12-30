@@ -50,3 +50,103 @@ ansible-playbook opct-cluster-create-aws.yaml \
     -e topology_network=single-AZ \
     -e topology_compute=single-AZ
 ```
+
+#### Running in Contianer
+
+- Build the container
+
+```bash
+podman build -t opct-runner:latest -f hack/opct-runner/Containerfile .
+```
+
+- Create the workdir, where the okd-installer will save the environment/state
+
+```bash
+mkdir .opct
+```
+
+- Create the env file
+
+```bash
+cat <<EOF> ./.opct.env
+ANSIBLE_UNSAFE_WRITES=1
+CONFIG_PULL_SECRET_FILE=/pull-secret.json
+AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}"
+EOF
+```
+
+- Create the cluster
+
+```bash
+podman run \
+    --env-file ${PWD}/.opct.env \
+    -v ${PWD}/.opct:/root/.ansible/okd-installer:Z \
+    -v ${HOME}/.ssh:/root/.ssh:Z \
+    -v ${HOME}/.openshift/pull-secret-latest.json:/pull-secret.json \
+    --rm opct-runner:latest \
+    ansible-playbook opct-cluster-create-aws.yaml \
+    -e cluster_name=opct22122901 \
+    -e cluster_version=4.12.0-rc.4
+```
+
+- Wait the operators to be ready
+
+```bash
+podman run \
+    --env-file ${PWD}/.opct.env \
+    -v ${PWD}/.opct:/root/.ansible/okd-installer:Z \
+    --rm opct-runner:latest \
+    ansible-playbook opct-wait-for-operators.yaml -e cluster_name=opct22122901
+```
+
+- Run OPCT:
+
+***Container***:
+```bash
+podman run \
+    --env-file ${PWD}/.opct.env \
+    -v ${PWD}/.opct:/root/.ansible/okd-installer:Z \
+    -v ${PWD}/.opct_results:/opct:Z \
+    -v ${PWD}/openshift-provider-cert-linux-amd64:/openshift-provider-cert:Z \
+    --rm opct-runner:latest \
+    ansible-playbook opct-run-tool.yaml -e cluster_name=opct22122901 \
+    -e log_pipe=/opct/run.log
+```
+
+***Playbook***:
+```bash
+ansible-playbook opct-run-tool.yaml \
+-e cluster_name=opct22122901 \
+-e installer_path=${PWD}/.opct \
+-e log_pipe=${PWD}/.opct/run.log \
+-e opct_bin=${PWD}/openshift-provider-cert-linux-amd64
+```
+
+- Delete the cluster
+
+```bash
+podman run \
+    --env-file ${PWD}/.opct.env \
+    -v ${PWD}/.opct:/root/.ansible/okd-installer:Z \
+    --rm opct-runner:latest \
+    ansible-playbook opct-cluster-delete-aws.yaml \
+    -e cluster_name=opct22122901
+```
+
+
+- Single execution
+
+```bash
+podman run \
+    --env-file ${PWD}/.opct.env \
+    -v ${PWD}/.opct:/root/.ansible/okd-installer:Z \
+    -v ${HOME}/.ssh:/root/.ssh:Z \
+    -v ${HOME}/.openshift/pull-secret-latest.json:/pull-secret.json \
+    -v ${PWD}/openshift-provider-cert-linux-amd64:/openshift-provider-cert:Z \
+    --rm opct-runner:latest \
+    ansible-playbook opct-runner-all-aws.yaml \
+    -e cluster_name=opct22122902 \
+    -e cluster_version=4.12.0-rc.4
+```

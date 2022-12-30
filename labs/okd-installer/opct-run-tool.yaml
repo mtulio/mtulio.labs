@@ -1,0 +1,78 @@
+---
+- name: OPCT Runner init
+  hosts: localhost
+  gather_facts: yes
+
+  tasks:
+  - name: Set okd-installer path
+    ansible.builtin.set_fact:
+      installer_path: "{{ installer_path | d(ansible_env.HOME + '/.ansible/okd-installer') }}"
+
+  - name: Set clusters path
+    ansible.builtin.set_fact:
+      clusters_path: "{{ installer_path }}/clusters"
+
+  - name: Set cluster path
+    ansible.builtin.set_fact:
+      cluster_path: "{{ clusters_path }}/{{ cluster_name }}"
+
+  - name: Set kubeconfig
+    ansible.builtin.set_fact:
+      kubeconfig: "{{ cluster_path }}/auth/kubeconfig"
+      results_path: "{{ results_path | d(cluster_path + '/opct') }}"
+
+  - name: Assert results path exists
+    ansible.builtin.file:
+      state: directory
+      path: "{{ results_path }}"
+
+
+- name: OPCT Runner Preflight | setup node labeling
+  ansible.builtin.import_playbook: opct-setup-node.yaml
+  when: not(skip_prefligth | d(false))
+
+- name: OPCT Runner Preflight | setup image-registry
+  ansible.builtin.import_playbook: opct-setup-imageregistry-dev.yaml
+  when: not(skip_prefligth | d(false))
+
+- name: OPCT Runner Preflight | waiting operators to be ready
+  ansible.builtin.import_playbook: opct-wait-for-operators.yaml
+  when: not(skip_prefligth | d(false))
+
+- name: OPCT Runner
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    log_pipe: "{{ results_path }}/opct-runner.log"
+    opct_bin: /openshift-provider-cert
+
+  tasks:
+  - name: Run OPCT Async
+    ansible.builtin.shell: |
+      {{ opct_bin }} run -w | tee -a {{ log_pipe }};
+      {{ opct_bin }} retrieve | tee -a {{ log_pipe }};
+      #/openshift-provider-cert results | tee -a {{ log_pipe }};
+    args:
+      chdir: "{{ results_path }}"
+    environment:
+      KUBECONFIG: "{{ kubeconfig }}"
+    register: opct_run
+    ignore_errors: False
+    failed_when:
+      - opct_run.stderr_lines | length > 0
+    async: 14400 # 4h timeout
+    poll: 0
+
+  - name: Check OPCT Status
+    ansible.builtin.async_status:
+      jid: "{{ opct_run.ansible_job_id }}"
+    register: job_result
+    until: job_result.finished
+    retries: 240 # 4h
+    delay: 60
+
+  - ansible.builtin.debug:
+      var: opct_run
+
+  # TODO
+  # - save artifacts somewhere

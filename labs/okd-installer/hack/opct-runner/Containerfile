@@ -1,0 +1,10 @@
+# Build opct-runner
+FROM quay.io/mrbraga/okd-installer:0.1.0-beta6
+
+COPY --from=quay.io/ocp-cert/tools:latest /usr/bin/oc /usr/bin/
+
+WORKDIR /opct-runner
+
+ADD ./hack/opct-runner/ansible.cfg ./
+ADD ./inventories/* ./inventories/
+ADD ./opct-*.yaml .

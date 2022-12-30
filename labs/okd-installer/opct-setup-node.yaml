@@ -4,20 +4,20 @@
   gather_facts: yes
 
   vars:
-    OKD_CLUSTES: "{{ ansible_env.HOME }}/.ansible/okd-installer/clusters"
-    OKD_CLUSTER_HOME: "{{ OKD_CLUSTES }}/{{ okd_installer_env.CONFIG_CLUSTER_NAME }}"
-    KUBECONFIG_PATH: "{{ OKD_CLUSTER_HOME }}/auth/kubeconfig"
+    installer_path: "{{ installer_path | d(ansible_env.HOME + '/.ansible/okd-installer') }}"
+    cluster_path: "{{ installer_path }}/clusters"
+    kubeconfig: "{{ cluster_path }}/{{ cluster_name }}/auth/kubeconfig"
   
   tasks:
-  - name: "Getting all nodes"
+  - name: Getting all nodes
+    register: all_nodes
+    environment:
+      KUBECONFIG: "{{ kubeconfig }}"
     kubernetes.core.k8s_info:
       api_version: v1
       kind: Node
       label_selectors:
         - "node-role.kubernetes.io/worker"
-    register: all_nodes
-    environment:
-      KUBECONFIG: "{{ KUBECONFIG_PATH }}"
 
   - name: Show all nodes
     debug:
@@ -27,10 +27,13 @@
   - name: Getting the first worker node
     set_fact:
       node_name: "{{ all_nodes.resources[0].metadata.name }}"
+    when: all_nodes.resources | length > 0
 
   - name: Set the node label
+    environment:
+      KUBECONFIG: "{{ kubeconfig }}"
+    when: all_nodes.resources | length > 0
     kubernetes.core.k8s:
-      kubeconfig: "{{ KUBECONFIG_PATH }}"
       state: patched
       api_version: v1
       kind: Node
