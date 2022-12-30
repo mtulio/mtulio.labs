@@ -1,13 +1,11 @@
 ---
+- name: OPCT Init Vars
+  ansible.builtin.import_playbook: opct-init-vars.yaml
+
 - name: Setup OPCT Cluster Tests - Setup test label 
   hosts: localhost
   gather_facts: yes
 
-  vars:
-    installer_path: "{{ installer_path | d(ansible_env.HOME + '/.ansible/okd-installer') }}"
-    cluster_path: "{{ installer_path }}/clusters"
-    kubeconfig: "{{ cluster_path }}/{{ cluster_name }}/auth/kubeconfig"
-  
   tasks:
   - name: Getting all nodes
     register: all_nodes

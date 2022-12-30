@@ -7,3 +7,4 @@
 
 - name: OPCT Cluster delete AWS
   ansible.builtin.import_playbook: opct-cluster-delete-aws.yaml 
+  when: not(keep_cluster | d('no'))

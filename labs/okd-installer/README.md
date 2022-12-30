@@ -71,9 +71,9 @@ mkdir .opct
 cat <<EOF> ./.opct.env
 ANSIBLE_UNSAFE_WRITES=1
 CONFIG_PULL_SECRET_FILE=/pull-secret.json
-AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
-AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
-AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}"
+AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 EOF
 ```
 
@@ -132,7 +132,7 @@ podman run \
     -v ${PWD}/.opct:/root/.ansible/okd-installer:Z \
     --rm opct-runner:latest \
     ansible-playbook opct-cluster-delete-aws.yaml \
-    -e cluster_name=opct22122901
+    -e cluster_name=opct22122903
 ```
 
 
@@ -144,9 +144,17 @@ podman run \
     -v ${PWD}/.opct:/root/.ansible/okd-installer:Z \
     -v ${HOME}/.ssh:/root/.ssh:Z \
     -v ${HOME}/.openshift/pull-secret-latest.json:/pull-secret.json \
-    -v ${PWD}/openshift-provider-cert-linux-amd64:/openshift-provider-cert:Z \
+    -v ${PWD}/openshift-provider-cert:/openshift-provider-cert:Z \
     --rm opct-runner:latest \
     ansible-playbook opct-runner-all-aws.yaml \
-    -e cluster_name=opct22122902 \
-    -e cluster_version=4.12.0-rc.4
+    -e cluster_name=opct22123001 \
+    -e cluster_version=4.11.18 -vvv
+```
+
+```bash
+ansible-playbook opct-run-tool.yaml \
+-e cluster_name=opct22122903 \
+-e installer_path=${PWD}/.opct \
+-e opct_bin=${PWD}/openshift-provider-cert \
+-e skip_prefligth=yes
 ```

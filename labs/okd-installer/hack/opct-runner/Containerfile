@@ -8,3 +8,7 @@ WORKDIR /opct-runner
 ADD ./hack/opct-runner/ansible.cfg ./
 ADD ./inventories/* ./inventories/
 ADD ./opct-*.yaml .
+
+RUN rm -rf /root/.ansible/collections/ansible_collections/community/aws/ \
+    && rm -rf /root/.ansible/collections/ansible_collections/community.aws-5.1.0.info \
+    && rm -rf /root/.ansible/collections/ansible_collections/amazon*
