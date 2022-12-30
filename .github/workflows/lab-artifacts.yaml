@@ -12,6 +12,26 @@ name: Lab Artifacts
 
 jobs:
 
+  printer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
+
+      - name: showw
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          VERSION="${VERSION}"
+          github.event=${{ github.event }}
+          github.event_name=${{ github.event_name }}
+          github.ref=${{ github.ref }}
+          github.head_ref=${{ github.head_ref }}
+          github.base_ref=${{ github.base_ref }}
+          github.workflow=${{ github.workflow }}
+          github.workspace=${{ github.workspace }}
+
   uploader:
     name: Uploader
     runs-on: ubuntu-latest
