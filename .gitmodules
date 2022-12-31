@@ -1,3 +1,6 @@
 [submodule "labs/okd-installer/collections/ansible_collections/mtulio/okd_installer"]
 	path = labs/okd-installer/collections/ansible_collections/mtulio/okd_installer
 	url = git@github.com:mtulio/ansible-collection-okd-installer.git
+[submodule "labs/okd-installer/opct"]
+	path = labs/okd-installer/opct
+	url = git@github.com:redhat-openshift-ecosystem/provider-certification-tool.git
