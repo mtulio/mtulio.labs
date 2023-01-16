@@ -1,4 +1,0 @@
-boto3==1.24.81
-botocore==1.27.81
-urllib3==1.26.12
-pandas==1.5.0
