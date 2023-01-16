@@ -122,6 +122,7 @@ nav:
       - aws-nlb: notes/cloud/aws-nlb.md
       - aws-s3: notes/cloud/aws-s3.md
       - aws-eks: notes/cloud/aws-eks.md
+      - aws-zones: notes/cloud/aws-zones.md
       - az-monitor: notes/cloud/az-montior.md
       - azure-ha: notes/cloud/azure-ha.md
       - azure-network: notes/cloud/azure-network.md
