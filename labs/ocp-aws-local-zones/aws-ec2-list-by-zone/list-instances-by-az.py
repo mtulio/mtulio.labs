@@ -2,21 +2,29 @@
 #
 # Discovery EC2 Offering in Local Zones within a set of regions.
 #
+import os
+import time
 import json
 from datetime import datetime
 import boto3
 import pandas as pd
 from pprint import pprint
+import subprocess
 
-
+pd.set_option('display.max_rows', 100)
+pd.set_option('display.max_columns', 100)
 sess = boto3.session.Session()
-ec2_regions = sess.get_available_regions('ec2')
+#ec2_regions = sess.get_available_regions('ec2')
 
 ec2_regions = ["us-east-1", "us-west-2"]
+if os.getenv('FILTER_REGIONS') is not None:
+    ec2_regions = os.getenv('FILTER_REGIONS').split(',')
+
 instances = {}
 all_zones = {}
 families = []
 
+print(f"Starting EC2 Offering discovery into regions: {ec2_regions}")
 
 for region in ec2_regions:
     print(f"Describing Local Zones on the region {region}")
@@ -39,10 +47,34 @@ for region in ec2_regions:
 
     # Describe Local Zone EC2 offerings
     try:
-        offerings = ec2.describe_instance_type_offerings(
-                LocationType='availability-zone',
-                Filters=[{"Name": "location", "Values": [az['ZoneName']for az in local_zones]}]
-            )['InstanceTypeOfferings']
+        try:
+            zones_str=",".join([az['ZoneName']for az in local_zones])
+            # describe_instance_type_offerings does not return all instances (mainly in newer zones)
+            #offerings = ec2.describe_instance_type_offerings(
+            #        LocationType='availability-zone',
+            #        Filters=[{"Name": "location", "Values": [az['ZoneName']for az in local_zones]}]
+            #    )['InstanceTypeOfferings']
+            #$ aws ec2 describe-instance-type-offerings --location-type availability-zone --filters --region=us-east-1
+            cmd = ["aws", "ec2", "describe-instance-type-offerings",
+                "--location-type", "availability-zone",
+                "--filters", f"Name=location,Values={zones_str}",
+                "--region", f"{region}"
+            ]
+            result = subprocess.run(cmd, stdout=subprocess.PIPE)
+        except Exception as e:
+            print(f"One or more errors was found when running the command: {cmd}")
+            print(f"{e}")
+            os.exit(1)
+        
+        try:
+            offerings = json.loads(result.stdout.decode('utf-8'))['InstanceTypeOfferings']
+        except Exception as e:
+            print("Unexpecting error when decoding to json the describe-instance-type-offerings.")
+            if 'InstanceTypeOfferings' not in result.stdout.decode('utf-8'):
+                print(f"'InstanceTypeOfferings' is not present on the payload.")
+            print(f"{result.stdout.decode('utf-8')}")
+            os.exit(1)
+
         for o in offerings:
             try:
                 itype = o['InstanceType']
@@ -59,7 +91,7 @@ for region in ec2_regions:
     except KeyError:
       print(f"InstanceTypeOfferings not found on region {region}")
       continue
-      pass
+    time.sleep(10)
 
 print(">> Instance map")
 pprint(instances)
