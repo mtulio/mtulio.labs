@@ -6,7 +6,7 @@
 
 ## Usage
 
-### Common commands:
+### Common usual commands:
 
 ```bash
 ./rosa whoami
@@ -22,6 +22,28 @@
 ./rosa list -c mrbrosa
 ./rosa list machinepools -c mrbrosa
 ./rosa list clusters
+```
+
+### Get credentials
+
+<todo>
+
+- Get your offline token from https://console.redhat.com/openshift/token
+- Login
+```bash
+rosa login --token=<offline-token>
+```
+
+### Create a cluster
+
+<todo>
+
+### Destroy a cluster
+
+```bash
+rosa delete cluster -c $CLUSTER_NAME
+rosa delete operator-roles -c $CLUSTER_NAME
+rosa delete oidc-provider -c $CLUSTER_NAME
 ```
 
 ## References:

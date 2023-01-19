@@ -157,6 +157,7 @@ nav:
         - Custom Image: notes/container/openshift/CVO.md
         - ocp-user-monit: notes/container/openshift/ocp-user-monit.md
         - ocp-idp: notes/container/openshift/ocp-idp.md
+        - ROSA: notes/container/openshift/rosa-references.md
       - alpine: notes/container/alpine.md
 
     - db:
