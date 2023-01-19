@@ -113,26 +113,35 @@ nav:
       - rundeck: notes/automation/rundeck.md
 
     - cloud:
+      # AWS
       - aws-cli: notes/cloud/aws-cli.md
       - aws-ec2: notes/cloud/aws-ec2.md
+      - aws-ecr: notes/cloud/aws-ecr.md
+      - aws-eks: notes/cloud/aws-eks.md
       - aws-iam: notes/cloud/aws-iam.md
       - aws-instances: notes/cloud/aws-instances.md
-      - aws-monitoring: notes/cloud/aws-monitoring.md
+      - aws-localstack: notes/cloud/aws-localstack.md
+      - aws-monit-quotas: notes/cloud/aws-monitoring-quotas.md
       - aws-network: notes/cloud/aws-network.md
       - aws-nlb: notes/cloud/aws-nlb.md
       - aws-s3: notes/cloud/aws-s3.md
-      - aws-eks: notes/cloud/aws-eks.md
+      - aws-sts: notes/cloud/aws-sts.md
       - aws-zones: notes/cloud/aws-zones.md
-      - az-monitor: notes/cloud/az-montior.md
+      # Azure
+      - azure-monitor: notes/cloud/az-montior.md
       - azure-ha: notes/cloud/azure-ha.md
       - azure-network: notes/cloud/azure-network.md
+      # AlibabaCloud
       - aliyun-cli: notes/cloud/aliyun-cli.md
+      - aliyun-cli-disks: notes/cloud/aliyun-cli-disks.md
       - aliyun-ecs: notes/cloud/aliyun-ecs.md
+      - aliyun-ecs: notes/cloud/aliyun-kms.md
       - aliyun-oss: notes/cloud/aliyun-oss.md
       - aliyun-ram: notes/cloud/aliyun-ram.md
-      - aliyun-vpc: notes/cloud/aliyun-vpc.md
+      - aliyun-resourcemanager: notes/cloud/aliyun-resourcemanager.md
       - aliyun-slb: notes/cloud/aliyun-slb.md
-      - aliyun-kms: notes/cloud/aliyun-kms.md
+      - aliyun-vpc: notes/cloud/aliyun-vpc.md
+      # General
       - cloud-init: notes/cloud/cloud-init.md
 
     - container:
