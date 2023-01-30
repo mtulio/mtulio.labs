@@ -585,7 +585,7 @@ KPASS=$(cat auth/kubeadmin-password)
 API_INT=$(oc get infrastructures cluster -o jsonpath={.status.apiServerInternalURI})
 
 oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "\
-oc login -u kubeadmin -p $KPASS ${API_INT} \
+oc login --insecure-skip-tls-verify -u kubeadmin -p ${KPASS} ${API_INT}; \
 podman login -u kubeadmin -p \$(oc whoami -t) image-registry.openshift-image-registry.svc:5000; \
 podman pull image-registry.openshift-image-registry.svc:5000/openshift/tests"
 
