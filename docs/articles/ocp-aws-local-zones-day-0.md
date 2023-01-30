@@ -316,12 +316,13 @@ cp -v ${PWD}/install-config.yaml \
 
 - Patch the cluster to decrease the MTU to 1200.
 
-option 1) patch the CNO
+Set the CNO configuration to decrease the MTU to 1200:
 
 > [AWS Local Zones](https://docs.aws.amazon.com/local-zones/latest/ug/how-local-zones-work.html) must use 1300 of MTU to communicate with nodes in the regular cluster: 
+
 > Steps customize the of the [SDN are described on the OCP docs](https://docs.openshift.com/container-platform/4.12/networking/changing-cluster-network-mtu.html#mtu-value-selection_changing-cluster-network-mtu)
 
-``:
+
 ```
 cat <<EOF > manifests/cluster-network-03-config.yml
 apiVersion: operator.openshift.io/v1
@@ -334,13 +335,14 @@ spec:
       mtu: 1200
 EOF
 ```
+
 <!-- patch:
 ```
 yq -y --in-place ".spec.defaultNetwork.ovnKubernetesConfig.mtu=1200" \
   manifests/cluster-network-02-config.yml
 ``` -->
 
-- Get the `InfraId` used in the next sections
+<!-- - Get the `InfraId` used in the next sections
 
 ```bash
 export CLUSTER_ID="$(awk '/infrastructureName: / {print $2}' manifests/cluster-infrastructure-02-config.yml)"
@@ -351,7 +353,7 @@ option 2) (optional?) change the NM
 ```bash
 cp ../mtu-manifests/control-plane-interface.yaml openshift/99_openshift-machineconfig_99-master-interface.yaml
 cp ../mtu-manifests/worker-interface.yaml openshift/99_openshift-machineconfig_99-worker-interface.yaml
-```
+``` -->
 
 
 #### Create the Machine Set manifest for Local Zones pool <a name="steps-create-manifests-ms"></a>
