@@ -81,7 +81,7 @@ Export the region of your OpenShift cluster will be created:
 ```bash
 export CLUSTER_REGION="us-east-1"
 # Using NYC Local Zone (choose yours)
-export ZONE_GROUP_NAME="${CLUSTER_REGION}-nyc-1a"
+export ZONE_GROUP_NAME="${CLUSTER_REGION}-nyc-1"
 ```
 
 Check the AZs available in your region:
