@@ -288,10 +288,6 @@ publish: External
 baseDomain: ${BASE_DOMAIN}
 metadata:
   name: "${CLUSTER_NAME}"
-defaultNetwork:
-  type: OVNKubernetes
-  ovnKubernetesConfig:
-    mtu: 1200
 platform:
   aws:
     region: ${CLUSTER_REGION}
@@ -320,30 +316,41 @@ cp -v ${PWD}/install-config.yaml \
 
 - Patch the cluster to decrease the MTU to 1200.
 
+option 1) patch the CNO
+
 > [AWS Local Zones](https://docs.aws.amazon.com/local-zones/latest/ug/how-local-zones-work.html) must use 1300 of MTU to communicate with nodes in the regular cluster: 
 > Steps customize the of the [SDN are described on the OCP docs](https://docs.openshift.com/container-platform/4.12/networking/changing-cluster-network-mtu.html#mtu-value-selection_changing-cluster-network-mtu)
 
-`manifests/cluster-network-02-config.yml`:
-```diff
+``:
+```
+cat <<EOF > manifests/cluster-network-03-config.yml
 apiVersion: operator.openshift.io/v1
 kind: Network
 metadata:
   name: cluster
 spec:
-+  defaultNetwork:
-+    ovnKubernetesConfig:
-+      mtu: 1200
+  defaultNetwork:
+    ovnKubernetesConfig:
+      mtu: 1200
+EOF
 ```
-patch:
+<!-- patch:
 ```
 yq -y --in-place ".spec.defaultNetwork.ovnKubernetesConfig.mtu=1200" \
   manifests/cluster-network-02-config.yml
-```
+``` -->
 
 - Get the `InfraId` used in the next sections
 
 ```bash
 export CLUSTER_ID="$(awk '/infrastructureName: / {print $2}' manifests/cluster-infrastructure-02-config.yml)"
+```
+
+option 2) (optional?) change the NM
+
+```bash
+cp ../mtu-manifests/control-plane-interface.yaml openshift/99_openshift-machineconfig_99-master-interface.yaml
+cp ../mtu-manifests/worker-interface.yaml openshift/99_openshift-machineconfig_99-worker-interface.yaml
 ```
 
 
@@ -588,7 +595,6 @@ oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "\
 oc login --insecure-skip-tls-verify -u kubeadmin -p ${KPASS} ${API_INT}; \
 podman login -u kubeadmin -p \$(oc whoami -t) image-registry.openshift-image-registry.svc:5000; \
 podman pull image-registry.openshift-image-registry.svc:5000/openshift/tests"
-
 ```
 
 ## Steps to Destroy the Cluster <a name="steps-destroy"></a>
