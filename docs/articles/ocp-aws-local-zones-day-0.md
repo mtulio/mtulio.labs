@@ -288,6 +288,10 @@ publish: External
 baseDomain: ${BASE_DOMAIN}
 metadata:
   name: "${CLUSTER_NAME}"
+defaultNetwork:
+  type: OVNKubernetes
+  ovnKubernetesConfig:
+    mtu: 1200
 platform:
   aws:
     region: ${CLUSTER_REGION}
@@ -312,6 +316,28 @@ cp -v ${PWD}/install-config.yaml \
 
 ```bash
 ./openshift-install create manifests
+```
+
+- Patch the cluster to decrease the MTU to 1200.
+
+> [AWS Local Zones](https://docs.aws.amazon.com/local-zones/latest/ug/how-local-zones-work.html) must use 1300 of MTU to communicate with nodes in the regular cluster: 
+> Steps customize the of the [SDN are described on the OCP docs](https://docs.openshift.com/container-platform/4.12/networking/changing-cluster-network-mtu.html#mtu-value-selection_changing-cluster-network-mtu)
+
+`manifests/cluster-network-02-config.yml`:
+```diff
+apiVersion: operator.openshift.io/v1
+kind: Network
+metadata:
+  name: cluster
+spec:
++  defaultNetwork:
++    ovnKubernetesConfig:
++      mtu: 1200
+```
+patch:
+```
+yq -y --in-place ".spec.defaultNetwork.ovnKubernetesConfig.mtu=1200" \
+  manifests/cluster-network-02-config.yml
 ```
 
 - Get the `InfraId` used in the next sections
@@ -539,6 +565,30 @@ lzdemo-ds2dn-edge-us-east-1-nyc-1a-6645q   Running   c5d.2xlarge   us-east-1   u
 $ oc get nodes -l location=local-zone
 NAME                           STATUS   ROLES         AGE   VERSION
 ip-10-0-143-104.ec2.internal   Ready    edge,worker   11m   v1.24.0+beaaed6
+```
+
+## Testing
+
+### Pulling images from local registry
+
+> Steps described on the [official documentation](https://docs.openshift.com/container-platform/4.12/registry/accessing-the-registry.html)
+
+Steps:
+
+- Get the node name of Local Zone
+- Export the Kubeadmin password
+- Pull random image from the local registry
+
+```bash
+NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/edge='' -o jsonpath={.items[0].metadata.name})
+KPASS=$(cat auth/kubeadmin-password)
+API_INT=$(oc get infrastructures cluster -o jsonpath={.status.apiServerInternalURI})
+
+oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "\
+oc login -u kubeadmin -p $KPASS ${API_INT} \
+podman login -u kubeadmin -p \$(oc whoami -t) image-registry.openshift-image-registry.svc:5000; \
+podman pull image-registry.openshift-image-registry.svc:5000/openshift/tests"
+
 ```
 
 ## Steps to Destroy the Cluster <a name="steps-destroy"></a>
