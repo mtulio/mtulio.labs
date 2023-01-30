@@ -246,6 +246,29 @@ EOF
     set_results "${INSTALLER_ERROR_CODE}" "0"
 
 
+    TEST_NAME="t00_01-aws-exist_vpc_workers-2x"
+    TEST_CASE_DIR="${PWD}/test_${TEST_ID}/${TEST_NAME}"
+    if [[ ! -d ${TEST_CASE_DIR} ]]; then
+        mkdir ${TEST_CASE_DIR}
+    fi
+    cat << EOF > ${TEST_CASE_DIR}-install-config.yaml
+$(cat ${INSTALL_CONFIG_AWS})
+$(cat ${TEST_DIR}/subnets-worker.txt)
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+EOF
+    create_manifests ${TEST_CASE_DIR}
+    show_machinesets ${TEST_CASE_DIR}
+    set_results "${INSTALLER_ERROR_CODE}" "0"
+
+
     TEST_NAME="t01-aws-exist_vpc_all-pool_empty"
     TEST_CASE_DIR="${PWD}/test_${TEST_ID}/${TEST_NAME}"
     if [[ ! -d ${TEST_CASE_DIR} ]]; then
