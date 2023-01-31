@@ -725,8 +725,11 @@ Finalize removing the migration entry:
 ```
 $ oc patch Network.operator.openshift.io cluster --type='merge' \
   --patch '{ "spec": { "migration": null } }'
-
 ```
+
+Wait the nodes rebooted and ClusterOperators became ready.
+
+Test to pull images on the edge node.
 
 ## Steps to Destroy the Cluster <a name="steps-destroy"></a>
 
