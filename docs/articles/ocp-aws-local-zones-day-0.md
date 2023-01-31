@@ -578,6 +578,32 @@ ip-10-0-143-104.ec2.internal   Ready    edge,worker   11m   v1.24.0+beaaed6
 
 ## Testing
 
+### Testing communication with services hosted on availability zones
+
+Steps:
+- Check API server LB (internal)
+- Check API server endpoints (nodes)
+- Test ICMP
+
+```
+NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/edge -o jsonpath={.items[0].metadata.name})
+MASTER_NODES=$(oc get node -l node-role.kubernetes.io/master -o json |jq -r '.items[].status.addresses[] | select(.type == "InternalIP") | .address')
+KPASS=$(cat auth/kubeadmin-password)
+API_INT=$(oc get infrastructures cluster -o jsonpath={.status.apiServerInternalURI})
+
+oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "\
+echo \"#> calling  ${API_INT}/healthz\";
+curl -w \"\\nhttp_code: %{http_code}\\n\" -k ${API_INT}/healthz; \
+for ND in ${MASTER_NODES[*]}; do \
+echo \"#> calling  https://\${ND}:6443/healthz\";
+curl -w \"\\nhttp_code: %{http_code}\\n\" -k https://\${ND}:6443/healthz; \
+echo \"#> calling  https://\${ND}:22623/healthz\";
+curl -w \"\\nhttp_code: %{http_code}\\n\" -k https://\${ND}:22623/readyz; \
+done;\
+"
+
+```
+
 ### Pulling images from local registry
 
 > Steps described on the [official documentation](https://docs.openshift.com/container-platform/4.12/registry/accessing-the-registry.html)
@@ -589,7 +615,7 @@ Steps:
 - Pull random image from the local registry
 
 ```bash
-NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/edge='' -o jsonpath={.items[0].metadata.name})
+NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/edge -o jsonpath={.items[0].metadata.name})
 KPASS=$(cat auth/kubeadmin-password)
 API_INT=$(oc get infrastructures cluster -o jsonpath={.status.apiServerInternalURI})
 
