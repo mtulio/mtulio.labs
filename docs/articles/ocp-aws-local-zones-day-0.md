@@ -625,6 +625,109 @@ podman login -u kubeadmin -p \$(oc whoami -t) image-registry.openshift-image-reg
 podman pull image-registry.openshift-image-registry.svc:5000/openshift/tests"
 ```
 
+
+## Day-2 guide to change MTU on Existing cluster
+
+> Based on https://docs.openshift.com/container-platform/4.12/networking/ovn_kubernetes_network_provider/rollback-to-openshift-sdn.html
+
+Steps:
+- Change the Network Object
+- ...
+
+Paused the MCPs
+```bash
+oc patch MachineConfigPool master --type='merge' --patch \
+  '{ "spec": { "paused": true } }'
+  
+oc patch MachineConfigPool worker --type='merge' --patch \
+  '{ "spec":{ "paused" :true } }'
+
+```
+
+Patch the OVN to use the new MTU value
+```bash
+$ oc patch Network.operator.openshift.io cluster --type=merge \
+  --patch '{
+    "spec":{
+      "defaultNetwork":{
+        "ovnKubernetesConfig":{
+          "mtu":1200
+    }}}}'
+```
+
+Set the migration to use the new MTU in the cluster network (donet need to change machine network, keep the same values - required field):
+
+```
+$ oc patch Network.operator.openshift.io cluster --type='merge' \
+  --patch '{ "spec": { "migration": { "mtu": {"network": { "from":8901, "to": 1200 }} } } }'
+```
+
+Roll out the multus:
+```
+$ oc -n openshift-multus rollout status daemonset/multus
+```
+
+Reboot the nodes:
+```
+#!/bin/bash
+
+for NODE_NAME in $(oc get nodes  -o jsonpath='{.items[*].metadata.name}')
+do
+   echo "#> reboot node $NODE_NAME";
+   oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "sudo shutdown -r -t 3";
+   sleep 60;
+done
+
+```
+
+Make sure all nodes have been rebooted:
+```
+$ for NODE_NAME in $(oc get nodes  -o jsonpath='{.items[*].metadata.name}'); do    echo "reboot node $NODE_NAME";    oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "hostname; uptime"; done
+```
+
+Unpause the MCP:
+```
+$ oc patch MachineConfigPool master --type='merge' --patch \
+  '{ "spec": { "paused": false } }'
+  
+$ oc patch MachineConfigPool worker --type='merge' --patch \
+  '{ "spec": { "paused": false } }'
+```
+
+ Check the MCP nodes rollout:
+ 
+```
+$ oc describe node | egrep "hostname|machineconfig"
+
+$ oc get machineconfig <config_name> -o yaml
+```
+
+Check if the MTU value for the cluster network:
+
+```
+$ oc get network.config/cluster -o jsonpath='{.status.clusterNetworkMTU}{"\n"}'
+```
+
+Check if the nodes has been set this value on the overlay interface:
+
+```
+$ for NODE_NAME in $(oc get nodes  -o jsonpath='{.items[*].metadata.name}'); do    echo "reboot node $NODE_NAME";    oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "ip ad show ovn-k8s-mp0"; done
+```
+
+Check the state after reboots:
+```
+$ oc get nodes
+
+$ oc get pod -n openshift-machine-config-operator
+```
+
+Finalize removing the migration entry:
+```
+$ oc patch Network.operator.openshift.io cluster --type='merge' \
+  --patch '{ "spec": { "migration": null } }'
+
+```
+
 ## Steps to Destroy the Cluster <a name="steps-destroy"></a>
 
 To destroy the resources created, you need to first delete the cluster and then the CloudFormation stacks used to build the network.
