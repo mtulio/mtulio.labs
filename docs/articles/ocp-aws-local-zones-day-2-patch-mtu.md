@@ -1,39 +1,39 @@
 # Day-2 Guide to patch the ClusterNetwork MTU on running cluster with Local Zone workers
 
-> The steps described in this guide were based on the [official documentation](https://docs.openshift.com/container-platform/4.12/networking/ovn_kubernetes_network_provider/rollback-to-openshift-sdn.html).
+> The steps described in this guide were based on the [official documentation](https://docs.openshift.com/container-platform/4.12/networking/changing-cluster-network-mtu.html#nw-cluster-mtu-change_changing-cluster-network-mtu).
 
 Steps to change the MTU of OVN in existing clusters installed with Local Zone workers.
 
 Overview of the steps:
 - Review the current configuration
-- Pause the MachineConfigPools
 - Patch the Cluster Network Operator to use the new MTU for OVN and the migration config
-- Reboot the nodes
-- Unpause the MCP
-- Remove the migration
+- Remove the migration, and set the default MTU
 - Wait for the cluster operators to complete
 
 ## Pre-checks
 
-Check the current MTU assigned to the OVN interface:
+Overall Checks:
+
+- Expected all Cluster Operators ready (AVAILABLE=True, PROGRESSING && DEGRADED == False)
+- Expected all MCPs ready (UPDATED=True, UPDATING=False, DEGRADED=False)
+- Expected all nodes STATUS=Ready
+- Expected the `.status.clusterNetworkMTU` with non targeted MTU value in `network.config/cluster`
+- Expected no migrations `.status.migrations == nil`
+- Expected the mtu applied on the interface `ovn-k8s-mp0` the same of `.status.clusterNetworkMTU`
 
 ```bash
+oc get co
+oc get mcp
+oc get nodes
+oc get network.config/cluster -o yaml
+oc get Network.operator.openshift.io cluster -o yaml
+oc get Network.operator.openshift.io cluster -o jsonpath='{.spec.defaultNetwork.ovnKubernetesConfig.mtu}{"\n"}'
+oc get network.config/cluster -o jsonpath='{.status.clusterNetworkMTU}{"\n"}'
+
 for NODE_NAME in $(oc get nodes  -o jsonpath='{.items[*].metadata.name}'); do
   echo -e "\n>> check interface $NODE_NAME";
   oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "ip ad show ovn-k8s-mp0 | grep mtu" 2>/dev/null;
 done
-```
-
-Check the Network configuration:
-
-```bash
-oc get network.config/cluster -o yaml
-```
-
-Check the Network Operator configuration:
-
-```bash
-oc get Network.operator.openshift.io cluster -o yaml
 ```
 
 When running with an invalid MTU to communicate with nodes in local zones, check if pulling images from the internal registry will fail (it's expected to fail with MTU higher than 1200):
@@ -53,119 +53,58 @@ podman pull image-registry.openshift-image-registry.svc:5000/openshift/tests" 2>
 
 ## Change the MTU
 
-Paused the existing MachineConfigPools:
-
-```bash
-oc patch MachineConfigPool master --type='merge' --patch \
-  '{ "spec": { "paused": true } }'
-  
-oc patch MachineConfigPool worker --type='merge' --patch \
-  '{ "spec":{ "paused" :true } }'
-```
 
 Patch the OVN to use the new MTU value:
 
 ```bash
+target_mtu=1200
 oc patch Network.operator.openshift.io cluster --type=merge \
-  --patch '{
-    "spec":{
-      "defaultNetwork":{
-        "ovnKubernetesConfig":{
-          "mtu": 1200
-    }}}}'
-```
-
-Set the migration to using the new MTU in the cluster network (don't need to change the machine network, keep the same values - required field):
-
-> **Note**: keet the machine MTU with the same value. It's required by migration.
-
-```bash
-oc patch Network.operator.openshift.io cluster --type='merge' \
-  --patch '{
-    "spec":{
-      "migration":{
-        "mtu":{
-          "network":{"from":1200, "to":1200},
-          "machine":{"from":8901, "to":8901}
-        }}}}'
-```
-
-Rollout the multus:
-
-```bash
-oc -n openshift-multus rollout status daemonset/multus
-```
-
-Reboot the nodes:
-
-> Adjust the "sleep" interval according to your time waiting for the new node to come up
-
-```bash
-#!/bin/bash
-
-for NODE_NAME in $(oc get nodes  -o jsonpath='{.items[*].metadata.name}')
-do
-   echo ">> reboot node $NODE_NAME";
-   oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "sudo shutdown -r -t 3";
-   sleep 30;
-done
-```
-
-Make sure all nodes have been rebooted:
-
-```bash
-for NODE_NAME in $(oc get nodes  -o jsonpath='{.items[*].metadata.name}'); do
-  echo ">> get the uptime for node $NODE_NAME";
-  oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "hostname; uptime" 2>/dev/null;
-done
-```
-
-Unpause the MCPs:
-
-```bash
-oc patch MachineConfigPool master --type='merge' --patch \
-  '{ "spec": { "paused": false } }'
-  
-oc patch MachineConfigPool worker --type='merge' --patch \
-  '{ "spec": { "paused": false } }'
-```
-
-Check the node's machine config rollout/status:
- 
-```bash
-oc describe node | egrep "hostname|machineconfig"
-
-oc get machineconfig <config_name> -o yaml
-```
-
-Check the MTU value for the cluster network:
-
-```bash
-oc get network.config/cluster -o jsonpath='{.status.clusterNetworkMTU}{"\n"}'
-```
-
-Finalize and apply the changes by removing the migration entry:
-
-```bash
-$ oc patch Network.operator.openshift.io cluster --type='merge' \
-  --patch '{ "spec": { "migration": null } }'
+  --patch "{
+    \"spec\":{
+      \"migration\":{
+        \"mtu\":{
+          \"network\":{
+            \"from\":$(oc get network.config.openshift.io/cluster --output=jsonpath={.status.clusterNetworkMTU}),
+            \"to\":${target_mtu}
+          },
+          \"machine\":{\"to\":9001}
+        }}}}"
 ```
 
 Wait for:
 
-- All nodes have been updated by MCO rolls out wi the latest MCP
-- Nodes are ready
-- Operators are ready (available, not progressing nor degraded)
+- All the MachineConfigPools have been updated
+- All nodes are Ready
+- All ClusterOperators are ready (available, not progressing nor degraded)
+- All nodes' overlay interface must have the new MTU
 
 > NOTE: it could take several minutes
 
 ```bash
-oc get pod -n openshift-machine-config-operator
+oc get network.config/cluster -o jsonpath='{.status.clusterNetworkMTU}{"\n"}'
+oc get mcp
 oc get nodes
 oc get co
 ```
 
-Check if the nodes have been set this value on the overlay interface:
+Finalize and apply the changes by removing the migration entry, setting the MTU into the default configuration:
+
+```bash
+target_mtu=1200
+oc patch network.operator.openshift.io/cluster --type=merge \
+  --patch "{
+    \"spec\":{
+      \"migration\":null,
+      \"defaultNetwork\":{
+        \"ovnKubernetesConfig\":{\"mtu\":${target_mtu}}
+        }}}"
+```
+
+Wait for MCP rollout one more time.
+
+## Review
+
+Check if the nodes keep with the MTU set previously:
 
 ```bash
 for NODE_NAME in $(oc get nodes  -o jsonpath='{.items[*].metadata.name}'); do
@@ -174,15 +113,8 @@ for NODE_NAME in $(oc get nodes  -o jsonpath='{.items[*].metadata.name}'); do
 done
 ```
 
-The OVN interface must have the new MTU (`1200`), example output:
 
-```
->> check interface ip-10-0-141-120.ec2.internal
-5: ovn-k8s-mp0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1100 qdisc noqueue state UNKNOWN group default qlen 1000
-(...)
-```
-
-## Testing pulling images from the internal registry
+### Testing pulling images from the internal registry
 
 You must be able to pull images from the internal registry after the MTU change:
 
