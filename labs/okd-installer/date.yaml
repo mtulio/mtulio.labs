@@ -12,10 +12,7 @@
       date2: "{{ ansible_date_time.date }} {{ ansible_date_time.time }}"
       date2i: " {{ ansible_date_time.iso8601 }}"
 
-  - name: Get timestamp from the system
-    shell: "date +'%Y-%m-%d %H:%M:%S'"
-    register: tstamp
-    changed_when: false
+
 
   - name: Set variables
     set_fact:
