@@ -587,21 +587,20 @@ Steps:
 
 ```
 NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/edge -o jsonpath={.items[0].metadata.name})
-MASTER_NODES=$(oc get node -l node-role.kubernetes.io/master -o json |jq -r '.items[].status.addresses[] | select(.type == "InternalIP") | .address')
+mapfile -t MASTER_NODES < <(oc get node -l node-role.kubernetes.io/master -o json |jq -r '.items[].status.addresses[] | select(.type == "InternalIP") | .address')
 KPASS=$(cat auth/kubeadmin-password)
 API_INT=$(oc get infrastructures cluster -o jsonpath={.status.apiServerInternalURI})
 
 oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "\
 echo \"#> calling  ${API_INT}/healthz\";
-curl -w \"\\nhttp_code: %{http_code}\\n\" -k ${API_INT}/healthz; \
+curl -sw \"\\nhttp_code: %{http_code}\\n\" -k ${API_INT}/healthz; \
 for ND in ${MASTER_NODES[*]}; do \
 echo \"#> calling  https://\${ND}:6443/healthz\";
-curl -w \"\\nhttp_code: %{http_code}\\n\" -k https://\${ND}:6443/healthz; \
-echo \"#> calling  https://\${ND}:22623/healthz\";
-curl -w \"\\nhttp_code: %{http_code}\\n\" -k https://\${ND}:22623/readyz; \
+curl -sw \"\\nhttp_code: %{http_code}\\n\" -k https://\${ND}:6443/healthz; \
+echo \"#> pinging \";
+ping -c 4 \${ND};
 done;\
 "
-
 ```
 
 ### Pulling images from local registry
