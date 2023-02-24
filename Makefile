@@ -1,6 +1,6 @@
 
 VENV_PATH ?= ./.venv
-VENV_REQ ?= requirements.txt
+VENV_REQ ?= docs/requirements.txt
 
 .PHONY: venv
 venv:
@@ -10,6 +10,15 @@ venv:
 requirements: venv
 	$(VENV_PATH)/bin/pip3 install --upgrade pip
 	$(VENV_PATH)/bin/pip3 install -r $(VENV_REQ)
+
+# Vercel
+.PHONY: ci-dependencies
+ci-dependencies:
+	cat /etc/os-release
+	yum install -y python3-pip graphviz
+
+.PHONY: ci-install
+ci-install: ci-dependencies requirements
 
 mkdocs-serve:
 	$(VENV_PATH)/bin/mkdocs serve

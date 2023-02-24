@@ -1,4 +1,4 @@
-# Installing Hypershift on AWS with STS (unfinished/unsupported)
+# Installing Hypershift on AWS with STS (unfinished/wip)
 
 Steps to create a cluster with authentication mode with STS in AWS, then install Hypershift using STS (unfinished/unsupported).
 

@@ -3,13 +3,13 @@
 - your IPv4
 
 ``` shell
-curl https://mtulio.eng.br/api/ip
+curl https://mtulio.net/api/ip
 ```
 
 - your IPv4 (json output)
 
 ``` shell
-curl -s https://mtulio.eng.br/api/ip?json |jq .
+curl -s https://mtulio.net/api/ip/ip?json |jq .
 ```
 
 ``` json
@@ -23,7 +23,7 @@ curl -s https://mtulio.eng.br/api/ip?json |jq .
 - http echo
 
 ``` shell
-curl -s https://mtulio.eng.br/api/echo
+curl -s https://mtulio.net/api/echo
 ```
 - http echo (request headers)
 

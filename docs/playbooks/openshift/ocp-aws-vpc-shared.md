@@ -1,4 +1,4 @@
-# Lab - OCP VPC-Shared Installation Steps
+# Lab - OCP VPC-Shared Installation Steps (WIP)
 
 > Note: incomplete due to limitations.
 
@@ -87,3 +87,6 @@ AWS_ACCESS_KEY_ID=${ACCOUNT_A_AKID} \
 ### Create resources on Shared-VPC
 
 - Return to `Account B` and run instances in the shared VPC
+
+
+(...)

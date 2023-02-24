@@ -1,10 +1,16 @@
 # OpenShift | AWS | Steps to Create a node manually
 
-Steps:
+Steps to crate an EC2 manually based on existing Machine Set.
+
+Reasons to follow that guide:
+
+- Testing parameters not allowed by Machine Set provider spec.
+
+## Steps
 
 - Create the subnet
 
-```
+```bash
 CLUSTER_ID=mrb-ffj2l
 VPC_NAME=${CLUSTER_ID}-vpc
 VPC_ID=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=${VPC_NAME} |jq -r .Vpcs[0].VpcId)
@@ -38,12 +44,13 @@ aws ec2 create-subnet --cli-input-json "$(cat subnet-new.json)"
 
 - Check instance availability
 
-```
+```bash
 $ aws ec2 describe-instance-type-offerings --location-type availability-zone --filters Name=location,Values=${AZ_NAME} --region ${REGION}
 ```
 
 - Create the instance
-```
+
+```bash
 # CHANGE_ME:
 REGION="us-east-1"
 # Subnet in us-east-1-bos-1a
@@ -79,5 +86,6 @@ aws ec2 run-instances                     \
     --block-device-mappings "VirtualName=/dev/nvme0n1,DeviceName=/dev/xvda,Ebs={VolumeSize=${DISK_SIZE}}" \
     --user-data "file://${USERDATA}" \
     --iam-instance-profile Name=${PROFILE_NAME}
-
 ```
+
+- Approve the certificate

@@ -1,4 +1,4 @@
-# OCP on AWS - Install cluster with STS with a single command
+# OCP on AWS - Installing a cluster with STS quickly on AWS
 
 Install the OCP cluster on AWS with manual Authentication with STS with a single command.
 
@@ -176,7 +176,7 @@ CLUSTER_VERSION="4.11.10" &&\
 - Create the cluster patching the Cloud Credential secrets to add the regional endpoint option:
 
 ```bash
-  PATCH_SECRETS_REGIONAL=true &&\
+PATCH_SECRETS_REGIONAL=true &&\
   CLUSTER_VERSION="4.12.0-ec.4" &&\
   CLUSTER_NAME="labsts4120ec4t1" &&\
   CLUSTER_BASE_DOMAIN="devcluster.openshift.com" &&\
