@@ -1,5 +1,11 @@
 # OCP on AWS - Review CredentialsRequests provided by CCO
 
+Steps to review the existing CredentialsRequests provided by CCO from a given OpenShift release version.
+
+It will extract the CredentialsRequests from a release (required) versus the running on the cluster (secrets).
+
+Steps:
+
 - Get the credentials expected to the release
 
 ```bash

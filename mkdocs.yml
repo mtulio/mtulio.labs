@@ -4,12 +4,9 @@ site_author: 'Marco Braga'
 site_description: >-
   Marco Braga | Playground
 repo_url: https://github.com/mtulio/mtulio.labs
-
+edit_uri: edit/main/docs/
 docs_dir: docs
-
-# theme:
-#   name: cerulean
-#   nav_style: dark
+dev_addr: 127.0.0.1:8080
 
 theme:
   # https://github.com/squidfunk/mkdocs-material/blob/master/mkdocs.yml
@@ -30,12 +27,12 @@ theme:
         icon: material/lightbulb
         name: Switch to dark mode
 
-
   features:
     - navigation.tabs
     - navigation.tabs.sticky
     #- navigation.sections
     - navigation.top
+    #- navigation.indexes
 
     # integrate menus
     #- toc.integrate
@@ -47,10 +44,26 @@ theme:
   font:
     text: Roboto
     code: Roboto Mono
-  
 
-# plugins:
-#   - social
+plugins:
+  - diagrams:
+      file_extension: ".diagram.py"
+      max_workers: 5
+
+markdown_extensions:
+  # - toc:
+  #     permalink: true
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  # enable mermaid
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 extra:
   analytics:
@@ -73,38 +86,44 @@ extra:
     - icon: fontawesome/brands/linkedin
       link: https://linkedin.com/in/mtuliorbraga/
 
-markdown_extensions:
-  # - toc:
-  #     permalink: true
-  - admonition
-  - pymdownx.superfences
-  - pymdownx.details
-  - pymdownx.tabbed:
-      alternate_style: true
-  
-
 nav:
   - Home:
     - index.md
-    - about.md
-    - tools.md
-  - Runbooks:
+    # - about.md
+    # - tools.md
+  - Guides:
       - Home: playbooks/README.md
-      - OpenShift:
+      - OpenShift API:
+        - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
+
+      - OpenShift Node/Machine operations:
         - Machine resize: playbooks/openshift/resize-machines.md
         - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
-        - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
-        - Hacking CCO STS manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
-        - Quickly install an OCP cluster in AWS with STS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
-        - AWS STS - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
-        - AWS STS - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
-        - Installing Hypershift on AWS with STS: playbooks/openshift/hypershift-install-sts.md
         - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
+        - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
+
+      - OpenShift Installing:
+        - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
+        - Installing OpenShift on Alibaba Cloud in existing VPC: playbooks/openshift/ocp-installing-alibabacloud.md
+        - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
+        - Installing Hypershift on AWS with STS (draft/unfinished): playbooks/openshift/hypershift-install-sts.md
+        - Installing single node (SNO) on AWS [draft]: playbooks/openshift/ocp-aws-sno-install.md
+
+      - OpenShift on AWS with STS:
+        - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
+        - Hacking CCO manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
+        - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
+        - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
+        - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
+        - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
+
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
         - Create custom release: playbooks/openshift/dev-custom-release.md
         - Get Credentials with CI Registry: playbooks/openshift/install-credentials-with-ci.md
         - Extract openshift-tests utility: playbooks/openshift/dev-extract-openshift-tests.md
+
+      #- OpenShift in AWS:
 
   - Notes:
     - Home: notes/README.md
