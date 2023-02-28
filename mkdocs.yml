@@ -46,6 +46,10 @@ theme:
     code: Roboto Mono
 
 plugins:
+  - search:
+      lang:
+      - en
+      - pt
   - diagrams:
       file_extension: ".diagram.py"
       max_workers: 5
