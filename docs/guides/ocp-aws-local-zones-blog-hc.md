@@ -1,13 +1,33 @@
 # OCP on AWS Local Zones - HC Blog - hands-on steps
 
+Installing OpenShift on AWS in existing VPC extending compute nodes to Local Zones quickly.
 
-## Network
+The steps described here is a hands-on steps to achieve the goal of installing a cluster with customized VPC (existing network), then describes how to deploy an application.
+
+The goal is not to explain each step. If you are looking for more details look at those documents:
+
+> TODO/WIP
+
+- Enhancement Proposal
+- OpenShift + LZ documentation
+- Research article - Phase-2
+- Research article - Phase-0
+- Research article - plugin
+- Blog post on Red Hat Hybrid Cloud
+
+ToC
+
+> TODO
+
+## Creating the Network/VPC
+
+> WIP
 
 - Create the Network Stack: VPC and Local Zone subnet
 
 ```bash
 export CLUSTER_REGION=us-east-1
-export CLUSTER_NAME=ocp-lz5
+export CLUSTER_NAME=ocp-lz67
 
 export STACK_VPC=${CLUSTER_NAME}-vpc
 aws cloudformation create-stack --stack-name ${STACK_VPC} \
@@ -21,10 +41,10 @@ aws cloudformation create-stack --stack-name ${STACK_VPC} \
 aws cloudformation wait stack-create-complete --stack-name ${STACK_VPC}
 aws cloudformation describe-stacks --stack-name ${STACK_VPC}
 
-# Choosing randomly the AZ
+# Choosing randomly the AZ withing the Region (best choice to test any AZ - and detect possible errors)
 AZ_NAME=$(aws --region $CLUSTER_REGION ec2 describe-availability-zones \
   --filters Name=opt-in-status,Values=opted-in Name=zone-type,Values=local-zone \
-  | jq -r .AvailabilityZones[].ZoneName | shuf |head -n1)
+  | jq -r .AvailabilityZones[].ZoneName | shuf | head -n1)
 
 AZ_SUFFIX=$(echo ${AZ_NAME/${CLUSTER_REGION}-/})
 
@@ -73,7 +93,7 @@ export SUBNET_ID=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}"
 
 ```
 
-- Local Zones implementation, phase-1, only:
+- Append the LZ Subnet to the Subnets array - available only in the `phase-1` of Local Zones implementation (not covered on HC blog):
 
 > Phase-1 means the installer should discovery the Local Zone subnet by it's ID, parse it and automatically create the Machine Sets for those zones
 
@@ -83,8 +103,9 @@ SUBNETS+=(${SUBNET_ID})
 echo ${SUBNETS[*]}
 ```
 
+## Setup the installer
 
-## Install-config
+### Create the Install-config
 
 - create the install-config
 
@@ -101,10 +122,6 @@ publish: External
 baseDomain: ${BASE_DOMAIN}
 metadata:
   name: "${CLUSTER_NAME}"
-networking:
-  clusterNetwork:
-  - cidr: 10.132.0.0/14
-    hostPrefix: 23
 platform:
   aws:
     region: ${CLUSTER_REGION}
@@ -114,11 +131,10 @@ pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
 sshKey: |
   $(cat ${SSH_PUB_KEY_FILE})
 EOF
-
 ```
 
 
-### Create manifests
+### Create the manifests
 
 
 ```bash

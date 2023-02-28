@@ -121,6 +121,15 @@ nav:
         - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
         - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
 
+      - OpenShift and AWS Local Zones:
+        - Articles: guides/ocp-aws-local-zones.md
+        - Extending OCP to AWS Local Zones (Day-2): ocp-aws-local-zones-day-2.md
+        - Installing OCP on AWS extending to Local Zones (Day-0): ocp-aws-local-zones-day-0.md
+        - oc Plugin to install OCP on AWS extending to Local Zones (Day-0): articles/ocp-aws-local-zones-day-0-plugin.md
+        - Blog HC - hands-on (Draft): guides/ocp-aws-local-zones-blog-hc.md
+        - Patch MTU on Installed clusters with Local Zones: guides/ocp-aws-local-zones-day-2-patch-mtu.md
+        - OCP + AWS Local Zones demo script: guides/ocp-aws-local-zones-demo.md
+
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
         - Create custom release: playbooks/openshift/dev-custom-release.md
