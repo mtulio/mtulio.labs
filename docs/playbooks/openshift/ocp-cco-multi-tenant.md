@@ -1,11 +1,12 @@
 
+
 ![OCP with multi-tenant OIDC - banner](./../../diagrams/images/ocp-oidc-multitenant-banner.diagram-1000x350.png)
 
-# Create multi-tenant solution for OpenID Connect endpoint on OpenShift with STS authentication mode on AWS
+# Create a multi-tenant solution for the OpenID Connect endpoint on OpenShift with STS authentication mode on AWS
 
 > WIP document. More information at: https://github.com/mtulio/mtulio.labs/pull/19
 
-This article describes a solution to create a multi-tenant solution to store the OpenID Connect (OIDC) endpoint (issuer URL) when using OpenShift with AWS Security Token Services (STS) as the authentication mode. It can be used as multi-cluster and multi-cloud deployment to centralize the OIDC discovery documents and JSON Web Key Sets (JWKS).
+This article describes a solution to create a multi-tenant solution to store the OpenID Connect (OIDC) endpoint (issuer URL) when using OpenShift with AWS Security Token Services (STS) as the authentication mode. It can be used as a multi-cluster and multi-cloud deployment to centralize the OIDC discovery documents and JSON Web Key Sets (JWKS).
 
 The motivation to create this solution is to improve the management of the keys used by OIDC into a single place (S3 bucket) and URL, partitioning them into object paths.
 
@@ -19,7 +20,7 @@ Reasons you might consider using this solution:
 - decrease the costs per request when serving static files
 - decrease the downtime when migrating/replacing the issuer URL
 
-Additionally, I will describe how to use a custom DNS domain name as issuer URL, replacing the S3 Bucket or CloudFront Distribution DNS names.
+Additionally, I will describe how to use a custom DNS domain name as an issuer URL, replacing the S3 Bucket or CloudFront Distribution DNS names.
 
 If you are looking to explore more about OpenShift using STS as authentication mode, how the current architecture works, sequence flow, and interaction between applications and AWS STS services when assuming IAM Roles using the method `AssumeRoleWithWebIdentity`, take a look at the following articles:
 
@@ -31,13 +32,13 @@ Finally, the proposal of partitioning the issuer path component is expected on t
 
 > Using path components enables supporting multiple issuers per host. This is required in some multi-tenant hosting configurations.
 
-Cloud Resources creaeted on this article:
+Cloud Resources created on this article:
 
 - AWS ACM Certificate
 - AWS CloudFront Distribution
 - AWS DNS Records
 - AWS S3 Bucket
-- OpenShift cluster on AWS with STS as authentication mode
+- OpenShift cluster on AWS with STS as the authentication mode
 
 Table of Contents
 
@@ -80,9 +81,9 @@ Table of Contents
 
 ![Solution Overview](./../../diagrams/images/ocp-oidc-multitenant-overview.diagram.png)
 
-- Overview of the flow when the component assume role (STS API Call `AssumeRoleWithWebIdentity`):
+- Overview of the flow when the component assumes role (STS API Call `AssumeRoleWithWebIdentity`):
 
-> TODO: the margins of the auto generated diagram must be reviewed, or image cropped
+> TODO: the margins of the auto-generated diagram must be reviewed, or the image cropped
 
 ![AWS AssumeRoleWithWebIdentity Flow](./../../diagrams/images/ocp-oidc-multitenant-flow-aws.diagram.png)
 
@@ -108,7 +109,7 @@ AWS Permissions:
 
 ### Export the variables used in the next steps
 
-Adjust the values according your environment:
+Adjust the values according to your environment:
 
 ```bash
 # R53 Domain name (without dot as suffix)
@@ -223,7 +224,7 @@ export OAI_CLOUDFRONT_ID=$(aws cloudfront create-cloud-front-origin-access-ident
 
 > Reference CLI: [aws s3api create-bucket](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3api/create-bucket.html)
 
-> You must specify the following flag when creating in other region than `us-east-1`: `--create-bucket-configuration LocationConstraint="${OIDC_BUKCET_REGION}"`
+> You must specify the following flag when creating in another region than `us-east-1`: `--create-bucket-configuration LocationConstraint="${OIDC_BUKCET_REGION}"`
 
 ```bash
 aws s3api create-bucket \
@@ -285,7 +286,7 @@ aws s3api put-public-access-block \
 
 https://awscli.amazonaws.com/v2/documentation/api/latest/reference/cloudfront/index.html
 
-- Create the CloudFront Distribution with S3 Bucket as origin
+- Create the CloudFront Distribution with S3 Bucket as the origin
 
 > Reference CLI: [aws s3api put-public-access-block](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3api/put-public-access-block.html)
 
@@ -395,7 +396,7 @@ export OIDC_CLOUDFRONT_ARN=$(aws cloudfront create-distribution-with-tags \
 echo ${OIDC_CLOUDFRONT_ARN}
 ```
 
-- Wait for the CloudFront Distribution beein `Deployed`:
+- Wait for the CloudFront Distribution be `Deployed`:
 
 > Reference CLI: [`aws cloudfront list-distributions`](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/cloudfront/list-distributions.html)
 
@@ -424,7 +425,7 @@ export OIDC_CLOUDFRONT_DNS=$(aws cloudfront list-distributions \
 
 > (Ready for review)
 
-- Create the DNS Record for the OIDC (`OIDC_DOMAIN_NAME`) poiting to the CloudFront Distribution (`OIDC_CLOUDFRONT_DNS`)
+- Create the DNS Record for the OIDC (`OIDC_DOMAIN_NAME`) pointing to the CloudFront Distribution (`OIDC_CLOUDFRONT_DNS`)
 
 > Reference CLI: [aws route53 change-resource-record-sets](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/route53/change-resource-record-sets.html)
 
@@ -481,7 +482,7 @@ For didactic reasons, we are assuming the following statements:
 
 Steps to run one time:
 
-- extract the OpenShift Clients (oc, installer and ccoctl)
+- extract the OpenShift Clients (oc, installer, and ccoctl)
 - extract the CredentialRequests
 
 ```bash
@@ -525,7 +526,7 @@ Steps to run for each cluster:
 
 > WIP
 
-- Export the variables to create the cluster (adjust according your environment)
+- Export the variables to create the cluster (adjust according to your environment)
 
 ```bash
 export CLUSTER_NAME="cluster2"
@@ -536,7 +537,7 @@ export OUTPUT_DIR_CCO="${INSTALL_DIR}/ccoctl-assets/"
 export CLUSTER_OIDC_CONTENT="${OUTPUT_DIR_CCO}/custom-oidc-content"
 ```
 
-- Create the install-config.yaml (adjust according your needs)
+- Create the install-config.yaml (adjust according to your needs)
 
 ```bash
 mkdir -p ${INSTALL_DIR}
@@ -573,7 +574,7 @@ export CLUSTER_INFRAID=$(awk '/infrastructureName: / {print $2}' ${INSTALL_DIR}/
 
 #### Generate the OpenID Configuration configuration
 
-- Generate the signing key-par:
+- Generate the signing key par:
 
 ```bash
 echo "> CCO - Creating key-par"
@@ -633,7 +634,7 @@ curl https://${OIDC_DOMAIN_NAME}/${CLUSTER_INFRAID}/.well-known/openid-configura
 
 #### Create the IAM OIDC IdP
 
-- Get the Thumprint from the OIDC URL:
+- Get the Thumbprint from the OIDC URL:
 
 ```bash
 # Set the thumbprint
@@ -651,7 +652,7 @@ jq -r ".ThumbprintList=[\"${SRV_THUMBPRINT}\"]" \
 - Create the AWS Identity Provider OpenID Connect:
 
 ```bash
-# Create idp
+# Create IdP
 aws iam create-open-id-connect-provider \
     --cli-input-json file://${OUTPUT_DIR_CCO}/04-iam-identity-provider-new.json \
     | tee ${OUTPUT_DIR_CCO}/04-iam-identity-provider-object.json
@@ -709,7 +710,7 @@ cp -rvf ${OUTPUT_DIR_CCO}/manifests/* ${INSTALL_DIR}/manifests/
 cp -rvf ${OUTPUT_DIR_CCO}/tls ${INSTALL_DIR}/
 ```
 
-- Patch the issuer url on the `Authentication` object in `cluster-authentication-02-config.yaml`
+- Patch the issuer URL on the `Authentication` object in `cluster-authentication-02-config.yaml`
 
 ```bash
 sed -i "s/${GEN_ISSUER}/${OIDC_DOMAIN_NAME}\/${CLUSTER_INFRAID}/" \
@@ -752,9 +753,9 @@ As described on the ["Service account issuer discovery"](https://kubernetes.io/d
 
 > **Note**: The responses served at `/.well-known/openid-configuration` and `/openid/v1/jwks` are designed to be OIDC compatible, but not strictly OIDC compliant. Those documents contain only the parameters necessary to perform validation of Kubernetes service account tokens.
 
-You can query the published OpenID Provider Configuration document in OpenShift using the follow commmands:
+You can query the published OpenID Provider Configuration document in OpenShift using the following commands:
 
-- Extract the service accoun token
+- Extract the service account token
 
 ```bash
 SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount
@@ -769,7 +770,7 @@ CAPI_POD=$(oc get pods -n openshift-machine-api \
 # Extract the ServiceAccoun token
 TOKEN_SA=$(oc exec -n openshift-machine-api ${CAPI_POD}     -c machine-controller -- cat ${SERVICEACCOUNT}/token)
 ```
-- Query the OIDC documents published by Kuberbetes API server:
+- Query the OIDC documents published by the Kuberbetes API server:
 
 ```bash
 # Get the JWKS published by KAS
@@ -787,7 +788,7 @@ oc exec -n openshift-machine-api ${CAPI_POD} -c machine-controller -- \
 
 **IMPORTANT**: the `jwks_uri` may differ from the value published on the issuer URL, as it is used **internally** to perform validation of Kubernetes service account tokens.
 
-That is the main point when designing this solution: the Kubernetes API Server exposes the internally the OIDC documents, replacing the needed address to be accessible internally, avoiding going to the internet (OIDC public issuer URL).
+That is the main point when designing this solution: the Kubernetes API Server exposes the internally OIDC documents, replacing the needed address to be accessible internally, avoiding going to the internet (OIDC public issuer URL).
 
 Summarizing, there is two versions of OIDC documents:
 
@@ -796,7 +797,7 @@ Summarizing, there is two versions of OIDC documents:
 
 #### Review and test the bounded-token
 
-Let's review the bounded-tokens presented to the MAPI controllers:
+Let's review the bounded tokens presented to the MAPI controllers:
 
 - Test the bound token:
 
@@ -863,7 +864,7 @@ Expected results: `aws sts assume-role-with-web-identity [...]`:
 
 ### Create more clusters
 
-> TODO: create the plugin with all snipets described here
+> TODO: create the plugin with all snippets described here
 
 > TODO: one paragram describing what's next. More AWS Clusters? HyperShift? GCP?
 
@@ -875,7 +876,7 @@ Expected results: `aws sts assume-role-with-web-identity [...]`:
 
 ## oc plugin `sts-setup`
 
-> TODO: create a oc plugin covering the steps described in this article
+> TODO: create an oc plugin covering the steps described in this article
 
 ## References
 
@@ -884,4 +885,3 @@ Expected results: `aws sts assume-role-with-web-identity [...]`:
 - [Kubernetes Enhancement Proposal: OIDC Discovery](https://github.com/kubernetes/enhancements/tree/master/keps/sig-auth/1393-oidc-discovery)
 
 - [OpenID Connect Discovery Spec](https://openid.net/specs/openid-connect-discovery-1_0.html)
-
