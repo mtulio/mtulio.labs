@@ -68,6 +68,42 @@ podman build \
     && podman push quay.io/${QUAY_USER}/${REPO_NAME}:latest
 ```
 
+## cluster-kube-controller-manager-operator
+
+
+```bash
+QUAY_USER=mrbraga
+REPO_NAME=cluster-kube-controller-manager-operator
+
+podman build \
+    --authfile ${PULL_SECRET} \
+    -f Dockerfile.rhel7 \
+    -t quay.io/${QUAY_USER}/${REPO_NAME}:latest \
+    && podman push quay.io/${QUAY_USER}/${REPO_NAME}:latest
+
+TS=$(date +%Y%m%d%H%M)
+podman tag quay.io/${QUAY_USER}/${REPO_NAME}:latest "quay.io/${QUAY_USER}/${REPO_NAME}:${TS}" \
+podman push "quay.io/${QUAY_USER}/${REPO_NAME}:${TS}"
+```
+
+
+## cluster-cloud-controller-manager-operator (CCCMO/3CMO)
+
+
+```bash
+QUAY_USER=mrbraga
+REPO_NAME=cluster-cloud-controller-manager-operator
+
+podman build \
+    --authfile ${PULL_SECRET} \
+    -f Dockerfile \
+    -t quay.io/${QUAY_USER}/${REPO_NAME}:latest \
+    && podman push quay.io/${QUAY_USER}/${REPO_NAME}:latest
+
+TS=$(date +%Y%m%d%H%M)
+podman tag quay.io/${QUAY_USER}/${REPO_NAME}:latest "quay.io/${QUAY_USER}/${REPO_NAME}:${TS}" \
+podman push "quay.io/${QUAY_USER}/${REPO_NAME}:${TS}"
+```
 
 ## origin
 
