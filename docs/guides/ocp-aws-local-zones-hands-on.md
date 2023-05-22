@@ -1,33 +1,38 @@
-# OCP on AWS Local Zones - HC Blog - hands-on steps
+# OCP on AWS Local Zones - hands on steps
 
 Installing OpenShift on AWS in existing VPC extending compute nodes to Local Zones quickly.
 
-The steps described here is a hands-on steps to achieve the goal of installing a cluster with customized VPC (existing network), then describes how to deploy an application.
+The steps described here is a hands-on steps to achieve the goal of installing a cluster with customized VPC (existing network), then describing how to deploy an application exposing the ingress with dedicated Application Load Balancer controller. A quick validation will be done from a source outside the cluster, on the metropolitan region deployed the app.
 
 The goal is not to explain each step. If you are looking for more details look at those documents:
 
-> TODO/WIP
+- [Enhancement Proposal](https://github.com/openshift/enhancements/pull/1232)
+- [OpenShift + LZ documentation](https://docs.openshift.com/container-platform/4.12/installing/installing_aws/installing-aws-localzone.html)
+- [Research article - Phase-2](../articles/ocp-aws-local-zones-day-2.md)
+- [Research article - Phase-0](../articles/ocp-aws-local-zones-day-0.md)
+- [Research article - plugin](../articles/ocp-aws-local-zones-day-0-plugin.md)
+<!-- - Blog post on Red Hat Hybrid Cloud -->
 
-- Enhancement Proposal
-- OpenShift + LZ documentation
-- Research article - Phase-2
-- Research article - Phase-0
-- Research article - plugin
-- Blog post on Red Hat Hybrid Cloud
+Table of Contents
 
-ToC
-
-> TODO
+- [Creating the Network/VPC]()
+- [Setup the installer]()
+  - [Create the install-config.yaml]()
+  - [Create the manifests]()
+- [Setup the AWS LB Operator]()
+  - [ALB Operator prerequisites]()
+  - [Install the ALB Operator]()
+  - [Create the ALB Controller]()
+- [Deploy a sample APP on AWS Local Zones]()
+  - [Deploy sample Local Zone app with persistent storage]()
 
 ## Creating the Network/VPC
-
-> WIP
 
 - Create the Network Stack: VPC and Local Zone subnet
 
 ```bash
 export CLUSTER_REGION=us-east-1
-export CLUSTER_NAME=ocp-lz67
+export CLUSTER_NAME=ocp-lz14
 
 export STACK_VPC=${CLUSTER_NAME}-vpc
 aws cloudformation create-stack --stack-name ${STACK_VPC} \
@@ -46,6 +51,7 @@ AZ_NAME=$(aws --region $CLUSTER_REGION ec2 describe-availability-zones \
   --filters Name=opt-in-status,Values=opted-in Name=zone-type,Values=local-zone \
   | jq -r .AvailabilityZones[].ZoneName | shuf | head -n1)
 
+AZ_NAME="us-east-1-nyc-1a"
 AZ_SUFFIX=$(echo ${AZ_NAME/${CLUSTER_REGION}-/})
 
 AZ_GROUP=$(aws --region $CLUSTER_REGION ec2 describe-availability-zones \
@@ -105,15 +111,17 @@ echo ${SUBNETS[*]}
 
 ## Setup the installer
 
-### Create the Install-config
+### Create the install-config.yaml
 
-- create the install-config
+- create the install-config setting subnet IDs
+
+> installing in existing VPC method (phase I)
 
 ```bash
 export BASE_DOMAIN=devcluster.openshift.com
 export SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
 
-INSTALL_DIR=${CLUSTER_NAME}-1
+INSTALL_DIR=${CLUSTER_NAME}-06
 mkdir $INSTALL_DIR
 
 cat <<EOF > ${INSTALL_DIR}/install-config.yaml
@@ -133,21 +141,76 @@ sshKey: |
 EOF
 ```
 
+- Default (without subnets)
+
+> installer creates the VPC and LZ subnets (phase II)
+
+```bash
+export BASE_DOMAIN=devcluster.openshift.com
+export SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
+
+INSTALL_DIR=${CLUSTER_NAME}-7
+mkdir $INSTALL_DIR
+
+cat <<EOF > ${INSTALL_DIR}/install-config.yaml
+apiVersion: v1
+publish: External
+baseDomain: ${BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME}"
+platform:
+  aws:
+    region: ${CLUSTER_REGION}
+pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
+sshKey: |
+  $(cat ${SSH_PUB_KEY_FILE})
+EOF
+```
+
+- Install Config setting HostedZone when installing in existing VPC with LZ subnets
+
+```bash
+# 1) Manual action: Create Private Hosted Zone associating to the existing VPC
+# 2) Discovery the ID - or populate the variable hostedZone
+PHZ_BASE_DOMAIN="${CLUSTER_NAME}.${BASE_DOMAIN}"
+hosted_zone_id="$(aws route53 list-hosted-zones-by-name \
+            --dns-name "${PHZ_BASE_DOMAIN}" \
+            --query "HostedZones[? Config.PrivateZone != \`true\` && Name == \`${PHZ_BASE_DOMAIN}.\`].Id" \
+            --output text)"
+
+echo "${hosted_zone_id}"
+hostedZone=$(basename "${hosted_zone_id}")
+
+cat <<EOF > ${INSTALL_DIR}/install-config.yaml
+apiVersion: v1
+publish: External
+baseDomain: ${BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME}"
+platform:
+  aws:
+    region: ${CLUSTER_REGION}
+    hostedZone: $hostedZone
+    subnets:
+$(for SB in ${SUBNETS[*]}; do echo "    - $SB"; done)
+pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
+sshKey: |
+  $(cat ${SSH_PUB_KEY_FILE})
+EOF
+```
 
 ### Create the manifests
 
-
 ```bash
 # Installer version/path
-export INSTALLER=./openshift-install
-export RELEASE="quay.io/openshift-release-dev/ocp-release:4.13.0-ec.3-x86_64"
+export INSTALLER=./openshift-install_pr7070
+export RELEASE="quay.io/openshift-release-dev/ocp-release:4.13.0-rc.0-x86_64"
 
 cp $INSTALL_DIR/install-config.yaml $INSTALL_DIR/install-config.yaml-bkp
 
 # Process the manifests
-
-OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="$RELEASE" \
-  $INSTALLER create manifests --dir $INSTALL_DIR
+OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="$RELEASE" $INSTALLER version
+OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="$RELEASE" $INSTALLER create manifests --dir $INSTALL_DIR
 
 # Review if MTU patch has been created
 ls -ls $INSTALL_DIR/manifests/cluster-network-*
@@ -159,7 +222,7 @@ cat $INSTALL_DIR/openshift/99_openshift-cluster-api_worker-machineset-3.yaml
 
 ```
 
-- Phase-0 only, manual patch for MTU
+- Phase-0 only: manual patch to use lower MTU
 
 ```bash
 cat <<EOF > $INSTALL_DIR/manifests/cluster-network-03-config.yml
@@ -200,7 +263,7 @@ runtime.main
 
 ```
 
-Tag the VPC
+Tag the VPC:
 
 ```bash
 CLUSTER_ID=$(oc get infrastructures cluster -o jsonpath='{.status.infrastructureName}')
@@ -211,13 +274,15 @@ aws ec2 create-tags --resources ${VPC_ID} \
 
 ### Install the ALB Operator
 
+Steps to install Application Load Balancer Operator.
+
 > [Installing ALB Operator](https://docs.openshift.com/container-platform/4.12/networking/aws_load_balancer_operator/install-aws-load-balancer-operator.html)
 
 > [Understanding the AWS Load Balancer Operator](https://docs.openshift.com/container-platform/4.12/networking/aws_load_balancer_operator/understanding-aws-load-balancer-operator.html)
 
 > [Installing from OperatorHub using the CLI](https://docs.openshift.com/container-platform/4.10/operators/admin/olm-adding-operators-to-cluster.html#olm-installing-operator-from-operatorhub-using-cli_olm-adding-operators-to-a-cluster)
 
-- Create the Credentials for the Operator
+Create the Credentials for the Operator
 
 ```bash
 oc create namespace aws-load-balancer-operator
@@ -253,10 +318,9 @@ spec:
 EOF
 ```
 
-- Install the Operator from OLM
+Install the Operator from OLM
 
 ```bash
-# Create the Operator Group
 cat <<EOF | oc create -f -
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -269,7 +333,7 @@ spec:
 EOF
 ```
 
-- Create the subscription
+Create the subscription
 
 ```bash
 cat <<EOF | oc create -f -
@@ -311,10 +375,11 @@ deployment.apps/aws-load-balancer-operator-controller-manager   1/1     1       
 
 NAME                                                                       DESIRED   CURRENT   READY   AGE
 replicaset.apps/aws-load-balancer-operator-controller-manager-56664699b4   1         1         1       12m
-
 ```
 
 ### Create the ALB Controller
+
+Steps to create the ALB Controller.
 
 > [Creating an instance of AWS Load Balancer Controller](https://docs.openshift.com/container-platform/4.12/networking/aws_load_balancer_operator/create-instance-aws-load-balancer-controller.html)
 
@@ -347,12 +412,13 @@ replicaset.apps/aws-load-balancer-controller-cluster-67b6dd6974   2         2   
 
 ```
 
+## Deploy a sample APP on AWS Local Zones
 
-## Setup the Sample APP on AWS Local Zones
+Deploy a sample application and a service:
 
-- Deploy the application
 ```bash
 cat << EOF | oc create -f -
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -374,6 +440,9 @@ spec:
         app: lz-app-nyc-1
         zone_group: us-east-1-nyc-1
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       nodeSelector:
         zone_group: us-east-1-nyc-1
       tolerations:
@@ -409,7 +478,7 @@ spec:
 EOF
 ```
 
-- create the ingress
+Create the Ingress with the Local Zone subnet:
 
 ```bash
 cat << EOF | oc create -f -
@@ -439,7 +508,7 @@ spec:
 EOF
 ```
 
-- Call the endpoint
+Test the endpoint (using ALB DNS):
 
 ```bash
 $ HOST=$(oc get ingress -n lz-apps ingress-lz-nyc-1 --template='{{(index .status.loadBalancer.ingress 0).hostname}}')
@@ -458,7 +527,7 @@ Accept: */*
 
 ```
 
-- Call from different locations
+Test from different [source] locations:
 
 ```bash
 export HOST=k8s-lzapps-ingressl-49a869b572-66443804.us-east-1.elb.amazonaws.com
@@ -506,3 +575,105 @@ $ curl -sw "%{time_namelookup}   %{time_connect}     %{time_starttransfer}    %{
 | Server / Client | [1]NYC/US | [2]AWS Region/use1 | [3]London/UK | [4]Brazil | 
 | --  | -- | -- | -- | -- |
 | us-east-1-nyc-1a |   0.004079 | 0.010196 | 0.099921 | 0.187408 |
+
+
+
+## Deploy sample Local Zone app with persistent storage
+
+To deploy an Application on Local Zone subnet, edge nodes, using persistent storage,
+you must check which kind of storage is available on the location. The most locations,
+when this article have been written supports only `gp2` storage. Although the default
+Storage Class on OCP is `gp3`, so you must set the `gp2-csi` StorageClass on the deployment
+to consume EBS to your pods:
+
+```bash
+cat <<EOF | oc create -f -
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: lz-app-ns
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: lz-pvc
+  namespace: lz-app-ns
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: gp2-csi 
+  volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: lz-app
+  namespace: lz-app-ns 
+spec:
+  selector:
+    matchLabels:
+      app: lz-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: lz-app
+        machine.openshift.io/zone-group: ${ZONE_GROUP_NAME} 
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector: 
+        machine.openshift.io/zone-group: ${ZONE_GROUP_NAME}
+      tolerations: 
+      - key: "node-role.kubernetes.io/edge"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+      containers:
+        - image: openshift/origin-node
+          command:
+           - "/bin/socat"
+          args:
+            - TCP4-LISTEN:8080,reuseaddr,fork
+            - EXEC:'/bin/bash -c \"printf \\\"HTTP/1.0 200 OK\r\n\r\n\\\"; sed -e \\\"/^\r/q\\\"\"'
+          imagePullPolicy: Always
+          name: echoserver
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - mountPath: "/mnt/storage"
+              name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: lz-pvc
+EOF
+
+cat <<EOF | oc create -f -
+apiVersion: v1
+kind: Service 
+metadata:
+  name: lz-app-svc
+  namespace: lz-app-ns
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: NodePort
+  selector: 
+    app: lz-app
+EOF
+
+echo $ZONE_GROUP_NAME
+
+oc get machines -n openshift-machine-api
+
+oc get pvc -n lz-app-ns
+
+oc get all -n lz-app-ns
+```
