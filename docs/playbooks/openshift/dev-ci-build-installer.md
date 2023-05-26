@@ -136,7 +136,7 @@ spec:
               iops: 0
               kmsKey:
                 arn: ""
-              volumeSize: 120
+              volumeSize: 300
               volumeType: gp3
           credentialsSecret:
             name: aws-cloud-credentials
@@ -175,9 +175,18 @@ EOF
 Launch the nodes with 16 cores
 
 ```bash
+# compute optimized
 create_machineset "c6id.4xlarge" "ephemeral"
 create_machineset "c6i.4xlarge" "ebs"
+
+# general pourpose
+create_machineset "m6id.4xlarge" "ephemeral"
+create_machineset "m6i.4xlarge" "ebs"
+
 ```
+
+
+
 
 ## Run builds
 

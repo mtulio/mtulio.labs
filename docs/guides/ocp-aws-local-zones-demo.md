@@ -98,16 +98,16 @@ oc aws-zone
 
 # create a cluster
 CLUSTER_NAME=lzdemo \
-        VERSION=4.11.2 \
-        CLUSTER_REGION=us-east-1 \
-        ZONE_GROUP_NAME=us-east-1-nyc-1a \
-        VPC_CIDR='10.0.0.0/16' \
-        ZONE_CIDR='10.0.128.0/20' \
-        BASE_DOMAIN='devcluster.openshift.com' \
-        INSTANCE_TYPE=c5d.2xlarge \
-        PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json \
-        SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub \
-        oc aws-zone create-all
+    VERSION=4.11.2 \
+    CLUSTER_REGION=us-east-1 \
+    ZONE_GROUP_NAME=us-east-1-nyc-1a \
+    VPC_CIDR='10.0.0.0/16' \
+    ZONE_CIDR='10.0.128.0/20' \
+    BASE_DOMAIN='devcluster.openshift.com' \
+    INSTANCE_TYPE=c5d.2xlarge \
+    PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json \
+    SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub \
+    oc aws-zone create-all
 
 export KUBECONFIG=${PWD}/auth/kubeconfig
 

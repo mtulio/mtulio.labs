@@ -32,16 +32,18 @@ Table of Contents
 
 ```bash
 export CLUSTER_REGION=us-east-1
-export CLUSTER_NAME=ocp-lz14
+export CLUSTER_NAME=ocp-lz15
 
 export STACK_VPC=${CLUSTER_NAME}-vpc
-aws cloudformation create-stack --stack-name ${STACK_VPC} \
-     --template-body file://template-vpc.yaml \
-     --parameters \
-        ParameterKey=ClusterName,ParameterValue=${CLUSTER_NAME} \
-        ParameterKey=VpcCidr,ParameterValue="10.0.0.0/16" \
-        ParameterKey=AvailabilityZoneCount,ParameterValue=3 \
-        ParameterKey=SubnetBits,ParameterValue=12
+aws cloudformation create-stack \
+  --region ${CLUSTER_REGION} \
+  --stack-name ${STACK_VPC} \
+  --template-body file://template-vpc.yaml \
+  --parameters \
+    ParameterKey=ClusterName,ParameterValue=${CLUSTER_NAME} \
+    ParameterKey=VpcCidr,ParameterValue="10.0.0.0/16" \
+    ParameterKey=AvailabilityZoneCount,ParameterValue=3 \
+    ParameterKey=SubnetBits,ParameterValue=12
 
 aws cloudformation wait stack-create-complete --stack-name ${STACK_VPC}
 aws cloudformation describe-stacks --stack-name ${STACK_VPC}
