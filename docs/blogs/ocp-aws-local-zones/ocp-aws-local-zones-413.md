@@ -66,8 +66,6 @@ Define the environment variables:
 ~~~bash
 $ export CLUSTER_NAME=demo-lz
 $ export CLUSTER_BASEDOMAIN="example.com"
-$ export PULL_SECRET_PATH="$HOME/.openshift/pull-secret-latest.json"
-$ export SSH_KEYS="$(cat ~/.ssh/id_rsa.pub)"
 $ export AWS_REGION=us-east-1
 ~~~
 
@@ -181,7 +179,7 @@ Lastly, create the `install-config.yaml` with the subnets:
 $ cat <<EOF > ${PWD}/install-config.yaml
 apiVersion: v1
 publish: External
-baseDomain: "<CHANGE_ME: example.com>"
+baseDomain: "${CLUSTER_BASEDOMAIN}"
 metadata:
   name: "${CLUSTER_NAME}"
 platform:
@@ -201,7 +199,7 @@ All 7 subnets, including Local Zone, must be defined:
 $ grep -A 7 subnets ${PWD}/install-config.yaml
 ~~~
 
-**Optionally**, create the manifests to check the generated MachineSet manifests:
+**Optionally**, check the generated Machineset manifests generated:
 
 > The installer will automatically discover the supported instance type for each Local Zone and create the MachineSet manifests. The Maximum Transmission Unit (MTU) for the cluster network will automatically be adjusted according to the network plugin set on install-config.yaml.
 
@@ -242,19 +240,19 @@ demo-lz-knlm2-edge-us-east-1-nyc-1a-f2lzd   Running   c5d.2xlarge   us-east-1   
 
 ## Extend an existing OpenShift cluster to new AWS Local Zones
 
-This step describes the Day 2 operation to extend the compute nodes to Local Zones in an existing OpenShift cluster, be sure the VPC running the cluster has enough CIDR blocks to create the subnet(s) for the desired Local Zone location.
+This step describes the Day 2 operations to extend the compute nodes to new Local Zones locations in an existing OpenShift cluster, be sure the VPC running the cluster has enough CIDR blocks to create the subnet(s).
 
-Refer to `Step 2` to create subnets in Local Zones.
+Refer to `Step 2` in the last section to create subnets in Buenos Aires (Argentina), zone name `us-east-1-bue-1a`.
 
-> Note: if the cluster wasn't installed with Local Zone subnets, the MTU for the cluster-wide network must be adjusted manually. See the OpenShift documentation for more information.
+> Note: if the cluster wasn't installed using IPI with Local Zone subnets, the Maximum Transmit Unit (MTU) for the cluster-wide network must be adjusted before proceeding. See the OpenShift documentation for more information.
 
 ![ocp-aws-localzones-step5-cfn-subnet-bue-1a](https://github.com/mtulio/mtulio.labs/assets/3216894/486f4361-d8c3-4810-b5bb-0fd7a6c0fc46)
 
 <p><center>Figure-8: CloudFormation Stack for Local Zone subnet in us-east-1-bue-1a</center></p>
 
-Finally, to create nodes using the new zone, you must manually create the MachineSet manifest. The steps below show how to check the instance offered by the zone, and create the MachineSet manifest based on the existing one in the Local Zone of Buenos Aires(`us-east-1-bue-1a`):
+Finally, to create nodes using the new zone, the MachineSet manifest must be added setting the zone attributes. The steps below show how to check the instance offered by the zone, and create the MachineSet manifest based on the existing one in the Local Zone of Buenos Aires(`us-east-1-bue-1a`):
 
-> Currently the Local Zone of Buenos Aires (AR) does not support Application Load Balancers, it will be used on the deployments over the next sections to expose applications directly to the node.
+> Note: The Local Zone of Buenos Aires (`us-east-1-bue-1a`) was intentionally picked as it currently does not support AWS Application Load Balancers (ALB), used in New York zone (`us-east-1-nyc-1a`).
 
 - Check and export the instance type offered by the Zone:
 
@@ -272,7 +270,7 @@ g4dn.2xlarge
 $ export INSTANCE_BUE=m5.2xlarge
 ~~~
 
-- Export and patch the manifest using the existing Machineset
+- Export existing Machineset manifest and patch to the new location:
 
 ~~~bash
 # Discover and copy the nyc-1 machineset manifest
@@ -300,7 +298,7 @@ sed -si "s/replicas: 1/replicas: 0/g" machineset-lz-bue-1a.yaml
 $ oc create -f machineset-lz-bue-1a.yaml
 ~~~
 
-- Considering the limitation of ALB in the zone us-east-1-bue-1a, the service running in this node will be reached directly from the internet. A dedicated security group will be created and attached to the node running in us-east-1-bue-1a:
+- Considering the limitation of ALB in the zone `us-east-1-bue-1a`, the service running in this node will be reached directly from the internet. A dedicated security group will be created and attached to the node running in that zone:
 
 > Save the `SG_ID_BUE` to set the ingress rules on the next steps
 
@@ -346,7 +344,7 @@ demo-lz-knlm2-edge-us-east-1-nyc-1a-f2lzd   Running       c5d.2xlarge   us-east-
 
 > It can take some time to finish the provisioning by AWS, make sure the machine is in the Running phase before proceeding.
 
-All done, now the cluster is installed and running into two different Local Zones, New York (US) and Buenos Aires (Argentina).
+All done, now the cluster is installed and running into two Local Zones, New York (US) and Buenos Aires (Argentina).
 
 ![ocp-aws-localzones-step5-ec2-bue-1a](https://github.com/mtulio/mtulio.labs/assets/3216894/545342e3-8298-41d8-be4a-7542ab4d9e16)
 
@@ -354,15 +352,15 @@ All done, now the cluster is installed and running into two different Local Zone
 
 ## Deploy workloads in AWS Local Zones
 
-As described in the section "Step 1. Installing an OpenShift cluster with AWS Local Zones", there are a few use cases to run workloads in Local Zones. This post demonstrates how to take advantage of Local Zones by deploying a sample application and selecting workers running in Local Zones.
+As described in the section "Installing an OpenShift cluster with AWS Local Zones", there are a few use cases to run workloads in Local Zones. This post demonstrates how to take advantage of Local Zones by deploying a sample application and selecting workers running in Local Zones.
 
 Three deployments will be created:
 
-- Application running in Local Zone NYC ingressing traffic using ALB Operator in the zone
 - Application running in the Region, ingress traffic using the default router
-- Application running in Local Zone Buenos Aires (Argentina) ingressing traffic directly to the node (at the current moment that zone does not support AWS Load Balancers)
+- Application running in Local Zone NYC (US) ingressing traffic using Application Load Balancer
+- Application running in Local Zone Buenos Aires (Argentina) ingressing traffic directly to the node (currently the zone does not support AWS Application Load Balancers)
 
-The compute nodes deployed in Local Zones have the following extra labels:
+The `edge` compute nodes deployed in Local Zones have the following extra labels:
 
 ~~~bash
 machine.openshift.io/zone-type: local-zone
@@ -372,7 +370,7 @@ node-role.kubernetes.io/edge: ""
 
 You must set the tolerations to `node-role.kubernetes.io/edge`, selecting the node according to your use case.
 
-This example uses the `machine.openshift.io/zone-group` label to select the Local Zone node(s), and creates the following deployment to create a sample application in the network border group of New York (us-east-1-nyc-1):
+The example below uses the `machine.openshift.io/zone-group` label to select the node(s), and creates the deployment for a sample applicatiosn in the respective zone's network border group:
 
 - Create the namespace:
 
@@ -445,7 +443,7 @@ create_deployment "${AWS_REGION}-nyc-1" "app-nyc-1" "yes"
 create_deployment "${AWS_REGION}-bue-1" "app-bue-1" "yes"
 ~~~
 
-Lastly, to deploy the application in the nodes running in the Region (regular zones), we will pick one node and set it up:
+Lastly, to deploy the application in the nodes running in the Region (regular/Availability Zones), a random node is picked and set it up:
 
 ~~~bash
 NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/worker='',topology.kubernetes.io/zone=${AWS_REGION}a -o jsonpath='{.items[0].metadata.name}')
@@ -471,13 +469,19 @@ app-default-857b5dc59f-r8cst   1/1     Running   0          87s     app=app-defa
 app-nyc-1-54ffd5c89b-bbhqp     1/1     Running   0          5m43s   app=app-nyc-1,pod-template-hash=54ffd5c89b,zoneGroup=us-east-1-nyc-1
 ~~~
 
-## Create Ingress for each deployment
+## Create Ingress for each application
 
-It's time to create the ingress for each location.
+It's time to create the ingress to route the internet traffic on each location.
 
-When this blog has been written, Local Zones has limited support of AWS Load Balancers, supporting only AWS Application Load Balancer (ALB) with limited locations. To expose your application to end users with ALB, you must create, when supported, a custom ingress for each location by using the [AWS Application Load Balancer (ALB) Operator](https://docs.openshift.com/container-platform/4.12/networking/aws_load_balancer_operator/understanding-aws-load-balancer-operator.html). Only NYC Local Zone supports ALB, for sake of simplicity, this example will expose the node port directly to the internet in the app running in the node on Buenos Aires (us-east-1-bue-1a) zone.
+When this blog has been written, Local Zones has limited support of AWS Load Balancers, supporting only AWS Application Load Balancer (ALB) with limited locations. To expose your application to end users with ALB, you must create, when supported, a custom ingress for each location by using the [AWS Application Load Balancer (ALB) Operator](https://docs.openshift.com/container-platform/4.12/networking/aws_load_balancer_operator/understanding-aws-load-balancer-operator.html).
+
+In our example, only NYC Local Zone supports ALB and will use it to expose their `NYC`'s app.  A new sharded router will be deployed running in `Buenos Aires` node, ingressing the traffic directly from that location (`us-east-1-bue-1a`).
+
+> Q: Do we need to add a diagram showing those three different types of exposing applications?
 
 ### Ingress for Availability Zone's app
+
+Create the service and expose the application running in the region using the default router:
 
 ~~~bash
 cat << EOF | oc create -f -
@@ -529,7 +533,7 @@ aws-load-balancer-controller-cluster-567bc99b68-s7w4z            1/1     Running
 aws-load-balancer-operator-controller-manager-7674db45d6-hmswz   2/2     Running   0          90s
 ```
 
-Next, create the custom Ingress using Local Zone subnet:
+Create the custom Ingress using only the Local Zone subnet:
 
 > Note: the variable `SUBNET_ID` must be set with the NYC subnet ID
 
@@ -585,7 +589,6 @@ Wait for the Load Balancer to get created.
 
 <p><center>Figure-11: Target Group added the Local Zone node as a target</center></p>
 
-
 Once created, discover the load balancer host address and test it.
 
 ~~~bash
@@ -596,10 +599,9 @@ GET / HTTP/1.1
 (...)
 ~~~
 
-
 ### Ingress for BUE (Buenos Aires) Local Zone app
 
-Create an ingressController running in the Buenos Aires Local Zone node using HostNetwork:
+Create a sharded ingressController running in the `Buenos Aires` node using HostNetwork:
 
 ~~~bash
 $ cat << EOF | oc create -f -
@@ -630,7 +632,7 @@ spec:
 EOF
 ~~~
 
-Expose the route:
+Create the service and the route:
 
 ~~~bash
 $ cat << EOF | oc create -f -
@@ -668,7 +670,7 @@ spec:
 EOF
 ~~~
 
-Finally, patch the EC2 Security Group with rules allowing traffic through HTTP(80) and HTTPS(442) used by the new router:
+Finally, patch the EC2 Security Group with ingress rules allowing traffic through HTTP(80) and HTTPS(442) used by the new router:
 
 ~~~bash
 $ aws ec2 authorize-security-group-ingress \
@@ -701,7 +703,6 @@ $ curl -H "Host: $APP_HOST_BUE" http://$IP_HOST_BUE
 As commented at the begging of this post, we'll test each application endpoint from different locations on the internet, some are closer to the metropolitan regions located in the Local Zone, so we'll be able to measure the network benefits of using edge compute pools in OpenShift.
 
 We will run simple tests creating a few requests from different clients, extracting the [`curl` variables writing it out](https://curl.se/docs/manpage.html#-w) to the console.
-
 
 Prepare the script `curl.sh` to test on each location:
 
