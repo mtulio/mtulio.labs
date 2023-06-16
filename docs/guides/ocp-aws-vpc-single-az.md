@@ -16,6 +16,8 @@ Create VPC:
 
 - Create the CloudFormation Template
 
+> This CloudFormation is based on https://github.com/openshift/installer/blob/master/upi/aws/cloudformation/01_vpc.yaml , also available in the docs.
+
 ```bash
 cat << EOF > template-vpc.yaml
 AWSTemplateFormatVersion: 2010-09-09
@@ -513,7 +515,7 @@ tar xvfz openshift-install-linux-${VERSION}.tar.gz
 
 ### Steps:
 
-- Export Subnet and VPC ID
+- Export Subnet IDs
 
 ```bash
 export PUBLIC_SUBNET_ID=${PUBLIC_SUBNETS[0]}
@@ -1304,13 +1306,13 @@ Conclusion:
 
 - when the subnets have the cluster tags assigned, the controller will not use it in the subnet discovery.
 
-## Section 2. Workaround tagging subnets
+## Section 2. Workaround tagging subnets (Day-0)
 
 Tag the subnets with cluster tags, preventing the subnet discovery to select subnets already "assigned" to a cluster, then renaming the tag for a subnet before creating the cluster.
 
 ## Steps
 
-- Create a new VPC tagging the subnets with "unmanaged" cluster tag: `kubernetes.io/cluster/unmanaged=shared`
+- Create a new VPC tagging the **subnets** with "unmanaged" cluster tag: `kubernetes.io/cluster/unmanaged=shared`
 
 ```bash
 cat << EOF > template-vpc-workaround.yaml
@@ -1847,7 +1849,7 @@ Discover the correct value for the cluster tags (from installer manifests) and u
 INFRA_ID_WA_1A="$(awk '/infrastructureName: / {print $2}' ${INSTALL_DIR_WA_1A}/manifests/cluster-infrastructure-02-config.yml)"
 ```
 
-- Delete the subnet tags
+- Delete the subnet tags (added by CloudFormation stack)
 
 ```bash
 aws ec2 delete-tags --resources ${PUBLIC_SUBNET_ID_WA_1A} --tags Key=kubernetes.io/cluster/unmanaged
@@ -1950,3 +1952,304 @@ $ aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select (.DNSName
 Success!
 
 Conclusion: to create many clusters using the same VPC, in different subnets/zones, the cluster tag `kubernetes.io/cluster/<value>=shared` must be set **on all the subnets prior to creating the cluster.**
+
+## Section 3. Workaround tagging subnets (Day-2)
+
+If the cluster was already installed in AWS and there were subnet's without the cluster tags, it's expected that the subnet discovery has been acted picking undesired subnets to be added to the service load balancer created by the router-default.
+
+Let's create the scenario below and describe the steps to fix.
+
+Scenarios in an existing VPC with 3 subnets in us-east-1:
+
+- 1) cluster with name `single1a` installed in subnets in us-east-1a, when there's no clusters created yet. It will result into an ingress load balancer created with three subnets, one by zone
+- 2) cluster with name `single1b` installed in subnets in us-east-1b, after cluster `single1a` has been installed. It will result into an ingress load balancer created with two subnets, zones us-east-1b and us-east-1c
+- 3) cluster with name `single1c` installed in subnets in us-east-1c, after cluster `single1b` has been installed. It will result into an ingress load balancer created with one subnets, zone us-east-1c
+
+It will happen due the installer will created properly the cluster tags, then the discovery subnets will not found any other "empty" subnets, only the maching the cluster `single1c`.
+
+To fix the `single1a` when all the clusters has been created, you must recreated the service.
+
+To fix the `single1a` when it is installed, you must make sure the other's subnets is tagged with workaround described in the previous section.
+
+The same for `single1b` cluster, when it's created, the subnets in the zone `us-east-1c` must be tagged properly with cluster tags, then removed when the cluster `single1c` will be created.
+
+The example below will simulate the cluster creation of `single1a`, when the subnets in the zone `us-east-1b` and `us-east-1c` are not correctly tagged.
+
+## Steps
+
+- Create the VPC using the CloudFormation from Section 1 (without cluster tags in subnets)
+
+```bash
+export CLUSTER_REGION=us-east-1
+export VPC_NAME_D2=byonetd2-use1
+
+export STACK_VPC_D2=${VPC_NAME_D2}-vpc
+aws cloudformation create-stack \
+  --region ${CLUSTER_REGION} \
+  --stack-name ${STACK_VPC_D2} \
+  --template-body file://template-vpc.yaml \
+  --parameters \
+      ParameterKey=ClusterName,ParameterValue=${VPC_NAME_D2} \
+      ParameterKey=VpcCidr,ParameterValue="10.0.0.0/16" \
+      ParameterKey=AvailabilityZoneCount,ParameterValue=3 \
+      ParameterKey=SubnetBits,ParameterValue=12
+
+aws --region ${CLUSTER_REGION} cloudformation wait stack-create-complete --stack-name ${STACK_VPC_D2}
+aws --region ${CLUSTER_REGION} cloudformation describe-stacks --stack-name ${STACK_VPC_D2}
+```
+
+- Export Subnet and VPC ID
+
+```bash
+export VPC_ID_D2=$(aws --region ${CLUSTER_REGION} \
+  cloudformation describe-stacks --stack-name "${STACK_VPC_D2}" \
+  | jq -r '.Stacks[0].Outputs[2].OutputValue')
+
+mapfile -t PRIVATE_SUBNETS_D2 < <(aws --region ${CLUSTER_REGION} \
+  cloudformation describe-stacks --stack-name "${STACK_VPC_D2}" \
+  | jq -r '.Stacks[0].Outputs[0].OutputValue' | tr ',' '\n')
+
+mapfile -t PUBLIC_SUBNETS_D2 < <(aws --region ${CLUSTER_REGION} \
+  cloudformation describe-stacks --stack-name "${STACK_VPC_D2}" \
+  | jq -r '.Stacks[0].Outputs[1].OutputValue' | tr ',' '\n')
+```
+
+- Check the existing tags
+
+```bash
+$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID_D2 \
+>     | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId, [ .Tags[] | select(.Key | contains("aws:") | not) ] ]'
+["us-east-1b","subnet-0b6fb8ec1e37fd7ef",[{"Key":"Name","Value":"byonetd2-use1-public-2"}]]
+["us-east-1a","subnet-0151486d5fcafd55c",[{"Key":"Name","Value":"byonetd2-use1-private-1"}]]
+["us-east-1a","subnet-0f0220b2031232f88",[{"Key":"Name","Value":"byonetd2-use1-public-1"}]]
+["us-east-1b","subnet-00e6bda45ea2fb129",[{"Key":"Name","Value":"byonetd2-use1-private-2"}]]
+["us-east-1c","subnet-0325b1ed0befecf63",[{"Key":"Name","Value":"byonetd2-use1-public-3"}]]
+["us-east-1c","subnet-05faf8b810d191e99",[{"Key":"Name","Value":"byonetd2-use1-private-3"}]]
+
+```
+
+### Creating the cluster in `us-east-1a`
+
+- Export Subnet IDs
+
+```bash
+export PUBLIC_SUBNET_ID_D2_1A=${PUBLIC_SUBNETS_D2[0]}
+export PRIVATE_SUBNET_ID_D2_1A=${PRIVATE_SUBNETS_D2[0]}
+```
+
+- Check if subnets must be part of the same AZ:
+
+```bash
+$ aws ec2 describe-subnets --subnet-ids ${PUBLIC_SUBNET_ID_D2_1A} ${PRIVATE_SUBNET_ID_D2_1A} | jq -cr '.Subnets[] | [.AvailabilityZone, .CidrBlock, .SubnetId, .VpcId]'
+["us-east-1a","10.0.48.0/20","subnet-0151486d5fcafd55c","vpc-04520d715ccc1ffbf"]
+["us-east-1a","10.0.0.0/20","subnet-0f0220b2031232f88","vpc-04520d715ccc1ffbf"]
+```
+
+- Get Zone Name
+
+```bash
+export ZONE_NAME_D2_1A=$(aws ec2 describe-subnets --filter --subnet-ids ${PUBLIC_SUBNET_ID_D2_1A} ${PRIVATE_SUBNET_ID_D2_1A} | jq -r '.Subnets[0].AvailabilityZone')
+```
+
+- Create install-config
+
+```bash
+export CLUSTER_NAME_D2_1A=${VPC_NAME_D2}a
+export BASE_DOMAIN=devcluster.openshift.com
+export SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
+
+INSTALL_DIR_D2_1A=${CLUSTER_NAME_D2_1A}
+mkdir $INSTALL_DIR_D2_1A
+
+cat <<EOF > ${INSTALL_DIR_D2_1A}/install-config.yaml
+apiVersion: v1
+publish: External
+baseDomain: ${BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME_D2_1A}"
+platform:
+  aws:
+    region: ${CLUSTER_REGION}
+    subnets:
+    - ${PUBLIC_SUBNET_ID_D2_1A}
+    - ${PRIVATE_SUBNET_ID_D2_1A}
+pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
+sshKey: |
+  $(cat ${SSH_PUB_KEY_FILE})
+EOF
+```
+
+- Check install-config.yaml
+
+```bash
+$ grep -vE '(^pull|ssh)' ${INSTALL_DIR_D2_1A}/install-config.yaml
+
+```
+
+- Create manifests
+
+```bash
+./openshift-install create manifests --dir $INSTALL_DIR_D2_1A
+```
+
+
+- Create NLB manifest for ingress with single subnet annotation:
+
+```bash
+cat <<EOF > ${INSTALL_DIR_D2_1A}/manifests/cluster-ingress-default-ingresscontroller.yaml
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  name: default
+  namespace: openshift-ingress-operator
+spec:
+  endpointPublishingStrategy:
+    loadBalancer:
+      scope: External
+      providerParameters:
+        type: AWS
+        aws:
+          type: NLB
+    type: LoadBalancerService
+EOF
+```
+
+- Create cluster
+
+```bash
+$ ./openshift-install create cluster --dir $INSTALL_DIR_D2_1A
+
+$ tail -n 8 $INSTALL_DIR_D2_1A/.openshift_install.log
+
+```
+
+- Check cluster
+
+```bash
+export KUBECONFIG=$INSTALL_DIR_D2_1A/auth/kubeconfig
+oc get co
+
+$ oc get machines -n openshift-machine-api
+
+```
+
+- Check the subnets attached to the router's service/NLB:
+
+```bash
+ROUTER_LB_HOSTNAME_D2_1A=$(oc get svc -n openshift-ingress -o json | jq -r '.items[] | select (.spec.type=="LoadBalancer").status.loadBalancer.ingress[0].hostname')
+
+$ aws elbv2 describe-load-balancers | jq -cr ".LoadBalancers[] | select (.DNSName==\"${ROUTER_LB_HOSTNAME_D2_1A}\") | [.DNSName, .AvailabilityZones]"
+
+["a2598c3a00bb64f5a82b1eac387587b7-ec8ec7fdb7e58f34.elb.us-east-1.amazonaws.com",
+[{"ZoneName":"us-east-1b","SubnetId":"subnet-0b6fb8ec1e37fd7ef","LoadBalancerAddresses":[]},
+{"ZoneName":"us-east-1c","SubnetId":"subnet-0325b1ed0befecf63","LoadBalancerAddresses":[]},
+{"ZoneName":"us-east-1a","SubnetId":"subnet-0f0220b2031232f88","LoadBalancerAddresses":[]}]]
+```
+
+### Workaround Day-2
+
+#### Patch subnets in others AZs
+
+- Check subnet tags
+
+```bash
+$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID_D2 | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId, [ .Tags[] | select(.Key | contains("aws:cloudformation") | not) ] ] '
+
+$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID_D2 | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId, [ .Tags[] | select(.Key | contains("aws:cloudformation") | not) ] ] '
+["us-east-1a","subnet-0151486d5fcafd55c",
+    [{"Key":"kubernetes.io/cluster/byonetd2-use1a-k7hqr","Value":"shared"},
+    {"Key":"openshift_creationDate","Value":"2023-06-16T15:17:07.412375+00:00"},
+    {"Key":"Name","Value":"byonetd2-use1-private-1"}]]
+["us-east-1a","subnet-0f0220b2031232f88",
+    [{"Key":"Name","Value":"byonetd2-use1-public-1"},
+    {"Key":"openshift_creationDate","Value":"2023-06-16T15:17:07.412375+00:00"},
+    {"Key":"kubernetes.io/cluster/byonetd2-use1a-k7hqr","Value":"shared"}]]
+["us-east-1b","subnet-0b6fb8ec1e37fd7ef",
+    [{"Key":"openshift_creationDate","Value":"2023-06-16T15:17:07.412375+00:00"},
+    {"Key":"Name","Value":"byonetd2-use1-public-2"}]]
+["us-east-1b","subnet-00e6bda45ea2fb129",
+    [{"Key":"Name","Value":"byonetd2-use1-private-2"},
+    {"Key":"openshift_creationDate","Value":"2023-06-16T15:17:07.412375+00:00"}]]
+["us-east-1c","subnet-0325b1ed0befecf63",
+    [{"Key":"openshift_creationDate","Value":"2023-06-16T15:17:07.412375+00:00"},
+    {"Key":"Name","Value":"byonetd2-use1-public-3"}]]
+["us-east-1c","subnet-05faf8b810d191e99",
+    [{"Key":"openshift_creationDate","Value":"2023-06-16T15:17:07.412375+00:00"},
+    {"Key":"Name","Value":"byonetd2-use1-private-3"}]]
+```
+
+- Apply cluster tags to subnets that doesn't have (us-east-1b and us-east-1c)
+
+```bash
+aws ec2 create-tags --resources subnet-0b6fb8ec1e37fd7ef subnet-00e6bda45ea2fb129 subnet-0325b1ed0befecf63 subnet-05faf8b810d191e99 --tags Key=kubernetes.io/cluster/unmanaged,Value=shared
+```
+
+- Confirm that the tags has been applied
+
+```bash
+$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID_D2 | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId, [ .Tags[] | select(.Key | contains("kubernetes.io/cluster") ) ] ] '
+["us-east-1a","subnet-0151486d5fcafd55c",[{"Key":"kubernetes.io/cluster/byonetd2-use1a-k7hqr","Value":"shared"}]]
+["us-east-1a","subnet-0f0220b2031232f88",[{"Key":"kubernetes.io/cluster/byonetd2-use1a-k7hqr","Value":"shared"}]]
+["us-east-1b","subnet-0b6fb8ec1e37fd7ef",[{"Key":"kubernetes.io/cluster/unmanaged","Value":"shared"}]]
+["us-east-1b","subnet-00e6bda45ea2fb129",[{"Key":"kubernetes.io/cluster/unmanaged","Value":"shared"}]]
+["us-east-1c","subnet-0325b1ed0befecf63",[{"Key":"kubernetes.io/cluster/unmanaged","Value":"shared"}]]
+["us-east-1c","subnet-05faf8b810d191e99",[{"Key":"kubernetes.io/cluster/unmanaged","Value":"shared"}]]
+```
+
+#### Recreate the service load balancer
+
+- Get the existing service LB
+
+```bash
+$ oc get svc router-default -n openshift-ingress
+NAME                      TYPE           CLUSTER-IP     EXTERNAL-IP                                                                     PORT(S)                      AGE
+router-default            LoadBalancer   172.30.35.22   a2598c3a00bb64f5a82b1eac387587b7-ec8ec7fdb7e58f34.elb.us-east-1.amazonaws.com   80:31432/TCP,443:31316/TCP   42m
+```
+
+- Delete it
+
+```bash
+$ oc delete svc router-default -n openshift-ingress
+```
+
+- Check if the new LB has been created
+
+
+```bash
+$ oc get svc router-default -n openshift-ingress  
+NAME                      TYPE           CLUSTER-IP       EXTERNAL-IP                                                                     PORT(S)                      AGE
+router-default            LoadBalancer   172.30.193.248   a234fafdfde6646ee913db7327f8abf6-a6939ff1476947b3.elb.us-east-1.amazonaws.com   80:30758/TCP,443:32197/TCP   13s
+
+```
+
+- Check the zones. Expected only us-east-1a
+
+```bash
+ROUTER_LB_HOSTNAME_D2_1A_NEW=$(oc get svc -n openshift-ingress -o json | jq -r '.items[] | select (.spec.type=="LoadBalancer").status.loadBalancer.ingress[0].hostname')
+
+aws elbv2 describe-load-balancers | jq -cr ".LoadBalancers[] | select (.DNSName==\"${ROUTER_LB_HOSTNAME_D2_1A_NEW}\") | [.DNSName, .AvailabilityZones]"
+
+$ aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select (.DNSName==\"${ROUTER_LB_HOSTNAME_D2_1A_NEW}\") | [.DNSName, .AvailabilityZones]"
+[
+  "a234fafdfde6646ee913db7327f8abf6-a6939ff1476947b3.elb.us-east-1.amazonaws.com",
+  [
+    {
+      "ZoneName": "us-east-1a",
+      "SubnetId": "subnet-0f0220b2031232f88",
+      "LoadBalancerAddresses": []
+    }
+  ]
+]
+```
+
+- Check if the DNS has been updated pointing to the new Load Balancer:
+
+```bash
+$ host console-openshift-console.apps.byonetd2-use1a.devcluster.openshift.com
+console-openshift-console.apps.byonetd2-use1a.devcluster.openshift.com has address 3.211.58.129
+
+$ host $ROUTER_LB_HOSTNAME_D2_1A_NEW
+a234fafdfde6646ee913db7327f8abf6-a6939ff1476947b3.elb.us-east-1.amazonaws.com has address 3.211.58.129
+```
+
+Success, the new Load Balancer has been created into single zone.
