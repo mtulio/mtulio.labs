@@ -616,7 +616,7 @@ byonet-use1a/openshift/99_openshift-machine-api_master-control-plane-machine-set
 byonet-use1a/openshift/99_openshift-machine-api_master-control-plane-machine-set.yaml:              region: us-east-1
 ```
 
-- Create NLB manifest for ingress with single subnet annotation:
+- Create NLB manifest for ingress with single subnet:
 
 ```bash
 cat <<EOF > ${INSTALL_DIR}/manifests/cluster-ingress-default-ingresscontroller.yaml
@@ -978,7 +978,7 @@ byonet-use1b/openshift/99_openshift-machine-api_master-control-plane-machine-set
 
 ```
 
-- Create NLB manifest for ingress with single subnet annotation
+- Create NLB manifest for ingress with single subnet:
 
 ```bash
 cat <<EOF > ${INSTALL_DIR_1B}/manifests/cluster-ingress-default-ingresscontroller.yaml
@@ -1197,7 +1197,7 @@ platform:
 $ grep $CLUSTER_REGION $INSTALL_DIR_1C/openshift/*.yaml
 ```
 
-- Create NLB manifest for ingress with single subnet annotation:
+- Create NLB manifest for ingress with single subnet:
 
 ```bash
 cat <<EOF > ${INSTALL_DIR_1C}/manifests/cluster-ingress-default-ingresscontroller.yaml
@@ -1818,7 +1818,7 @@ $ grep -vE '(^pull|ssh)' ${INSTALL_DIR_WA_1A}/install-config.yaml
 $ grep $CLUSTER_REGION $INSTALL_DIR_WA_1A/openshift/*.yaml
 ```
 
-- Create NLB manifest for ingress with single subnet annotation
+- Create NLB manifest for ingress with single subnet:
 
 ```bash
 cat <<EOF > ${INSTALL_DIR_WA_1A}/manifests/cluster-ingress-default-ingresscontroller.yaml
@@ -1981,7 +1981,7 @@ The example below will simulate the cluster creation of `single1a`, when the sub
 
 ```bash
 export CLUSTER_REGION=us-east-1
-export VPC_NAME_D2=byonetd2-use1
+export VPC_NAME_D2=byonetd2c-use1
 
 export STACK_VPC_D2=${VPC_NAME_D2}-vpc
 aws cloudformation create-stack \
@@ -2017,8 +2017,7 @@ mapfile -t PUBLIC_SUBNETS_D2 < <(aws --region ${CLUSTER_REGION} \
 - Check the existing tags
 
 ```bash
-$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID_D2 \
->     | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId, [ .Tags[] | select(.Key | contains("aws:") | not) ] ]'
+$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID_D2 | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId, [ .Tags[] | select(.Key | contains("aws:") | not) ] ]'
 ["us-east-1b","subnet-0b6fb8ec1e37fd7ef",[{"Key":"Name","Value":"byonetd2-use1-public-2"}]]
 ["us-east-1a","subnet-0151486d5fcafd55c",[{"Key":"Name","Value":"byonetd2-use1-private-1"}]]
 ["us-east-1a","subnet-0f0220b2031232f88",[{"Key":"Name","Value":"byonetd2-use1-public-1"}]]
@@ -2093,7 +2092,7 @@ $ grep -vE '(^pull|ssh)' ${INSTALL_DIR_D2_1A}/install-config.yaml
 ```
 
 
-- Create NLB manifest for ingress with single subnet annotation:
+- Create NLB manifest for ingress with single subnet:
 
 ```bash
 cat <<EOF > ${INSTALL_DIR_D2_1A}/manifests/cluster-ingress-default-ingresscontroller.yaml
@@ -2253,3 +2252,172 @@ a234fafdfde6646ee913db7327f8abf6-a6939ff1476947b3.elb.us-east-1.amazonaws.com ha
 ```
 
 Success, the new Load Balancer has been created into single zone.
+
+
+## Section 4. Workaround tagging subnets in Day-2 with default service Load Balancer (CLB)
+
+Validate the workaround in the default OpenShift installation when installing in existing VPC in single zone - using the default load balancer for the default router (currently classic load balancer)
+
+- Create a new VPC with default values to simulate Day-2 (without cluster tags)
+
+- Create the install-config and cluster, selecting only subnets in single AZ (example us-east-1a). Don't provide the NLB manifests.
+
+- Create a new cluster, single AZ
+```bash
+$ oc get machines -n openshift-machine-api
+NAME                                            PHASE     TYPE         REGION      ZONE         AGE
+byonetd2c-use1a-tlwhm-master-0                  Running   m6i.xlarge   us-east-1   us-east-1a   29m
+byonetd2c-use1a-tlwhm-master-1                  Running   m6i.xlarge   us-east-1   us-east-1a   29m
+byonetd2c-use1a-tlwhm-master-2                  Running   m6i.xlarge   us-east-1   us-east-1a   29m
+byonetd2c-use1a-tlwhm-worker-us-east-1a-4h87c   Running   m6i.xlarge   us-east-1   us-east-1a   25m
+byonetd2c-use1a-tlwhm-worker-us-east-1a-7zds8   Running   m6i.xlarge   us-east-1   us-east-1a   25m
+byonetd2c-use1a-tlwhm-worker-us-east-1a-fs76b   Running   m6i.xlarge   us-east-1   us-east-1a   25m
+```
+
+- Check the Load Balancer's zone names
+
+```bash
+ROUTER_LB_HOSTNAME_D2_1A=$(oc get svc -n openshift-ingress -o json | jq -r '.items[] | select (.spec.type=="LoadBalancer").status.loadBalancer.ingress[0].hostname')
+
+aws elb describe-load-balancers | jq -cr ".LoadBalancerDescriptions[] | select (.DNSName==\"${ROUTER_LB_HOSTNAME_D2_1A}\") | [.DNSName, .AvailabilityZones]"
+```
+```json
+["a1ed0af35a56c4c3dbcbedf5656b8776-1116179441.us-east-1.elb.amazonaws.com",["us-east-1a","us-east-1b","us-east-1c"]]
+```
+
+```bash
+$ oc get svc router-default -n openshift-ingress -o yaml
+```
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "5"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "4"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+    traffic-policy.network.alpha.openshift.io/local-with-fallback: ""
+  creationTimestamp: "2023-06-17T00:29:37Z"
+  finalizers:
+  - service.kubernetes.io/load-balancer-cleanup
+  labels:
+    app: router
+    ingresscontroller.operator.openshift.io/owning-ingresscontroller: default
+    router: router-default
+  name: router-default
+  namespace: openshift-ingress
+  ownerReferences:
+  - apiVersion: apps/v1
+    controller: true
+    kind: Deployment
+    name: router-default
+    uid: bfdc8ae3-cfa1-4ed7-953f-eadf14bceeeb
+  resourceVersion: "18556"
+  uid: 1ed0af35-a56c-4c3d-bcbe-df5656b8776e
+spec:
+  allocateLoadBalancerNodePorts: true
+  clusterIP: 172.30.130.103
+  clusterIPs:
+  - 172.30.130.103
+  externalTrafficPolicy: Local
+  healthCheckNodePort: 31053
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    nodePort: 32169
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: https
+    nodePort: 30187
+    port: 443
+    protocol: TCP
+    targetPort: https
+  selector:
+    ingresscontroller.operator.openshift.io/deployment-ingresscontroller: default
+  sessionAffinity: None
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    - hostname: a1ed0af35a56c4c3dbcbedf5656b8776-1116179441.us-east-1.elb.amazonaws.com
+```
+
+- Check the current cluster tags in subnets:
+
+```bash
+$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID_D2 | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId, [ .Tags[] | select(.Key | contains("kubernetes.io/cluster") ) ] ] '
+```
+```json
+["us-east-1b","subnet-0ea185a708c614460",[]]
+["us-east-1c","subnet-05a0fd009d241519b",[]]
+["us-east-1a","subnet-0b60120c2f1a84786",[{"Key":"kubernetes.io/cluster/byonetd2c-use1a-tlwhm","Value":"shared"}]]
+["us-east-1c","subnet-076f0d446724ca0ec",[]]
+["us-east-1b","subnet-015cadfbc60670fee",[]]
+["us-east-1a","subnet-0e5b32c630126f94c",[{"Key":"kubernetes.io/cluster/byonetd2c-use1a-tlwhm","Value":"shared"}]]
+```
+
+- Tag the cluster tag `kubernetes.io/cluster/unmanaged`
+```bash
+aws ec2 create-tags --resources subnet-0ea185a708c614460 subnet-05a0fd009d241519b subnet-076f0d446724ca0ec subnet-015cadfbc60670fee --tags Key=kubernetes.io/cluster/unmanaged,Value=shared
+```
+
+- Check if all subnets not expected to be discovered have been tagged:
+```bash
+$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID_D2 | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId, [ .Tags[] | select(.Key | contains("kubernetes.io/cluster") ) ] ] '
+```
+```json
+["us-east-1b","subnet-0ea185a708c614460",[{"Key":"kubernetes.io/cluster/unmanaged","Value":"shared"}]]
+["us-east-1c","subnet-05a0fd009d241519b",[{"Key":"kubernetes.io/cluster/unmanaged","Value":"shared"}]]
+["us-east-1a","subnet-0b60120c2f1a84786",[{"Key":"kubernetes.io/cluster/byonetd2c-use1a-tlwhm","Value":"shared"}]]
+["us-east-1c","subnet-076f0d446724ca0ec",[{"Key":"kubernetes.io/cluster/unmanaged","Value":"shared"}]]
+["us-east-1b","subnet-015cadfbc60670fee",[{"Key":"kubernetes.io/cluster/unmanaged","Value":"shared"}]]
+["us-east-1a","subnet-0e5b32c630126f94c",[{"Key":"kubernetes.io/cluster/byonetd2c-use1a-tlwhm","Value":"shared"}]]
+```
+
+- Recreate the service:
+
+```bash
+ $ oc delete svc router-default -n openshift-ingress
+service "router-default" deleted
+
+$ oc get svc router-default -n openshift-ingress
+NAME             TYPE           CLUSTER-IP     EXTERNAL-IP                                                               PORT(S)                      AGE
+router-default   LoadBalancer   172.30.63.73   aabc714e68b0b47a39d23e78bf0e1758-1549909672.us-east-1.elb.amazonaws.com   80:31615/TCP,443:30383/TCP   64s
+```
+
+- Check the Load Balancer's zones:
+
+```bash
+$ ROUTER_LB_HOSTNAME_D2_1A=$(oc get svc -n openshift-ingress -o json | jq -r '.items[] | select (.spec.type=="LoadBalancer").status.loadBalancer.ingress[0].hostname')
+
+$ aws elb describe-load-balancers | jq -cr ".LoadBalancerDescriptions[] | select (.DNSName==\"${ROUTER_LB_HOSTNAME_D2_1A}\") | [.DNSName, .AvailabilityZones]"
+```
+```json
+["aabc714e68b0b47a39d23e78bf0e1758-1549909672.us-east-1.elb.amazonaws.com",["us-east-1a"]]
+```
+
+Checking if DNS has been propagated and Console is reachable through Load Balancer:
+
+```bash
+$ oc whoami --show-console 
+https://console-openshift-console.apps.byonetd2c-use1a.devcluster.openshift.com
+
+$ host console-openshift-console.apps.byonetd2c-use1a.devcluster.openshift.com
+console-openshift-console.apps.byonetd2c-use1a.devcluster.openshift.com has address 52.206.91.131
+console-openshift-console.apps.byonetd2c-use1a.devcluster.openshift.com has address 52.206.151.250
+
+$ host $ROUTER_LB_HOSTNAME_D2_1A
+aabc714e68b0b47a39d23e78bf0e1758-1549909672.us-east-1.elb.amazonaws.com has address 52.206.91.131
+aabc714e68b0b47a39d23e78bf0e1758-1549909672.us-east-1.elb.amazonaws.com has address 52.206.151.250
+
+$ curl -w "%{http_code}\n" -sk https://console-openshift-console.apps.byonetd2c-use1a.devcluster.openshift.com -o /dev/null
+200
+```
+
+Success, the Classic Load Balancer is also using the same subnet discovery, and the workaround can be used to fix it.
