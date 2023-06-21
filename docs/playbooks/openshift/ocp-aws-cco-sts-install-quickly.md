@@ -87,7 +87,7 @@ cco_create() {
   echo "> CCO - Creating IAM Roles for IdP [${AWS_IAM_OIDP_ARN}]"
   ./ccoctl aws create-iam-roles \
     --name=${CLUSTER_NAME} \
-    --region=${REGION}\
+    --region=${REGION} \
     --credentials-requests-dir=${OUTPUT_DIR_CCO}/credrequests \
     --identity-provider-arn=${AWS_IAM_OIDP_ARN} \
     --output-dir ${OUTPUT_DIR_CCO}
