@@ -8,18 +8,19 @@ In Red Hat OpenShift Container Platform 4.12, we introduced the ability to exten
 
 Before diving into deploying OpenShift with Local Zones, let's review what Local Zones are.
 
-Local Zones allow you to use select AWS services, like compute and storage services, closer to more end-users, providing them with very low latency access to the applications running locally. Local Zones are fully-owned and managed by AWS with no-upfront commitment and no hardware purchase or lease required. In addition, Local Zones connect to the parent AWS cloud region via AWS' redundant and very high bandwidth private network, providing applications running in Local Zones fast, secure, and seamless access to the rest of AWS services.
+Local Zones allow you to use selected AWS services, like compute and storage services, closer to the metropolitan region, and end-users, than the regular zones, providing them with very low latency access to the applications running locally. Local Zones are fully owned and managed by AWS with no upfront commitment and no hardware purchase or lease required. In addition, Local Zones connect to the parent AWS cloud region via AWS' redundant and very high-bandwidth private network, providing applications running in Local Zones fast, secure, and seamless access to the rest of AWS services.
 
 ![AWS Infrastructure Continuum](https://github.com/mtulio/mtulio.labs/assets/3216894/b4e68d09-bc65-40f4-91aa-1f1cbdea06e6)
 
 <p><center>Figure-1 AWS Infrastructure Continuum</center></p>
 
+### Benefits of Local Zones
 
 Using OpenShift with Local Zones, application developers and service consumers will reap the following benefits:
 
-- Improving application performance and user experience by hosting resources closer to the user, Local Zones reduce the time it takes for data to travel over the network, resulting in faster load times and more responsive applications. This is especially important for applications, such as video streaming or online gaming that require low-latency performance and real-time data access.
+- Improving application performance and user experience by hosting resources closer to the user. Local Zones reduce the time it takes for data to travel over the network, resulting in faster load times and more responsive applications. This is especially important for applications, such as video streaming or online gaming, that require low-latency performance and real-time data access.
 - Hosting resources in specific geographic locations leads to cost savings, whereby customers avoid high costs associated with data transfer charges, such as cloud egress charges, which is a significant business expense, when large volumes of data is moved between regions in the case of image, graphics, and video related applications). 
-- Provide healthcare, government agencies, financial institutions, and other regulated industries a way to meet data residency requirements by hosting data and applications in specific locations to comply with regulatory laws and mandates.
+- Providing healthcare, government agencies, financial institutions, and other regulated industries a way to meet data residency requirements by hosting data and applications in specific locations to comply with regulatory laws and mandates.
 
 Let's walk through the steps to install an OpenShift cluster in an existing virtual private cloud (VPC) in the US Virginia (us-east-1) region by creating a Local Zone subnet, OpenShift Machine Set manifests, and automatically launching worker nodes during the installation. The diagram below shows what gets created:
 
@@ -42,15 +43,15 @@ After the cluster is installed, we'll share how to add new Local Zones in Day 2 
 
 To deploy a new OpenShift cluster extending compute nodes in Local Zone subnets, you install a cluster in an existing VPC and create MachineSet manifests for the Installer.
 
-The installation process automatically creates tainted compute nodes with `NoSchedule.` This allows the administrator to choose workloads to run in each remote location, without needing additional steps to isolate the applications.
+The installation process automatically creates tainted compute nodes with `NoSchedule`. This allows the administrator to choose workloads to run in each remote location, without needing additional steps to isolate the applications.
 
-Once the cluster is installed, the label node-role.kubernetes.io/edge is set for each node located in the Local Zones, along with the regular node-role.kubernetes.io/worker.
+Once the cluster is installed, the label `node-role.kubernetes.io/edge` is set for each node located in the Local Zones, along with the regular `node-role.kubernetes.io/worker`.
 
 Note the following considerations when deploying a cluster in AWS Local Zones:
 
 - The Maximum Transmission Unit (MTU) between an Amazon EC2 instance in a Local Zone and an Amazon EC2 instance in the Region is 1300. This causes the cluster-wide network MTU to change according to the network plugin that is used on the deployment.
-- Network resources such as Network Load Balancer (NLB), Classic Load Balancer, and Nat Gateways are not supported in AWS Local Zones.
-- The AWS Elastic Block Storage (EBS) `gp3` type volume is the default for node volumes and the default for the storage class set on AWS OpenShift clusters. This volume type is not globally available in Local Zone locations. By default, the nodes running in Local Zones are deployed with the gp2 EBS volume. The `gp2-csi` StorageClass must be set when creating workloads on Local Zone nodes.
+- Network resources such as Network Load Balancer (NLB), Classic Load Balancer, and NAT Gateways are not supported in AWS Local Zones.
+- The AWS Elastic Block Storage (EBS) `gp3` type volume is the default for node volumes and the default for the storage class set on AWS OpenShift clusters. This volume type is not globally available in Local Zone locations. By default, the nodes running in Local Zones are deployed with the `gp2` EBS volume. The `gp2-csi` StorageClass must be set when creating workloads on Local Zone nodes.
 
 Install the following prerequisites before you proceed to the next step:
 
@@ -60,7 +61,7 @@ Install the following prerequisites before you proceed to the next step:
 
 ### Step 1.  Create the VPC
 
-This section is optional. Create a VPC with your preferred customizations, as recommended in [Installing a cluster on AWS into an existing VPC](https://docs.openshift.com/container-platform/4.12/installing/installing_aws/installing-aws-vpc.html).
+Create a VPC with your preferred customizations, as recommended in [Installing a cluster on AWS into an existing VPC](https://docs.openshift.com/container-platform/4.13/installing/installing_aws/installing-aws-vpc.html).
 Define the environment variables:
 
 ~~~bash
@@ -71,7 +72,7 @@ $ export AWS_REGION=us-east-1
 
 Download the following CloudFormation Templates with the following names:
 
-- template-vpc.yam: [CloudFormation template for the VPC that uses AWS Local Zones](https://docs.openshift.com/container-platform/4.12/installing/installing_aws/installing-aws-localzone.html#installation-cloudformation-vpc-localzone_installing-aws-localzone)
+- template-vpc.yaml: [CloudFormation template for the VPC that uses AWS Local Zones](https://docs.openshift.com/container-platform/4.12/installing/installing_aws/installing-aws-localzone.html#installation-cloudformation-vpc-localzone_installing-aws-localzone)
 - template-lz.yaml: [CloudFormation template for the subnet that uses AWS Local Zones](https://docs.openshift.com/container-platform/4.12/installing/installing_aws/installing-aws-localzone.html#installation-cloudformation-subnet-localzone_installing-aws-localzone)
 
 Create the VPC with CloudFormation Template:
@@ -242,7 +243,7 @@ demo-lz-knlm2-edge-us-east-1-nyc-1a-f2lzd   Running   c5d.2xlarge   us-east-1   
 
 This step describes the Day 2 operations to extend the compute nodes to new Local Zones locations in an existing OpenShift cluster, be sure the VPC running the cluster has enough CIDR blocks to create the subnet(s).
 
-Refer to `Step 2` in the last section to create subnets in Buenos Aires (Argentina), zone name `us-east-1-bue-1a`.
+Repeat the [Step 2](#step-2--create-the-public-subnet-in-the-aws-local-zone) to create subnets in Buenos Aires (Argentina) using the zone name `us-east-1-bue-1a`. The location of Buenos Aires was intentionally picked as it currently does not support AWS Application Load Balancers (ALB), used in New York zone (`us-east-1-nyc-1a`).
 
 > Note: if the cluster wasn't installed using IPI with Local Zone subnets, the Maximum Transmit Unit (MTU) for the cluster-wide network must be adjusted before proceeding. See the OpenShift documentation for more information.
 
@@ -252,7 +253,6 @@ Refer to `Step 2` in the last section to create subnets in Buenos Aires (Argenti
 
 Finally, to create nodes using the new zone, the MachineSet manifest must be added setting the zone attributes. The steps below show how to check the instance offered by the zone, and create the MachineSet manifest based on the existing one in the Local Zone of Buenos Aires(`us-east-1-bue-1a`):
 
-> Note: The Local Zone of Buenos Aires (`us-east-1-bue-1a`) was intentionally picked as it currently does not support AWS Application Load Balancers (ALB), used in New York zone (`us-east-1-nyc-1a`).
 
 - Check and export the instance type offered by the Zone:
 
@@ -352,7 +352,7 @@ All done, now the cluster is installed and running into two Local Zones, New Yor
 
 ## Deploy workloads in AWS Local Zones
 
-As described in the section "Installing an OpenShift cluster with AWS Local Zones", there are a few use cases to run workloads in Local Zones. This post demonstrates how to take advantage of Local Zones by deploying a sample application and selecting workers running in Local Zones.
+As described in the section ["Installing an OpenShift cluster with AWS Local Zones"](#installing-an-openshift-cluster-with-aws-local-zones), there are a few use cases to run workloads in Local Zones. This post demonstrates how to take advantage of Local Zones by deploying a sample application and selecting workers running in Local Zones.
 
 Three deployments will be created:
 
@@ -362,7 +362,7 @@ Three deployments will be created:
 
 The `edge` compute nodes deployed in Local Zones have the following extra labels:
 
-~~~bash
+~~~yaml
 machine.openshift.io/zone-type: local-zone
 machine.openshift.io/zone-group: us-east-1-nyc-1
 node-role.kubernetes.io/edge: ""
@@ -370,7 +370,7 @@ node-role.kubernetes.io/edge: ""
 
 You must set the tolerations to `node-role.kubernetes.io/edge`, selecting the node according to your use case.
 
-The example below uses the `machine.openshift.io/zone-group` label to select the node(s), and creates the deployment for a sample applicatiosn in the respective zone's network border group:
+The example below uses the `machine.openshift.io/zone-group` label to select the node(s), and creates the deployment for a sample application in the respective zone's network border group:
 
 - Create the namespace:
 
