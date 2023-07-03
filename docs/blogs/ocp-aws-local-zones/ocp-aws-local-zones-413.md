@@ -41,7 +41,7 @@ After the cluster is installed, we'll share how to add new Local Zones in Day 2 
 
 ## Installing an OpenShift cluster with AWS Local Zones
 
-To deploy a new OpenShift cluster extending compute nodes in Local Zone subnets, you install a cluster in an existing VPC and create MachineSet manifests for the Installer.
+To deploy an OpenShift cluster extending compute nodes in Local Zone subnets, it is required to follow the method of installing in an existing VPC, then the installer will classify the Local Zone subnets as "Edge Subnets" and create Machine Set manifests for each location. See the [OpenShift documentation](https://docs.openshift.com/container-platform/4.13/installing/installing_aws/installing-aws-localzone.html) for more details.
 
 The installation process automatically creates tainted compute nodes with `NoSchedule`. This allows the administrator to choose workloads to run in each remote location, without needing additional steps to isolate the applications.
 
