@@ -1,4 +1,4 @@
-2023-07-22 01:21:30.701559>> Show Zones OptIn status
+2023-07-22 02:09:21.051695>> Show Zones OptIn status
 AWS_Zones-(ParentZones)
 ├── ap-south-2
 │   └── opt-in-not-required
@@ -82,7 +82,7 @@ AWS_Zones-(ParentZones)
 │   │   ├── af-south-1a
 │   │   ├── af-south-1b
 │   │   └── af-south-1c
-│   └── not-opted-in
+│   └── opted-in
 │       └── af-south-1-los-1a
 ├── eu-north-1
 │   ├── opt-in-not-required
@@ -157,18 +157,16 @@ AWS_Zones-(ParentZones)
 │   │   ├── ap-southeast-1a
 │   │   ├── ap-southeast-1b
 │   │   └── ap-southeast-1c
-│   ├── opted-in
-│   │   └── ap-southeast-1-bkk-1a
-│   └── not-opted-in
+│   └── opted-in
+│       ├── ap-southeast-1-bkk-1a
 │       └── ap-southeast-1-mnl-1a
 ├── ap-southeast-2
 │   ├── opt-in-not-required
 │   │   ├── ap-southeast-2a
 │   │   ├── ap-southeast-2b
 │   │   └── ap-southeast-2c
-│   ├── not-opted-in
-│   │   └── ap-southeast-2-akl-1a
 │   └── opted-in
+│       ├── ap-southeast-2-akl-1a
 │       └── ap-southeast-2-per-1a
 ├── ap-southeast-3
 │   └── opt-in-not-required

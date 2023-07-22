@@ -1,4 +1,4 @@
-2023-07-22 01:21:30.701559>> Show Region by OptIn status
+2023-07-22 02:09:21.051695>> Show Region by OptIn status
 AWS_Regions-(ParentZones)
 ├── opted-in
 │   ├── ap-south-2

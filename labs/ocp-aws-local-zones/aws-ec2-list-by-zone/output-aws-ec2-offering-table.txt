@@ -1,15 +1,15 @@
-2023-07-22 01:21:30.701559>> Zones by Family
+2023-07-22 02:09:21.051695>> Zones by Family
 
 
                       c5.12xlarge c5.18xlarge c5.24xlarge c5.2xlarge  \
 zone                                                                   
-af-south-1-los-1a              --          --          --         --   
+af-south-1-los-1a               X          --          --          X   
 ap-northeast-1-tpe-1a           X          --          --          X   
 ap-south-1-ccu-1a               X          --          --          X   
 ap-south-1-del-1a               X          --          --          X   
 ap-southeast-1-bkk-1a           X          --          --          X   
-ap-southeast-1-mnl-1a          --          --          --         --   
-ap-southeast-2-akl-1a          --          --          --         --   
+ap-southeast-1-mnl-1a           X          --           X          X   
+ap-southeast-2-akl-1a           X          --          --          X   
 ap-southeast-2-per-1a           X          --          --          X   
 eu-central-1-ham-1a             X          --          --          X   
 eu-central-1-waw-1a             X          --           X          X   
@@ -45,7 +45,7 @@ ap-northeast-1-tpe-1a         --         --       --       --        --
 ap-south-1-ccu-1a             --         --       --       --        --   
 ap-south-1-del-1a             --         --       --       --        --   
 ap-southeast-1-bkk-1a         --         --       --       --        --   
-ap-southeast-1-mnl-1a         --         --       --       --        --   
+ap-southeast-1-mnl-1a          X         --       --       --        --   
 ap-southeast-2-akl-1a         --         --       --       --        --   
 ap-southeast-2-per-1a         --         --       --       --        --   
 eu-central-1-ham-1a           --         --       --       --        --   
@@ -114,13 +114,13 @@ us-west-2-sea-1a                 X           X           X
 
                       g4dn.12xlarge g4dn.16xlarge g4dn.2xlarge g4dn.4xlarge  \
 zone                                                                          
-af-south-1-los-1a                --            --           --           --   
+af-south-1-los-1a                --            --            X           --   
 ap-northeast-1-tpe-1a            --            --            X           --   
 ap-south-1-ccu-1a                --            --            X           --   
 ap-south-1-del-1a                --            --            X           --   
 ap-southeast-1-bkk-1a            --            --            X           --   
-ap-southeast-1-mnl-1a            --            --           --           --   
-ap-southeast-2-akl-1a            --            --           --           --   
+ap-southeast-1-mnl-1a            --            --            X           --   
+ap-southeast-2-akl-1a            --            --            X           --   
 ap-southeast-2-per-1a            --            --            X           --   
 eu-central-1-ham-1a              --            --            X           --   
 eu-central-1-waw-1a              --            --            X           --   
@@ -373,13 +373,13 @@ us-west-2-sea-1a             --          --          --          --
 
                       m5.2xlarge m5.4xlarge m5.8xlarge m5.large m5.metal  \
 zone                                                                       
-af-south-1-los-1a             --         --         --       --       --   
+af-south-1-los-1a              X         --         --       --       --   
 ap-northeast-1-tpe-1a          X         --         --       --       --   
 ap-south-1-ccu-1a              X         --         --       --       --   
 ap-south-1-del-1a              X         --         --       --       --   
 ap-southeast-1-bkk-1a          X         --         --       --       --   
-ap-southeast-1-mnl-1a         --         --         --       --       --   
-ap-southeast-2-akl-1a         --         --         --       --       --   
+ap-southeast-1-mnl-1a          X         --         --       --       --   
+ap-southeast-2-akl-1a          X         --         --       --       --   
 ap-southeast-2-per-1a          X         --         --       --       --   
 eu-central-1-ham-1a            X         --         --       --       --   
 eu-central-1-waw-1a            X         --         --       --       --   
@@ -447,13 +447,13 @@ us-west-2-sea-1a             --
 
                       r5.12xlarge r5.16xlarge r5.24xlarge r5.2xlarge  \
 zone                                                                   
-af-south-1-los-1a              --          --          --         --   
+af-south-1-los-1a              --          --          --          X   
 ap-northeast-1-tpe-1a          --          --          --          X   
 ap-south-1-ccu-1a              --          --          --          X   
 ap-south-1-del-1a              --          --          --          X   
 ap-southeast-1-bkk-1a          --          --          --          X   
-ap-southeast-1-mnl-1a          --          --          --         --   
-ap-southeast-2-akl-1a          --          --          --         --   
+ap-southeast-1-mnl-1a          --          --          --          X   
+ap-southeast-2-akl-1a          --          --          --          X   
 ap-southeast-2-per-1a          --          --          --          X   
 eu-central-1-ham-1a            --          --          --          X   
 eu-central-1-waw-1a            --          --          --          X   
@@ -600,8 +600,8 @@ ap-northeast-1-tpe-1a         --       --         X       --      --       --
 ap-south-1-ccu-1a             --       --         X       --      --       --   
 ap-south-1-del-1a             --       --         X       --      --       --   
 ap-southeast-1-bkk-1a         --       --         X       --      --       --   
-ap-southeast-1-mnl-1a         --       --        --       --      --       --   
-ap-southeast-2-akl-1a         --       --        --       --      --       --   
+ap-southeast-1-mnl-1a         --       --         X       --      --       --   
+ap-southeast-2-akl-1a         --       --         X       --      --       --   
 ap-southeast-2-per-1a         --       --         X       --      --       --   
 eu-central-1-ham-1a           --       --         X       --      --       --   
 eu-central-1-waw-1a           --       --         X       --      --       --   
@@ -632,13 +632,13 @@ us-west-2-sea-1a              --       --         X       --      --       --
 
                       t3.xlarge  
 zone                             
-af-south-1-los-1a            --  
+af-south-1-los-1a             X  
 ap-northeast-1-tpe-1a         X  
 ap-south-1-ccu-1a             X  
 ap-south-1-del-1a             X  
 ap-southeast-1-bkk-1a         X  
-ap-southeast-1-mnl-1a        --  
-ap-southeast-2-akl-1a        --  
+ap-southeast-1-mnl-1a         X  
+ap-southeast-2-akl-1a         X  
 ap-southeast-2-per-1a         X  
 eu-central-1-ham-1a           X  
 eu-central-1-waw-1a           X  

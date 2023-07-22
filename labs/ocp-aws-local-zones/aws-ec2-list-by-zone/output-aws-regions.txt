@@ -1,4 +1,4 @@
-2023-07-22 01:21:30.701559>> Show Region
+2023-07-22 02:09:21.051695>> Show Region
 AWS_Regions-(ParentZones)
 ├── ap-south-2
 │   └── ec2.ap-south-2.amazonaws.com

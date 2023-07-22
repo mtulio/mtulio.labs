@@ -1,4 +1,4 @@
-2023-07-22 01:21:30.701559>> Show Zones by Parent
+2023-07-22 02:09:21.051695>> Show Zones by Parent
 AWS_Zones-(ParentZones)
 ├── ap-south-2
 │   ├── ap-south-2a
