@@ -23,9 +23,19 @@ git push origin v2.67.0
 go list -m -json github.com/mtulio/terraform-provider-aws@v1.67.0
 ```
 
-- getting pseudo-version from a branch
-
+- getting pseudo-version from a branch:
 ```
+# option 1)
+go list -f '{{.Version}}' -m github.com/mtulio/library-go@tmp-promote-external
+
+# option 2)
+TZ=UTC git --no-pager show \
+   --quiet \
+   --abbrev=12 \
+   --date='format-local:%Y%m%d%H%M%S' \
+   --format="%cd-%h"
+
+# option 3)
 go get -d github.com/mtulio/terraform-provider-aws@release-2.67.0-add-gp3-valid
 ```
 
