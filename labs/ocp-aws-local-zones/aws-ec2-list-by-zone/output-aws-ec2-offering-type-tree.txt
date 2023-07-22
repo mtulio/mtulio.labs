@@ -1,0 +1,573 @@
+2023-07-22 01:21:30.701559>> Show EC2 Offerings by Instance Type
+AWS_EC2-(EC2 Offerings by Type)
+├── t3.medium
+│   ├── ap-south-1
+│   │   ├── ap-south-1-del-1a
+│   │   └── ap-south-1-ccu-1a
+│   ├── eu-central-1
+│   │   ├── eu-central-1-ham-1a
+│   │   └── eu-central-1-waw-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1a
+│   │   ├── us-west-2-lax-1b
+│   │   ├── us-west-2-sea-1a
+│   │   ├── us-west-2-phx-1a
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-las-1a
+│   │   └── us-west-2-pdx-1a
+│   ├── eu-north-1
+│   │   ├── eu-north-1-hel-1a
+│   │   └── eu-north-1-cph-1a
+│   ├── me-south-1
+│   │   └── me-south-1-mct-1a
+│   ├── ap-northeast-1
+│   │   └── ap-northeast-1-tpe-1a
+│   ├── ap-southeast-1
+│   │   └── ap-southeast-1-bkk-1a
+│   ├── ap-southeast-2
+│   │   └── ap-southeast-2-per-1a
+│   └── us-east-1
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-mci-1a
+│       ├── us-east-1-nyc-1a
+│       ├── us-east-1-phl-1a
+│       ├── us-east-1-mia-1a
+│       ├── us-east-1-dfw-1a
+│       ├── us-east-1-bue-1a
+│       ├── us-east-1-scl-1a
+│       ├── us-east-1-msp-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-lim-1a
+│       ├── us-east-1-qro-1a
+│       ├── us-east-1-chi-1a
+│       └── us-east-1-iah-1a
+├── m4.2xlarge
+│   └── ap-south-1
+│       ├── ap-south-1-ccu-1a
+│       └── ap-south-1-del-1a
+├── t3.xlarge
+│   ├── ap-south-1
+│   │   ├── ap-south-1-ccu-1a
+│   │   └── ap-south-1-del-1a
+│   ├── eu-central-1
+│   │   ├── eu-central-1-waw-1a
+│   │   └── eu-central-1-ham-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-las-1a
+│   │   ├── us-west-2-lax-1a
+│   │   ├── us-west-2-sea-1a
+│   │   ├── us-west-2-lax-1b
+│   │   ├── us-west-2-pdx-1a
+│   │   └── us-west-2-phx-1a
+│   ├── eu-north-1
+│   │   ├── eu-north-1-hel-1a
+│   │   └── eu-north-1-cph-1a
+│   ├── me-south-1
+│   │   └── me-south-1-mct-1a
+│   ├── ap-northeast-1
+│   │   └── ap-northeast-1-tpe-1a
+│   ├── ap-southeast-1
+│   │   └── ap-southeast-1-bkk-1a
+│   ├── ap-southeast-2
+│   │   └── ap-southeast-2-per-1a
+│   └── us-east-1
+│       ├── us-east-1-scl-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-mci-1a
+│       ├── us-east-1-phl-1a
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-nyc-1a
+│       ├── us-east-1-iah-1a
+│       ├── us-east-1-msp-1a
+│       ├── us-east-1-dfw-1a
+│       ├── us-east-1-qro-1a
+│       ├── us-east-1-chi-1a
+│       ├── us-east-1-lim-1a
+│       ├── us-east-1-mia-1a
+│       └── us-east-1-bue-1a
+├── c5.2xlarge
+│   ├── ap-south-1
+│   │   ├── ap-south-1-ccu-1a
+│   │   └── ap-south-1-del-1a
+│   ├── eu-central-1
+│   │   ├── eu-central-1-ham-1a
+│   │   └── eu-central-1-waw-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1a
+│   │   └── us-west-2-lax-1b
+│   ├── eu-north-1
+│   │   ├── eu-north-1-hel-1a
+│   │   └── eu-north-1-cph-1a
+│   ├── me-south-1
+│   │   └── me-south-1-mct-1a
+│   ├── ap-northeast-1
+│   │   └── ap-northeast-1-tpe-1a
+│   ├── ap-southeast-1
+│   │   └── ap-southeast-1-bkk-1a
+│   ├── ap-southeast-2
+│   │   └── ap-southeast-2-per-1a
+│   └── us-east-1
+│       ├── us-east-1-bue-1a
+│       ├── us-east-1-lim-1a
+│       ├── us-east-1-qro-1a
+│       └── us-east-1-scl-1a
+├── m5.2xlarge
+│   ├── ap-south-1
+│   │   ├── ap-south-1-ccu-1a
+│   │   └── ap-south-1-del-1a
+│   ├── eu-central-1
+│   │   ├── eu-central-1-ham-1a
+│   │   └── eu-central-1-waw-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1a
+│   │   └── us-west-2-lax-1b
+│   ├── eu-north-1
+│   │   ├── eu-north-1-hel-1a
+│   │   └── eu-north-1-cph-1a
+│   ├── me-south-1
+│   │   └── me-south-1-mct-1a
+│   ├── ap-northeast-1
+│   │   └── ap-northeast-1-tpe-1a
+│   ├── ap-southeast-1
+│   │   └── ap-southeast-1-bkk-1a
+│   ├── ap-southeast-2
+│   │   └── ap-southeast-2-per-1a
+│   └── us-east-1
+│       ├── us-east-1-qro-1a
+│       ├── us-east-1-scl-1a
+│       ├── us-east-1-bue-1a
+│       └── us-east-1-lim-1a
+├── m4.xlarge
+│   └── ap-south-1
+│       ├── ap-south-1-ccu-1a
+│       └── ap-south-1-del-1a
+├── c5.12xlarge
+│   ├── ap-south-1
+│   │   ├── ap-south-1-del-1a
+│   │   └── ap-south-1-ccu-1a
+│   ├── eu-central-1
+│   │   ├── eu-central-1-ham-1a
+│   │   └── eu-central-1-waw-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1b
+│   │   └── us-west-2-lax-1a
+│   ├── eu-north-1
+│   │   ├── eu-north-1-cph-1a
+│   │   └── eu-north-1-hel-1a
+│   ├── me-south-1
+│   │   └── me-south-1-mct-1a
+│   ├── ap-northeast-1
+│   │   └── ap-northeast-1-tpe-1a
+│   ├── ap-southeast-1
+│   │   └── ap-southeast-1-bkk-1a
+│   ├── ap-southeast-2
+│   │   └── ap-southeast-2-per-1a
+│   └── us-east-1
+│       ├── us-east-1-scl-1a
+│       ├── us-east-1-lim-1a
+│       ├── us-east-1-bue-1a
+│       └── us-east-1-qro-1a
+├── m4.large
+│   └── ap-south-1
+│       ├── ap-south-1-del-1a
+│       └── ap-south-1-ccu-1a
+├── r5.2xlarge
+│   ├── ap-south-1
+│   │   ├── ap-south-1-del-1a
+│   │   └── ap-south-1-ccu-1a
+│   ├── eu-central-1
+│   │   ├── eu-central-1-ham-1a
+│   │   └── eu-central-1-waw-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1b
+│   │   └── us-west-2-lax-1a
+│   ├── eu-north-1
+│   │   ├── eu-north-1-hel-1a
+│   │   └── eu-north-1-cph-1a
+│   ├── me-south-1
+│   │   └── me-south-1-mct-1a
+│   ├── ap-northeast-1
+│   │   └── ap-northeast-1-tpe-1a
+│   ├── ap-southeast-1
+│   │   └── ap-southeast-1-bkk-1a
+│   ├── ap-southeast-2
+│   │   └── ap-southeast-2-per-1a
+│   └── us-east-1
+│       ├── us-east-1-scl-1a
+│       ├── us-east-1-bue-1a
+│       ├── us-east-1-qro-1a
+│       └── us-east-1-lim-1a
+├── m4.10xlarge
+│   └── ap-south-1
+│       ├── ap-south-1-del-1a
+│       └── ap-south-1-ccu-1a
+├── m4.4xlarge
+│   └── ap-south-1
+│       ├── ap-south-1-ccu-1a
+│       └── ap-south-1-del-1a
+├── m4.16xlarge
+│   └── ap-south-1
+│       ├── ap-south-1-del-1a
+│       └── ap-south-1-ccu-1a
+├── g4dn.2xlarge
+│   ├── ap-south-1
+│   │   ├── ap-south-1-del-1a
+│   │   └── ap-south-1-ccu-1a
+│   ├── eu-central-1
+│   │   ├── eu-central-1-ham-1a
+│   │   └── eu-central-1-waw-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-sea-1a
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-phx-1a
+│   │   ├── us-west-2-las-1a
+│   │   ├── us-west-2-lax-1a
+│   │   ├── us-west-2-lax-1b
+│   │   └── us-west-2-pdx-1a
+│   ├── eu-north-1
+│   │   ├── eu-north-1-cph-1a
+│   │   └── eu-north-1-hel-1a
+│   ├── me-south-1
+│   │   └── me-south-1-mct-1a
+│   ├── ap-northeast-1
+│   │   └── ap-northeast-1-tpe-1a
+│   ├── ap-southeast-1
+│   │   └── ap-southeast-1-bkk-1a
+│   ├── ap-southeast-2
+│   │   └── ap-southeast-2-per-1a
+│   └── us-east-1
+│       ├── us-east-1-lim-1a
+│       ├── us-east-1-nyc-1a
+│       ├── us-east-1-qro-1a
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-iah-1a
+│       ├── us-east-1-scl-1a
+│       ├── us-east-1-mia-1a
+│       ├── us-east-1-phl-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-chi-1a
+│       ├── us-east-1-dfw-1a
+│       ├── us-east-1-mci-1a
+│       ├── us-east-1-bue-1a
+│       └── us-east-1-msp-1a
+├── c5.4xlarge
+│   ├── eu-central-1
+│   │   └── eu-central-1-waw-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1b
+│   │   └── us-west-2-lax-1a
+│   └── us-east-1
+│       ├── us-east-1-qro-1a
+│       ├── us-east-1-scl-1a
+│       └── us-east-1-bue-1a
+├── c5.24xlarge
+│   ├── eu-central-1
+│   │   └── eu-central-1-waw-1a
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1a
+│   │   └── us-west-2-lax-1b
+│   └── us-east-1
+│       ├── us-east-1-scl-1a
+│       └── us-east-1-qro-1a
+├── c5d.2xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-phx-1a
+│   │   ├── us-west-2-las-1a
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-pdx-1a
+│   │   └── us-west-2-sea-1a
+│   └── us-east-1
+│       ├── us-east-1-dfw-1a
+│       ├── us-east-1-phl-1a
+│       ├── us-east-1-chi-1a
+│       ├── us-east-1-msp-1a
+│       ├── us-east-1-mci-1a
+│       ├── us-east-1-mia-1a
+│       ├── us-east-1-nyc-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-bos-1a
+│       └── us-east-1-iah-1a
+├── r5d.4xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-phx-1a
+│   │   ├── us-west-2-lax-1b
+│   │   └── us-west-2-lax-1a
+│   └── us-east-1
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-dfw-1a
+│       ├── us-east-1-chi-1a
+│       ├── us-east-1-atl-1a
+│       └── us-east-1-phl-1a
+├── i3en.24xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── i3en.3xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── t3.2xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── m5.24xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── i3en.12xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── t3.large
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── c5d.12xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-sea-1a
+│   │   ├── us-west-2-pdx-1a
+│   │   └── us-west-2-las-1a
+│   └── us-east-1
+│       ├── us-east-1-msp-1a
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-mci-1a
+│       ├── us-east-1-phl-1a
+│       ├── us-east-1-dfw-1a
+│       └── us-east-1-nyc-1a
+├── m5.metal
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── g4dn.metal
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── m5.xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1b
+│   │   └── us-west-2-lax-1a
+│   └── us-east-1
+│       └── us-east-1-mia-1a
+├── g5.4xlarge
+│   └── us-west-2
+│       └── us-west-2-lax-1a
+├── m5.8xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── r5.large
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── m5.12xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       ├── us-west-2-den-1a
+│       └── us-west-2-lax-1a
+├── c5.xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── r5.4xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5.24xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── g4dn.12xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5d.2xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-phx-1a
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-lax-1a
+│   │   ├── us-west-2-las-1a
+│   │   ├── us-west-2-sea-1a
+│   │   ├── us-west-2-pdx-1a
+│   │   └── us-west-2-lax-1b
+│   └── us-east-1
+│       ├── us-east-1-dfw-1a
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-msp-1a
+│       ├── us-east-1-phl-1a
+│       ├── us-east-1-mia-1a
+│       ├── us-east-1-nyc-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-chi-1a
+│       ├── us-east-1-iah-1a
+│       └── us-east-1-mci-1a
+├── c5d.4xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-pdx-1a
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-las-1a
+│   │   └── us-west-2-sea-1a
+│   └── us-east-1
+│       ├── us-east-1-nyc-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-phl-1a
+│       ├── us-east-1-mci-1a
+│       ├── us-east-1-msp-1a
+│       └── us-east-1-dfw-1a
+├── r5d.xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1b
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-phx-1a
+│   │   └── us-west-2-lax-1a
+│   └── us-east-1
+│       ├── us-east-1-dfw-1a
+│       ├── us-east-1-phl-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-bos-1a
+│       └── us-east-1-chi-1a
+├── g4dn.16xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── c5.large
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5.16xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── g4dn.xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5.8xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── i3en.2xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── r5d.metal
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5.metal
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5d.16xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── r5.xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── i3en.large
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── m5.large
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── m5.4xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── t3.micro
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5.12xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── m5.16xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── c5.9xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── c5.metal
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── i3en.xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5d.8xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-den-1a
+│   │   ├── us-west-2-lax-1b
+│   │   ├── us-west-2-lax-1a
+│   │   └── us-west-2-phx-1a
+│   └── us-east-1
+│       ├── us-east-1-chi-1a
+│       ├── us-east-1-atl-1a
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-phl-1a
+│       └── us-east-1-dfw-1a
+├── r5d.24xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── t3.nano
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── r5d.large
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── r5d.12xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── g4dn.4xlarge
+│   ├── us-west-2
+│   │   ├── us-west-2-lax-1a
+│   │   ├── us-west-2-lax-1b
+│   │   ├── us-west-2-den-1a
+│   │   └── us-west-2-phx-1a
+│   └── us-east-1
+│       ├── us-east-1-nyc-1a
+│       ├── us-east-1-bos-1a
+│       ├── us-east-1-iah-1a
+│       ├── us-east-1-qro-1a
+│       ├── us-east-1-chi-1a
+│       ├── us-east-1-phl-1a
+│       └── us-east-1-dfw-1a
+├── g4dn.8xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── i3en.metal
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── i3en.6xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1b
+│       └── us-west-2-lax-1a
+├── c5.18xlarge
+│   └── us-west-2
+│       ├── us-west-2-lax-1a
+│       └── us-west-2-lax-1b
+├── g5.8xlarge
+│   └── us-west-2
+│       └── us-west-2-lax-1a
+└── t3.small
+    └── us-west-2
+        ├── us-west-2-lax-1a
+        └── us-west-2-lax-1b
