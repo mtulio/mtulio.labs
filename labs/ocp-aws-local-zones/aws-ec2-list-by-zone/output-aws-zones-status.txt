@@ -1,4 +1,4 @@
-2023-07-22 02:09:21.051695>> Show Zones OptIn status
+2023-07-25 18:09:06.213413>> Show Zones OptIn status
 AWS_Zones-(ParentZones)
 ├── ap-south-2
 │   └── opt-in-not-required
@@ -18,11 +18,6 @@ AWS_Zones-(ParentZones)
 │       ├── eu-south-1a
 │       ├── eu-south-1b
 │       └── eu-south-1c
-├── eu-south-2
-│   └── opt-in-not-required
-│       ├── eu-south-2a
-│       ├── eu-south-2b
-│       └── eu-south-2c
 ├── me-central-1
 │   └── opt-in-not-required
 │       ├── me-central-1a

@@ -33,7 +33,8 @@ tree_regions = []
 tree_regions_status = []
 ec2_regions = []
 # ec2_regions = ["us-east-1", "us-west-2"]
-# ec2_regions = ["us-west-2"]
+#ec2_regions = ["us-west-2"]
+#ec2_regions = ["us-east-1"]
 if os.getenv('FILTER_REGIONS') is not None:
     ec2_regions = os.getenv('FILTER_REGIONS').split(',')
 
@@ -69,10 +70,12 @@ def discover_offerings():
         ec2 = sess.client('ec2', region_name=region)
         try:
 
-            local_zones = [az if az['ZoneType'] == 'local-zone' else None 
-                    for az in ec2.describe_availability_zones(
+            local_zones = [az for az in ec2.describe_availability_zones(
                                 AllAvailabilityZones=True,
-                                Filters=[{"Name":"zone-type","Values":["local-zone"]}]
+                                Filters=[{
+                                    "Name":"zone-type",
+                                    "Values":["local-zone","wavelength-zone"]
+                                }]
                             )['AvailabilityZones']]
 
             for az in local_zones:
