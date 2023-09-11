@@ -65,6 +65,14 @@ GRANT ALL PRIVILEGES ON `costs`.* TO 'aws_costs'@'1.1.1.1';
 # TODO
 ```
 
+* Change password
+
+> errors migrating from mysql 5.7 to 8: `Authentication plugin 'caching_sha2_password' cannot be loaded:`
+
+```sql
+ALTER USER 'rundeck'@'%' IDENTIFIED WITH mysql_native_password BY 'NewPass';
+```
+
 ## Admin
 
 * Show table sizes
@@ -111,6 +119,8 @@ show full processlist;
 ```mysql
 SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE COMMAND != 'Sleep';
 ```
+
+## Management
 
 * Kill queries running:
 
