@@ -124,6 +124,27 @@ kill <ID>;
 TODO
 ```
 
+## Backup/Restore
+
+> Reference: https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html
+
+- Dump the entire DB
+
+```bash
+mysqldump -h 127.0.0.1 -P 3306 -u root -p --no-tablespaces --column-statistics=0 --all-databases > bkp-all.sql
+```
+
+- Dump specific table
+
+```bash
+mysqldump -h 127.0.0.1 -P 3306 -u root -p --databases rundeck --no-tablespaces --column-statistics=0 > bkp-rundeck.sql
+```
+
+- Restore DB (rundeck)
+
+```bash
+mysql -h 127.0.0.1 -P 3306 -u root -p < bkp-rundeck.sql
+```
 
 ## GUI
 
