@@ -4,7 +4,7 @@ site_author: 'Marco Braga'
 site_description: >-
   Marco Braga | Playground
 repo_url: https://github.com/mtulio/mtulio.labs
-edit_uri: edit/main/docs/
+edit_uri: edit/master/docs/
 docs_dir: docs
 dev_addr: 127.0.0.1:8080
 
