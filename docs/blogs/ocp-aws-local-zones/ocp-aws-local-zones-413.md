@@ -2,18 +2,21 @@
 
 > Authors: Marcos Entenza Garcia, Marco Braga, Fatih Nar
 
-## Overview
+OpenShift users have many options when it comes to deploying a Red Hat OpenShift cluster
+in AWS. In Red Hat OpenShift Container Platform 4.12, we introduced the manual steps
+to extend cluster nodes into Amazon Web Services (AWS) Local Zones when installing in existing VPC.
+Today we are pleased to announce the fully IPI (installer-provisioned infrastructure) automation
+to extend worker nodes to AWS Local Zones.
 
-In Red Hat OpenShift Container Platform 4.12, we introduced the ability to extend cluster formation into Amazon Web Services (AWS) Local Zones in Red Hat OpenShift. In this post, we present how to deploy OpenShift compute nodes in Local Zones at cluster creation time, where the OpenShift Installer creates compute nodes in configured Local Zones. In addition, we share how the cluster administrator adds compute nodes in Local Zones to an existing OpenShift cluster.
+## What is AWS Local Zones?
 
-Before diving into deploying OpenShift with Local Zones, let's review what Local Zones are.
-
-Local Zones allow you to use select AWS services, like compute and storage services, closer to more end-users, providing them with very low latency access to the applications running locally. Local Zones are fully-owned and managed by AWS with no-upfront commitment and no hardware purchase or lease required. In addition, Local Zones connect to the parent AWS cloud region via AWS' redundant and very high bandwidth private network, providing applications running in Local Zones fast, secure, and seamless access to the rest of AWS services.
+Local Zones allow you to use select AWS services, like compute and storage services, closer to end-users, providing them with very low latency access to the applications running locally. Local Zones are fully-owned and managed by AWS with no-upfront commitment and no hardware purchase or lease required. In addition, Local Zones connect to the parent AWS cloud region via AWS' redundant and very high bandwidth private network, providing applications running in Local Zones fast, secure, and seamless access to the rest of AWS services.
 
 ![AWS Infrastructure Continuum](https://github.com/mtulio/mtulio.labs/assets/3216894/b4e68d09-bc65-40f4-91aa-1f1cbdea06e6)
 
 <p><center>Figure-1 AWS Infrastructure Continuum</center></p>
 
+## OpenShift and AWS Local Zones
 
 Using OpenShift with Local Zones, application developers and service consumers will reap the following benefits:
 
@@ -21,28 +24,40 @@ Using OpenShift with Local Zones, application developers and service consumers w
 - Hosting resources in specific geographic locations leads to cost savings, whereby customers avoid high costs associated with data transfer charges, such as cloud egress charges, which is a significant business expense, when large volumes of data is moved between regions in the case of image, graphics, and video related applications). 
 - Provide healthcare, government agencies, financial institutions, and other regulated industries a way to meet data residency requirements by hosting data and applications in specific locations to comply with regulatory laws and mandates.
 
-Let's walk through the steps to install an OpenShift cluster in an existing virtual private cloud (VPC) in the US Virginia (us-east-1) region by creating a Local Zone subnet, OpenShift Machine Set manifests, and automatically launching worker nodes during the installation. The diagram below shows what gets created:
+## Hands on!
 
-- An standard OpenShift Cluster is installed in us-east-1 with three Control Plane nodes and three Compute nodes
-- One "edge" Compute node runs in the Local Zone subnet in the New York metropolitan region
-- One Application Load Balancer exposes the sample application running in the Local Zone worker node
+The following sections describes how to deploy OpenShift compute nodes in Local Zones at cluster creation time, where the OpenShift Installer fully automates the cluster installation including network components in configured Local Zones. In addition, we share how the cluster administrator extends compute nodes in Local Zones to an existing OpenShift cluster.
 
-![aws-local-zones-diagram-blog-hc drawio](https://github.com/mtulio/mtulio.labs/assets/3216894/06d75201-82dd-4c13-963f-9850e8fc7d34)
+After the cluster is installed, a sample application is deployed and exposed to ingress traffic throughout the zone, demonstrating workloads in Local Zones. The network connection time from different locations is also measured.
 
-<p><center>Figure-2 OpenShift Cluster installed in us-east-1 extending nodes to Local Zone in New York</center></p>
-
-After the cluster is installed, we'll share how to add new Local Zones in Day 2 operations, deploy and expose workloads in Local Zones, evaluating the network connection time from different locations.
+The following diagram plots the geographically distributed deployment explored in this use case:
 
 ![aws-local-zones-diagram-ocp-lz-413-map drawio](https://github.com/mtulio/mtulio.labs/assets/3216894/2fe7ae42-5b1a-4f7c-9e95-f063489eadc6)
 
 <p><center>Figure-3 User Workloads in Local Zones</center></p>
 
+The topology below shows the infrastructure components created by IPI:
+
+- An standard OpenShift Cluster is installed in us-east-1 with three Control Plane nodes and three Compute nodes
+- Regular VPC and subnets in Availability Zones
+- Public and private subnets in the Local Zone of New York metropolitan region (us-east-nyc-1a)
+- One `edge` compute node in the private zone of us-east-nyc-1a
+
+Additionally, the steps for Day 2 operation creates:
+
+- One Application Load Balancer exposing the sample application running in the Local Zone worker node
+- One public subnet in Buenos Aires metropolitan region (us-east-bue-1a)
+- One `edge` compute node in the public subnet of zone us-east-bue-1a
+
+![aws-local-zones-diagram-blog-hc-414-diagram drawio](https://github.com/mtulio/mtulio.labs/assets/3216894/6377e5ff-2489-46ce-8f1b-0f958f8c259a)
+
+<p><center>Figure-2 OpenShift Cluster installed in us-east-1 extending nodes to Local Zone in New York</center></p>
 
 ## Installing an OpenShift cluster with AWS Local Zones
 
 To deploy a new OpenShift cluster extending compute nodes in Local Zone subnets, you install a cluster in an existing VPC and create MachineSet manifests for the Installer.
 
-The installation process automatically creates tainted compute nodes with `NoSchedule.` This allows the administrator to choose workloads to run in each remote location, without needing additional steps to isolate the applications.
+The installation process automatically creates tainted compute nodes with `NoSchedule`. This allows the administrator to choose workloads to run in each remote location, without needing additional steps to isolate the applications.
 
 Once the cluster is installed, the label node-role.kubernetes.io/edge is set for each node located in the Local Zones, along with the regular node-role.kubernetes.io/worker.
 
@@ -50,166 +65,62 @@ Note the following considerations when deploying a cluster in AWS Local Zones:
 
 - The Maximum Transmission Unit (MTU) between an Amazon EC2 instance in a Local Zone and an Amazon EC2 instance in the Region is 1300. This causes the cluster-wide network MTU to change according to the network plugin that is used on the deployment.
 - Network resources such as Network Load Balancer (NLB), Classic Load Balancer, and Nat Gateways are not supported in AWS Local Zones.
-- The AWS Elastic Block Storage (EBS) `gp3` type volume is the default for node volumes and the default for the storage class set on AWS OpenShift clusters. This volume type is not globally available in Local Zone locations. By default, the nodes running in Local Zones are deployed with the gp2 EBS volume. The `gp2-csi` StorageClass must be set when creating workloads on Local Zone nodes.
+- The AWS Elastic Block Storage (EBS) `gp3` type volume is the default for node volumes and the default for the storage class set on AWS OpenShift clusters. This volume type is not globally available in Local Zone locations. By default, the nodes running in Local Zones are deployed with the `gp2` EBS volume type. The `gp2-csi` StorageClass must be set when creating workloads on Local Zone nodes.
+
+### Prerequisites
 
 Install the following prerequisites before you proceed to the next step:
 
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-- [OpenShift Installer 4.13+](https://console.redhat.com/openshift/downloads)
+- [OpenShift Installer 4.14+](https://console.redhat.com/openshift/downloads)
 - [OpenShift CLI](https://console.redhat.com/openshift/downloads)
 
-### Step 1.  Create the VPC
+### Step 1. Enable the AWS Local Zone group
 
-This section is optional. Create a VPC with your preferred customizations, as recommended in [Installing a cluster on AWS into an existing VPC](https://docs.openshift.com/container-platform/4.12/installing/installing_aws/installing-aws-vpc.html).
-Define the environment variables:
+The zones are not enabled by default in AWS Local Zones, you need opt into the
+Local Zone group before using it.
 
-~~~bash
-$ export CLUSTER_NAME=demo-lz
-$ export CLUSTER_BASEDOMAIN="example.com"
-$ export AWS_REGION=us-east-1
-~~~
+You can list the available Local Zones and it's attributes using AWS CLI:
 
-Download the following CloudFormation Templates with the following names:
+```bash
+$ aws --region us-east-1 ec2 describe-availability-zones \
+    --query 'AvailabilityZones[].[{ZoneName: ZoneName, GroupName: GroupName, Status: OptInStatus}]' \
+    --filters Name=zone-type,Values=local-zone \
+    --all-availability-zones
+```
 
-- template-vpc.yam: [CloudFormation template for the VPC that uses AWS Local Zones](https://docs.openshift.com/container-platform/4.12/installing/installing_aws/installing-aws-localzone.html#installation-cloudformation-vpc-localzone_installing-aws-localzone)
-- template-lz.yaml: [CloudFormation template for the subnet that uses AWS Local Zones](https://docs.openshift.com/container-platform/4.12/installing/installing_aws/installing-aws-localzone.html#installation-cloudformation-subnet-localzone_installing-aws-localzone)
+To enable the Local Zone in New York (used in this post), run:
 
-Create the VPC with CloudFormation Template:
-
-~~~bash
-$ export STACK_VPC=${CLUSTER_NAME}-vpc
-$ aws cloudformation create-stack --stack-name ${STACK_VPC} \
-     --template-body file://template-vpc.yaml \
-     --parameters \
-        ParameterKey=ClusterName,ParameterValue=${CLUSTER_NAME} \
-        ParameterKey=VpcCidr,ParameterValue="10.0.0.0/16" \
-        ParameterKey=AvailabilityZoneCount,ParameterValue=3 \
-        ParameterKey=SubnetBits,ParameterValue=12
-
-$ aws cloudformation wait stack-create-complete --stack-name ${STACK_VPC}
-$ aws cloudformation describe-stacks --stack-name ${STACK_VPC}
-~~~
-
-![ocp-aws-localzones-step1-cfn-vpc](https://github.com/mtulio/mtulio.labs/assets/3216894/08c01da3-416b-4a70-a253-a931086ea978)
-
-<p><center>Figure-4: CloudFormation Stack for VPC</center></p>
-
-
-### Step 2.  Create the public subnet in the AWS Local Zone
-
-Create the subnet on Local Zone (New York [us-east-1-nyc-1a]), and set the variables used to Local Zones.
-
-~~~bash
-$ export STACK_LZ=${CLUSTER_NAME}-lz-nyc-1a
-$ export ZONE_GROUP_NAME=${CLUSTER_REGION}-nyc-1
-
-# extract public and private subnetIds from VPC CloudFormation
-$ export VPC_ID=$(aws cloudformation describe-stacks \
-  --stack-name ${STACK_VPC} \
-  | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="VpcId").OutputValue' )
-$ export VPC_RTB_PUB=$(aws cloudformation describe-stacks \
-  --stack-name ${STACK_VPC} \
-  | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="PublicRouteTableId").OutputValue' )
-~~~
-
-Enable the Zone Group and create the CloudFormation Stack for Local Zone subnets:
-
-~~~bash
+```bash
 $ aws ec2 modify-availability-zone-group \
-    --group-name "${ZONE_GROUP_NAME}" \
+    --group-name "us-east-1-nyc-1" \
     --opt-in-status opted-in
+```
 
-$ aws cloudformation create-stack --stack-name ${STACK_LZ} \
-     --template-body file://template-lz.yaml \
-     --parameters \
-        ParameterKey=ClusterName,ParameterValue="${CLUSTER_NAME}" \
-        ParameterKey=VpcId,ParameterValue="${VPC_ID}" \
-        ParameterKey=PublicRouteTableId,ParameterValue="${VPC_RTB_PUB}" \
-        ParameterKey=LocalZoneName,ParameterValue="${ZONE_GROUP_NAME}a" \
-        ParameterKey=LocalZoneNameShort,ParameterValue="nyc-1a" \
-        ParameterKey=PublicSubnetCidr,ParameterValue="10.0.128.0/20"
+### Step 2. Create the OpenShift Cluster
 
-$ aws cloudformation wait stack-create-complete --stack-name ${STACK_LZ} 
+Create the `install-config.yaml` setting the AWS Local Zone name in the `edge`
+compute pool:
 
-$ aws cloudformation describe-stacks --stack-name ${STACK_LZ}
-~~~
-
-![ocp-aws-localzones-step2-cfn-subnet-nyc-1a](https://github.com/mtulio/mtulio.labs/assets/3216894/e6e25f4f-b76d-4214-8639-9a9dc176ad5f)
-
-<p><center>Figure-5: CloudFormation Stack for Local Zone subnet in NYC</center></p>
-
-The network setup is ready! Now you can set up the OpenShift installer to create a cluster in the existing VPC.
-
-![ocp-aws-localzones-step2-subnets](https://github.com/mtulio/mtulio.labs/assets/3216894/7f1ba097-95c6-4022-92a6-9714c52b5928)
-
-<p><center>Figure-6: VPC Subnets</center></p>
-
-### Step 3. Setup the Install configuration
-
-To install OCP in existing subnets, the field `platform.aws.subnets` must be set with the subnets IDs created in the last section.
-
-Running the following commands the variable `SUBNETS` will be populated with the output values of CloudFormation stacks:
-
-- Public and Private subnets:
-
-~~~bash
-$ mapfile -t SUBNETS < <(aws cloudformation describe-stacks \
-  --stack-name "${STACK_VPC}" \
-  | jq -r '.Stacks[0].Outputs[0].OutputValue' | tr ',' '\n')
-
-$ mapfile -t -O "${#SUBNETS[@]}" SUBNETS < <(aws cloudformation describe-stacks \
-  --stack-name "${STACK_VPC}" \
-  | jq -r '.Stacks[0].Outputs[1].OutputValue' | tr ',' '\n')
-~~~
-
-- Local Zone subnets:
-
-~~~bash
-# Set the SUBNET_ID to be used later
-export SUBNET_ID=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}" \
-  | jq -r .Stacks[0].Outputs[0].OutputValue)
-
-# Append the Local Zone subnet to the subnet ID list
-SUBNETS+=(${SUBNET_ID})
-~~~
-
-Lastly, create the `install-config.yaml` with the subnets:
-
-~~~bash
-$ cat <<EOF > ${PWD}/install-config.yaml
+~~~yaml
 apiVersion: v1
 publish: External
 baseDomain: "${CLUSTER_BASEDOMAIN}"
 metadata:
   name: "${CLUSTER_NAME}"
+compute:
+  - name: edge
+    platform:
+      aws:
+        zones:
+        - us-east-1-nyc-1a
 platform:
   aws:
     region: ${CLUSTER_REGION}
-    subnets:
-$(for SB in ${SUBNETS[*]}; do echo "    - $SB"; done)
 pullSecret: '<CHANGE_ME: pull-secret-content>'
 sshKey: |
   '<CHANGE_ME: ssh-keys>'
-EOF
 ~~~
-
-All 7 subnets, including Local Zone, must be defined:
-
-~~~bash
-$ grep -A 7 subnets ${PWD}/install-config.yaml
-~~~
-
-**Optionally**, check the generated Machineset manifests generated:
-
-> The installer will automatically discover the supported instance type for each Local Zone and create the MachineSet manifests. The Maximum Transmission Unit (MTU) for the cluster network will automatically be adjusted according to the network plugin set on install-config.yaml.
-
-~~~bash
-$ ./openshift-install create manifests
-$ ls -l manifests/cluster-network-*
-$ ls -l openshift/99_openshift-cluster-api_worker-machineset-*
-~~~
-
-### Step 4.  Create the OpenShift cluster
 
 Create the cluster:
 
@@ -217,50 +128,160 @@ Create the cluster:
 $ ./openshift-install create cluster
 ~~~
 
-Check the nodes created in AWS Local Zones, labeled with `node-role.kubernetes.io/edge`:
+That's it, the installer program creates all the infrastructure and configuration required to extend worker nodes in the selected location.
+
+Once the installation is finished, review the EC2 worker node status provisioned by Machine API:
 
 ~~~bash
 $ export KUBECONFIG=$PWD/auth/kubeconfig
-$ oc get nodes -l node-role.kubernetes.io/edge
-NAME                          STATUS   ROLES         AGE     VERSION
-ip-10-0-128-81.ec2.internal   Ready    edge,worker   4m46s   v1.26.3+b404935
-~~~
-
-You can also check the machine created by Machineset added on install time:
-
-~~~bash
 $ oc get machines -l machine.openshift.io/cluster-api-machine-role=edge -n openshift-machine-api
 NAME                                        PHASE     TYPE          REGION      ZONE               AGE
-demo-lz-knlm2-edge-us-east-1-nyc-1a-f2lzd   Running   c5d.2xlarge   us-east-1   us-east-1-nyc-1a   12m
+demo-lz-tvqld-edge-us-east-1-nyc-1a-scgjl   Running   c5d.2xlarge   us-east-1   us-east-1-nyc-1a   21m
 ~~~
 
-![ocp-aws-localzones-step4-ocp-nodes-ec2](https://github.com/mtulio/mtulio.labs/assets/3216894/7d6c9c54-dc6e-41eb-84b4-7288533b7890)
+You can also check the nodes created in AWS Local Zones after the machine is in Running phase, labeled with `node-role.kubernetes.io/edge`:
+
+~~~bash
+$ ./oc get nodes -l node-role.kubernetes.io/edge
+NAME                           STATUS   ROLES         AGE     VERSION
+ip-10-0-194-188.ec2.internal   Ready    edge,worker   5m45s   v1.27.3+4aaeaec
+~~~
+
+![ocp-aws-localzones-step4-ocp-nodes-ec2](https://github.com/mtulio/mtulio.labs/assets/3216894/be37e2f6-f2cb-44e8-a5b5-c0961a603261)
 
 <p><center>Figure-7: OpenShift nodes created by the installer in AWS EC2 Console</center></p>
 
 ## Extend an existing OpenShift cluster to new AWS Local Zones
 
-This step describes the Day 2 operations to extend the compute nodes to new Local Zones locations in an existing OpenShift cluster, be sure the VPC running the cluster has enough CIDR blocks to create the subnet(s).
+It is also possible to extend existing cluster installed with support of
+Local Zones (Day 2) to new locations, allowing you to expand geographically
+when it needs.
 
-Refer to `Step 2` in the last section to create subnets in Buenos Aires (Argentina), zone name `us-east-1-bue-1a`.
+The steps in this section describes the Day 2 operations steps to extend
+the compute node to a new location of Buenos Aires (us-east-1-bue-1a) in an existing
+OpenShift cluster
 
-> Note: if the cluster wasn't installed using IPI with Local Zone subnets, the Maximum Transmit Unit (MTU) for the cluster-wide network must be adjusted before proceeding. See the OpenShift documentation for more information.
+### Prerequisites
 
-![ocp-aws-localzones-step5-cfn-subnet-bue-1a](https://github.com/mtulio/mtulio.labs/assets/3216894/486f4361-d8c3-4810-b5bb-0fd7a6c0fc46)
+- The cluster must be installed with Local Zones support. If the cluster was not installed using IPI with Local Zone support, the Maximum Transmit Unit (MTU) for the cluster-wide network must be adjusted before proceeding. See the OpenShift documentation for more information.
+- The VPC running the cluster must have available CIDR blocks to create the subnet(s). You can check existing CIDR blocks allocted to the subnets withing the VPC by running the following command:
+
+```bash
+$ aws ec2 describe-subnets \
+    --filters Name=vpc-id,Values=$VPC_ID \
+    --query 'sort_by(Subnets, &Tags[?Key==`Name`].Value|[0])[].{
+      SubnetName: Tags[?Key==`Name`].Value|[0],
+      CIDR: CidrBlock
+    }'
+```
+
+- Install `yq` utility to help when patching the manifests
+
+```bash
+VERSION=v4.34.2
+BINARY=yq_linux_amd64
+wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O ./yq &&\
+    chmod +x ./yq
+```
+
+### Step 1. Create the public subnet in the AWS Local Zone
+
+This step describes how to create subnet associated to a Public Route table using
+AWS Cloud Formation template provided by OpenShift Installer.
+
+Download the following CloudFormation Template with the following name:
+
+- template-lz.yaml: [CloudFormation template for the subnet that uses AWS Local Zones](https://docs.openshift.com/container-platform/4.13/installing/installing_aws/installing-aws-localzone.html#installation-cloudformation-subnet-localzone_installing-aws-localzone)
+
+Create the subnet on Local Zone (New York [us-east-1-nyc-1a]), and set the variables used to Local Zones:
+
+> TODO get `CLUSTER_NAME`, VPC_ID, VPC_RTB_PUB from the cluster
+
+~~~bash
+export LOCAL_ZONE_CIDR_BUE="10.0.208.0/24"
+export LOCAL_ZONE_GROUP_BUE="${AWS_REGION}-bue-1"
+export LOCAL_ZONE_NAME_BUE="${LOCAL_ZONE_GROUP_BUE}a"
+
+aws ec2 modify-availability-zone-group \
+    --group-name "${LOCAL_ZONE_GROUP_BUE}" \
+    --opt-in-status opted-in
+
+export INFRA_ID="$(./oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')"
+export VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=${INFRA_ID}-vpc" --query Vpcs[].VpcId --output text)
+export VPC_RTB_PUB=$(aws ec2 describe-route-tables --filters "Name=tag:Name,Values=${INFRA_ID}-public" --query RouteTables[].RouteTableId --output text)
+~~~
+
+Enable the Zone Group and create the CloudFormation Stack for Local Zone subnets:
+
+~~~bash
+export STACK_LZ=${INFRA_ID}-${LOCAL_ZONE_NAME_BUE}
+$ aws cloudformation create-stack --stack-name ${STACK_LZ} \
+    --template-body file://template-lz.yaml \
+    --parameters \
+        ParameterKey=VpcId,ParameterValue="${VPC_ID}" \
+        ParameterKey=PublicRouteTableId,ParameterValue="${VPC_RTB_PUB}" \
+        ParameterKey=ZoneName,ParameterValue="${LOCAL_ZONE_NAME_BUE}" \
+        ParameterKey=SubnetName,ParameterValue="${INFRA_ID}-public-${LOCAL_ZONE_NAME_BUE}" \
+        ParameterKey=PublicSubnetCidr,ParameterValue="${LOCAL_ZONE_CIDR_BUE}"
+
+$ aws cloudformation wait stack-create-complete --stack-name ${STACK_LZ}
+
+$ aws cloudformation describe-stacks --stack-name ${STACK_LZ}
+
+$ export SUBNET_ID_BUE=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}" \
+  | jq -r .Stacks[0].Outputs[0].OutputValue)
+~~~
+
+![ocp-aws-localzones-step5-cfn-subnet-bue-1a](https://github.com/mtulio/mtulio.labs/assets/3216894/6804bd3a-1104-4feb-9fa1-ca36a563e335)
 
 <p><center>Figure-8: CloudFormation Stack for Local Zone subnet in us-east-1-bue-1a</center></p>
 
-Finally, to create nodes using the new zone, the MachineSet manifest must be added setting the zone attributes. The steps below show how to check the instance offered by the zone, and create the MachineSet manifest based on the existing one in the Local Zone of Buenos Aires(`us-east-1-bue-1a`):
+### Step 2. Create the additional Security Group
 
-> Note: The Local Zone of Buenos Aires (`us-east-1-bue-1a`) was intentionally picked as it currently does not support AWS Application Load Balancers (ALB), used in New York zone (`us-east-1-nyc-1a`).
+> TODO: This step is optional, isolating security group changes...
+
+> TODO maybe we can move this to install step?
+
+- Considering the limitation of ALB in the zone `us-east-1-bue-1a`, the service running in this node will be reached directly from the internet. A dedicated security group will be created and attached to the node running in that zone:
+
+> Save the `SG_ID_BUE` to set the ingress rules on the next steps
+
+~~~bash
+$ SG_NAME_INGRESS=${INFRA_ID}-localzone-ingress
+$ SG_ID_INGRESS=$(aws ec2 create-security-group \
+    --group-name ${SG_NAME_INGRESS} \
+    --description "${SG_NAME_BUE}" \
+    --vpc-id ${VPC_ID} | jq -r .GroupId)
+~~~
+
+Create the EC2 Security Group ingress rules allowing traffic through HTTP(80) and HTTPS(442) used by the new router:
+
+~~~bash
+$ aws ec2 authorize-security-group-ingress \
+    --group-id $SG_ID_INGRESS \
+    --protocol tcp \
+    --port 80 \
+    --cidr "0.0.0.0/0"
+
+$ aws ec2 authorize-security-group-ingress \
+    --group-id $SG_ID_INGRESS \
+    --protocol tcp \
+    --port 443 \
+    --cidr "0.0.0.0/0"
+~~~
+
+### Step 3. Create MachineSet
+
+To create nodes using the new zone, the MachineSet manifest must be added setting the zone attributes. The steps below shows how to check the instance offered by the zone, and create the MachineSet manifest based on the existing one in the Local Zone of Buenos Aires(`us-east-1-bue-1a`):
+
+<!-- > Note: The Local Zone of Buenos Aires (`us-east-1-bue-1a`) was intentionally picked as it currently does not support AWS Application Load Balancers (ALB), used in New York zone (`us-east-1-nyc-1a`). -->
 
 - Check and export the instance type offered by the Zone:
 
 ~~~bash
-$ aws ec2 describe-instance-type-offerings \
+$ aws ec2 describe-instance-type-offerings --region ${AWS_REGION} \
     --location-type availability-zone \
-    --filters Name=location,Values=${AWS_REGION}-bue-1a \
-    --region ${AWS_REGION} \
+    --filters Name=location,Values=${LOCAL_ZONE_NAME_BUE} \
     --query 'InstanceTypeOfferings[*].InstanceType' --output text
 t3.xlarge   c5.4xlarge
 t3.medium   c5.12xlarge
@@ -271,6 +292,10 @@ $ export INSTANCE_BUE=m5.2xlarge
 ~~~
 
 - Export existing Machineset manifest and patch to the new location:
+
+> TODO create yq patch to a better visualization of what need to be changed
+
+> OLD:
 
 ~~~bash
 # Discover and copy the nyc-1 machineset manifest
@@ -292,79 +317,95 @@ sed -si "s/${current_instance}/${INSTANCE_BUE}/g" machineset-lz-bue-1a.yaml
 sed -si "s/replicas: 1/replicas: 0/g" machineset-lz-bue-1a.yaml
 ~~~
 
+> NEW:
+
+
+~~~bash
+# Discover and copy the nyc-1 machineset manifest
+$ BASE_MANIFEST=$(oc get machineset -n openshift-machine-api -o jsonpath='{range .items[*].metadata}{.name}{"\n"}{end}' | grep nyc-1)
+
+# get the machineset manifest from nyc replacing the zone reference from NYC to BUE
+$ oc get machineset -n openshift-machine-api ${BASE_MANIFEST} -o yaml \
+  | sed -si "s/nyc-1/bue-1/g" > machineset-lz-bue-1a.yaml
+
+KEYS=(.metadata.annotations)
+KEYS+=(.metadata.uid)
+KEYS+=(.metadata.creationTimestamp)
+KEYS+=(.metadata.resourceVersion)
+KEYS+=(.metadata.generation)
+KEYS+=(.spec.template.spec.providerSpec.value.subnet)
+KEYS+=(.spec.template.spec.providerSpec.value.securityGroups)
+KEYS+=(.status)
+for KEY in ${KEYS[*]}; do
+    ./yq -i "del($KEY)" machineset-lz-bue-1a.yaml
+done
+
+cat <<EOF > machineset-lz-bue-1a.patch.yaml
+spec:
+  replicas: 0
+  template:
+    spec:
+      metadata:
+        labels:
+          machine.openshift.io/parent-zone-name: ${PARENT_ZONE_NAME_BUE}
+      providerSpec:
+        value:
+          instanceType: ${INSTANCE_TYPE_BUE}
+          isPublic: yes
+          subnet:
+            filters:
+              - name: tag:Name
+                values:
+                  - ${SUBNET_NAME_BUE}
+          securityGroups:
+            filters:
+              - name: "tag:Name"
+                values:
+                  - ${INFRA_ID}-worker-sg
+                  - ${INFRA_ID}-localzone-public-ingress
+EOF
+
+~~~
+
 - Create the Machineset:
 
 ~~~bash
 $ oc create -f machineset-lz-bue-1a.yaml
 ~~~
 
-- Considering the limitation of ALB in the zone `us-east-1-bue-1a`, the service running in this node will be reached directly from the internet. A dedicated security group will be created and attached to the node running in that zone:
-
-> Save the `SG_ID_BUE` to set the ingress rules on the next steps
+- Wait for the machine creation:
 
 ~~~bash
-$ INFRA_ID="$(oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')"
-$ SG_NAME_BUE=${INFRA_ID}-lz-ingress-bue-1
-$ SG_ID_BUE=$(aws ec2 create-security-group \
-    --group-name ${SG_NAME_BUE} \
-    --description "${SG_NAME_BUE}" \
-    --vpc-id ${VPC_ID} | jq -r .GroupId)
-~~~
-
-- Update the Machineset with the new security group:
-
-~~~bash
-$ export MCSET_BUE=$(oc get machineset -n openshift-machine-api -o jsonpath='{range .items[*].metadata}{.name}{"\n"}{end}' | grep bue-1)
-
-# Patch the MachineSet manifest adding the new Security Group
-$ oc patch machineset ${MCSET_BUE} -n openshift-machine-api --type=merge \
-  --patch "{
-    \"spec\":{
-      \"template\":{
-        \"spec\":{
-          \"providerSpec\":{
-            \"value\": {
-              \"securityGroups\":[{
-                \"filters\": [{
-                  \"name\": \"tag:Name\",
-                  \"values\":[\"${INFRA_ID}-worker-sg\",\"${INFRA_ID}-lz-ingress-bue-1\"]
-                }] }]}}}}}}"
-~~~
-
-- Scale the node and wait for the machine creation
-
-~~~bash
-$ oc scale --replicas=1 -n openshift-machine-api $MCSET_BUE
-$ oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=edge -w
+$ oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=edge
 NAME                                        PHASE         TYPE          REGION      ZONE               AGE
-demo-lz-knlm2-edge-us-east-1-bue-1a-zd8zs   Provisioned   m5.2xlarge    us-east-1   us-east-1-bue-1a   8m47s
-demo-lz-knlm2-edge-us-east-1-nyc-1a-f2lzd   Running       c5d.2xlarge   us-east-1   us-east-1-nyc-1a   55m
-(...)
+demo-lz-tvqld-edge-us-east-1-bue-1a-rvbb5   Provisioned   m5.2xlarge    us-east-1   us-east-1-bue-1a   79s
+demo-lz-tvqld-edge-us-east-1-nyc-1a-scgjl   Running       c5d.2xlarge   us-east-1   us-east-1-nyc-1a   4h43m
+
 ~~~
 
-> It can take some time to finish the provisioning by AWS, make sure the machine is in the Running phase before proceeding.
+It can take some time to finish the provisioning by AWS, make sure the machine is in the Running phase before proceeding to the next steps.
 
-All done, now the cluster is installed and running into two Local Zones, New York (US) and Buenos Aires (Argentina).
+All done, now the cluster have nodes running into two Local Zones: New York (US) and Buenos Aires (Argentina).
 
-![ocp-aws-localzones-step5-ec2-bue-1a](https://github.com/mtulio/mtulio.labs/assets/3216894/545342e3-8298-41d8-be4a-7542ab4d9e16)
+![ocp-aws-localzones-step5-ec2-bue-1a](https://github.com/mtulio/mtulio.labs/assets/3216894/74b19d65-e425-4c0a-8f45-a25e6449da46)
 
 <p><center>Figure-9: OpenShift nodes running in AWS Local Zones in EC2 Console</center></p>
 
 ## Deploy workloads in AWS Local Zones
 
-As described in the section "Installing an OpenShift cluster with AWS Local Zones", there are a few use cases to run workloads in Local Zones. This post demonstrates how to take advantage of Local Zones by deploying a sample application and selecting workers running in Local Zones.
+This section demonstrates how to take advantage of Local Zones by deploying a sample application and selecting workers running into different locations.
 
-Three deployments will be created:
+Three deployments is created:
 
-- Application running in the Region, ingress traffic using the default router
-- Application running in Local Zone NYC (US) ingressing traffic using Application Load Balancer
-- Application running in Local Zone Buenos Aires (Argentina) ingressing traffic directly to the node (currently the zone does not support AWS Application Load Balancers)
+- Application running in the Region: ingressing the traffic using the OpenShift default router
+- Application running in Local Zone NYC (US): ingressing traffic using Application Load Balancer
+- Application running in Local Zone Buenos Aires (Argentina): ingressing traffic directly to the node (currently the zone does not support AWS Application Load Balancers)
 
 The `edge` compute nodes deployed in Local Zones have the following extra labels:
 
 ~~~bash
 machine.openshift.io/zone-type: local-zone
-machine.openshift.io/zone-group: us-east-1-nyc-1
+machine.openshift.io/zone-group: us-east-1-<localzone_identifier>-1
 node-role.kubernetes.io/edge: ""
 ~~~
 
@@ -376,13 +417,12 @@ The example below uses the `machine.openshift.io/zone-group` label to select the
 
 ~~~bash
 export APPS_NAMESPACE="localzone-apps"
-oc create namespace ${APPS_NAMESPACE}
+./oc create namespace ${APPS_NAMESPACE}
 ~~~
 
 - Create the function to create the deployments for each location:
 
 ~~~bash
-
 function create_deployment() {
     local zone_group=$1; shift
     local app_name=$1; shift
@@ -446,8 +486,8 @@ create_deployment "${AWS_REGION}-bue-1" "app-bue-1" "yes"
 Lastly, to deploy the application in the nodes running in the Region (regular/Availability Zones), a random node is picked and set it up:
 
 ~~~bash
-NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/worker='',topology.kubernetes.io/zone=${AWS_REGION}a -o jsonpath='{.items[0].metadata.name}')
-oc label node ${NODE_NAME} machine.openshift.io/zone-group=${AWS_REGION}
+NODE_NAME=$(./oc get nodes -l node-role.kubernetes.io/worker='',topology.kubernetes.io/zone=${AWS_REGION}a -o jsonpath='{.items[0].metadata.name}')
+./oc label node ${NODE_NAME} machine.openshift.io/zone-group=${AWS_REGION}
 
 # App running in a node in the regular zones
 create_deployment "${AWS_REGION}" "app-default"
@@ -456,13 +496,13 @@ create_deployment "${AWS_REGION}" "app-default"
 All set, all applications must be running into different locations:
 
 ~~~bash
-$ oc get pods -o wide 
+$ ./oc get pods -o wide  -n $APPS_NAMESPACE
 NAME                           READY   STATUS    RESTARTS   AGE     IP            NODE                          NOMINATED NODE   READINESS GATES
 app-bue-1-689b95f4c4-jf6fb     1/1     Running   0          5m4s    10.131.2.6    ip-10-0-156-17.ec2.internal   <none>           <none>
 app-default-857b5dc59f-r8cst   1/1     Running   0          75s     10.130.2.24   ip-10-0-51-38.ec2.internal    <none>           <none>
 app-nyc-1-54ffd5c89b-bbhqp     1/1     Running   0          5m31s   10.131.0.6    ip-10-0-128-81.ec2.internal   <none>           <none>
 
- $ oc get pods --show-labels
+$ ./oc get pods --show-labels
 NAME                           READY   STATUS    RESTARTS   AGE     LABELS
 app-bue-1-689b95f4c4-jf6fb     1/1     Running   0          5m16s   app=app-bue-1,pod-template-hash=689b95f4c4,zoneGroup=us-east-1-bue-1
 app-default-857b5dc59f-r8cst   1/1     Running   0          87s     app=app-default,pod-template-hash=857b5dc59f,zoneGroup=us-east-1
@@ -523,7 +563,7 @@ APP_HOST_AZ="$(oc get route.route.openshift.io/app-default -o jsonpath='{.status
 
 Create the ALB Operator following the steps listed in [Installing the AWS Load Balancer Operator](https://docs.openshift.com/container-platform/4.12/networking/aws_load_balancer_operator/install-aws-load-balancer-operator.html), then [Create the ALB Controller](https://docs.openshift.com/container-platform/4.12/networking/aws_load_balancer_operator/create-instance-aws-load-balancer-controller.html).
 
-> Make sure the ALB Controllers are running before proceeding
+Make sure the ALB Controllers are running before proceeding:
 
 ```bash
 $ oc get pods -n aws-load-balancer-operator 
@@ -533,11 +573,15 @@ aws-load-balancer-controller-cluster-567bc99b68-s7w4z            1/1     Running
 aws-load-balancer-operator-controller-manager-7674db45d6-hmswz   2/2     Running   0          90s
 ```
 
-Create the custom Ingress using only the Local Zone subnet:
-
-> Note: the variable `SUBNET_ID` must be set with the NYC subnet ID
+Extract the subnet ID from NYC's Local Zone, and create the custom Ingress on that location:
 
 ~~~bash
+SUBNET_NAME_NYC=$(./oc get machineset -n openshift-machine-api $BASE_MANIFEST  -o json | jq -r .spec.template.spec.providerSpec.value.subnet.filters[].values[])
+SUBNET_ID_NYC=$(aws ec2 describe-subnets \
+  --filters Name=vpc-id,Values=$VPC_ID \
+  --query "Subnets[].{Name: Tags[?Key==\`Name\`].Value|[0], ID: SubnetId} | [?Name==\`${SUBNET_NAME_NYC}\`].ID" \
+  --output text)
+
 $ cat << EOF | oc create -f -
 apiVersion: v1
 kind: Service 
@@ -561,7 +605,7 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: instance
-    alb.ingress.kubernetes.io/subnets: ${SUBNET_ID}
+    alb.ingress.kubernetes.io/subnets: ${SUBNET_ID_NYC}
   labels:
     zoneGroup: us-east-1-nyc-1
 spec:
@@ -579,13 +623,19 @@ spec:
 EOF
 ~~~
 
-Wait for the Load Balancer to get created.
+The new ingress should be creaeted:
 
-![ocp-aws-localzones-step7-alb-nyc](https://github.com/mtulio/mtulio.labs/assets/3216894/7f4f1b0f-5470-403e-b93d-bdefabd6f1c1)
+```bash
+$ oc get ingress  -n ${APPS_NAMESPACE}
+NAME               CLASS   HOSTS   ADDRESS                                                                   PORTS   AGE
+ingress-lz-nyc-1   cloud   *       k8s-localzon-ingressl-814f3fc007-1883787437.us-east-1.elb.amazonaws.com   80      4s
+```
+
+![ocp-aws-localzones-step7-alb-nyc](https://github.com/mtulio/mtulio.labs/assets/3216894/198527bf-773c-42b7-bcdc-30dc7a5a9aa9)
 
 <p><center>Figure-10: Load Balancer created for the ingress using NYC Local Zone subnet</center></p>
 
-![ocp-aws-localzones-step7-alb-tg-nyc](https://github.com/mtulio/mtulio.labs/assets/3216894/15cd5adb-d7d4-42c3-a1dc-249658667ebd)
+![ocp-aws-localzones-step7-alb-tg-nyc](https://github.com/mtulio/mtulio.labs/assets/3216894/4129eef8-31cb-4373-822b-ec6b542cbce2)
 
 <p><center>Figure-11: Target Group added the Local Zone node as a target</center></p>
 
@@ -670,22 +720,6 @@ spec:
 EOF
 ~~~
 
-Finally, patch the EC2 Security Group with ingress rules allowing traffic through HTTP(80) and HTTPS(442) used by the new router:
-
-~~~bash
-$ aws ec2 authorize-security-group-ingress \
-    --group-id $SG_ID_BUE \
-    --protocol tcp \
-    --port 80 \
-    --cidr "0.0.0.0/0"
-
-$ aws ec2 authorize-security-group-ingress \
-    --group-id $SG_ID_BUE \
-    --protocol tcp \
-    --port 443 \
-    --cidr "0.0.0.0/0"
-~~~
-
 Discover and set the Buenos Aires' ingress address:
 
 ~~~bash
@@ -696,7 +730,8 @@ $ IP_HOST_BUE="$(oc get nodes -l topology.kubernetes.io/zone=us-east-1-bue-1a -o
 $ curl -H "Host: $APP_HOST_BUE" http://$IP_HOST_BUE
 ~~~
 
-> Note: DNS config: the controller is not adding the DNSes to the public zone for the custom ingress controller. How DNS creates RR automatically for the sharded routers which don't use service LB, but HostNetwork with public IP address on the host interface?
+<!-- 
+> TMP Note: DNS config: the controller is not adding the DNSes to the public zone for the custom ingress controller. How DNS creates RR automatically for the sharded routers which don't use service LB, but HostNetwork with public IP address on the host interface? -->
 
 ## Benchmark the applications
 
@@ -827,7 +862,6 @@ time_namelookup time_connect time_starttransfer time_total
 0.000015        0.046529     0.092182           0.092997
 0.000019        0.043899     0.089382           0.090326
 0.000016        0.044163     0.089726           0.090368
-
 ~~~
 
 Aggregating the results:
@@ -844,7 +878,11 @@ The total time to connect, in milliseconds, from the client in NYC (outside AWS)
 
 ## Summary
 
-OpenShift provides a platform for easy deployment, scaling, and management of containerized applications across the hybrid cloud including AWS. Using OpenShift with AWS Local Zones provides numerous benefits for organizations. It allows for lower latency and improved network performance as Local Zones are physically closer to end users, which enhances the overall user experience and reduces downtime. The combination of OpenShift and AWS Local Zones provides a flexible and scalable solution that enables organizations to modernize their applications and meet the demands of their customers and users; 1) improving application performance and user experience, 2) hosting resources in specific geographic locations reducing overall cost and 3) providing regulated industries with a way to meet data residency requirements.
+OpenShift provides a platform for easy deployment, scaling, and management of containerized applications across the hybrid cloud including AWS. Using OpenShift with AWS Local Zones provides numerous benefits for organizations. It allows for lower latency and improved network performance as Local Zones are physically closer to end users, which enhances the overall user experience and reduces downtime. The combination of OpenShift and AWS Local Zones provides a flexible and scalable solution that enables organizations to modernize their applications and meet the demands of their customers and users:
+
+- 1) improving application performance and user experience,
+- 2) hosting resources in specific geographic locations reducing overall cost and
+- 3) providing regulated industries with a way to meet data residency requirements.
 
 
 ## Categories
