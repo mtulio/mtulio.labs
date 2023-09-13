@@ -10,7 +10,7 @@ to extend worker nodes to AWS Local Zones.
 
 ## What is AWS Local Zones?
 
-Local Zones allow you to use select AWS services, like compute and storage services, closer to end-users, providing them with very low latency access to the applications running locally. Local Zones are fully-owned and managed by AWS with no-upfront commitment and no hardware purchase or lease required. In addition, Local Zones connect to the parent AWS cloud region via AWS' redundant and very high bandwidth private network, providing applications running in Local Zones fast, secure, and seamless access to the rest of AWS services.
+Local Zones allow you to use selected AWS services, like compute and storage services, closer to the metropolitan region, and end-users, than the regular zones, providing them with very low latency access to the applications running locally. Local Zones are fully owned and managed by AWS with no upfront commitment and no hardware purchase or lease required. In addition, Local Zones connect to the parent AWS cloud region via AWS' redundant and very high-bandwidth private network, providing applications running in Local Zones fast, secure, and seamless access to the rest of AWS services.
 
 ![AWS Infrastructure Continuum](https://github.com/mtulio/mtulio.labs/assets/3216894/b4e68d09-bc65-40f4-91aa-1f1cbdea06e6)
 
@@ -20,9 +20,9 @@ Local Zones allow you to use select AWS services, like compute and storage servi
 
 Using OpenShift with Local Zones, application developers and service consumers will reap the following benefits:
 
-- Improving application performance and user experience by hosting resources closer to the user, Local Zones reduce the time it takes for data to travel over the network, resulting in faster load times and more responsive applications. This is especially important for applications, such as video streaming or online gaming that require low-latency performance and real-time data access.
+- Improving application performance and user experience by hosting resources closer to the user. Local Zones reduce the time it takes for data to travel over the network, resulting in faster load times and more responsive applications. This is especially important for applications, such as video streaming or online gaming, that require low-latency performance and real-time data access.
 - Hosting resources in specific geographic locations leads to cost savings, whereby customers avoid high costs associated with data transfer charges, such as cloud egress charges, which is a significant business expense, when large volumes of data is moved between regions in the case of image, graphics, and video related applications). 
-- Provide healthcare, government agencies, financial institutions, and other regulated industries a way to meet data residency requirements by hosting data and applications in specific locations to comply with regulatory laws and mandates.
+- Providing healthcare, government agencies, financial institutions, and other regulated industries a way to meet data residency requirements by hosting data and applications in specific locations to comply with regulatory laws and mandates.
 
 ## Hands on!
 
@@ -55,11 +55,11 @@ Additionally, the steps for Day 2 operation creates:
 
 ## Installing an OpenShift cluster with AWS Local Zones
 
-To deploy a new OpenShift cluster extending compute nodes in Local Zone subnets, you install a cluster in an existing VPC and create MachineSet manifests for the Installer.
+To deploy an OpenShift cluster extending compute nodes in Local Zone subnets, it is required to follow the method of installing in an existing VPC, then the installer will classify the Local Zone subnets as "Edge Subnets" and create Machine Set manifests for each location. See the [OpenShift documentation](https://docs.openshift.com/container-platform/4.13/installing/installing_aws/installing-aws-localzone.html) for more details.
 
 The installation process automatically creates tainted compute nodes with `NoSchedule`. This allows the administrator to choose workloads to run in each remote location, without needing additional steps to isolate the applications.
 
-Once the cluster is installed, the label node-role.kubernetes.io/edge is set for each node located in the Local Zones, along with the regular node-role.kubernetes.io/worker.
+Once the cluster is installed, the label `node-role.kubernetes.io/edge` is set for each node located in the Local Zones, along with the regular `node-role.kubernetes.io/worker`.
 
 Note the following considerations when deploying a cluster in AWS Local Zones:
 
@@ -403,7 +403,7 @@ Three deployments is created:
 
 The `edge` compute nodes deployed in Local Zones have the following extra labels:
 
-~~~bash
+~~~yaml
 machine.openshift.io/zone-type: local-zone
 machine.openshift.io/zone-group: us-east-1-<localzone_identifier>-1
 node-role.kubernetes.io/edge: ""
@@ -411,7 +411,7 @@ node-role.kubernetes.io/edge: ""
 
 You must set the tolerations to `node-role.kubernetes.io/edge`, selecting the node according to your use case.
 
-The example below uses the `machine.openshift.io/zone-group` label to select the node(s), and creates the deployment for a sample applicatiosn in the respective zone's network border group:
+The example below uses the `machine.openshift.io/zone-group` label to select the node(s), and creates the deployment for a sample application in the respective zone's network border group:
 
 - Create the namespace:
 
