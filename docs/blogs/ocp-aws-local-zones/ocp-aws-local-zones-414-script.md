@@ -43,11 +43,11 @@ baseDomain: "${CLUSTER_BASEDOMAIN}"
 metadata:
   name: "${CLUSTER_NAME}"
 compute:
-  - name: edge
-    platform:
-      aws:
-        zones:
-        - ${LOCAL_ZONE_NAME_NYC}
+- name: edge
+  platform:
+    aws:
+      zones:
+      - ${LOCAL_ZONE_NAME_NYC}
 platform:
   aws:
     region: ${AWS_REGION}
@@ -69,10 +69,6 @@ export KUBECONFIG=$PWD/auth/kubeconfig
 
 
 ```bash
-aws ec2 describe-subnets \
-    --filters Name=vpc-id,Values=$VPC_ID \
-    --query 'sort_by(Subnets, &Tags[?Key==`Name`].Value|[0])[].{SubnetName: Tags[?Key==`Name`].Value|[0], CIDR: CidrBlock}'
-
 export LOCAL_ZONE_CIDR_BUE="10.0.208.0/24"
 export LOCAL_ZONE_GROUP_BUE="${AWS_REGION}-bue-1"
 export LOCAL_ZONE_NAME_BUE="${LOCAL_ZONE_GROUP_BUE}a"
@@ -83,6 +79,16 @@ export PARENT_ZONE_NAME_BUE="$(aws ec2 describe-availability-zones \
     --all-availability-zones \
     --query AvailabilityZones[].ParentZoneName --output text)"
 
+aws ec2 describe-subnets \
+    --filters Name=vpc-id,Values=$VPC_ID \
+    --query 'sort_by(Subnets, &Tags[?Key==`Name`].Value|[0])[].{SubnetName: Tags[?Key==`Name`].Value|[0], CIDR: CidrBlock}'
+
+export INFRA_ID="$(./oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')"
+
+export VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=${INFRA_ID}-vpc" --query Vpcs[].VpcId --output text)
+
+export VPC_RTB_PUB=$(aws ec2 describe-route-tables --filters "Name=tag:Name,Values=${INFRA_ID}-public" --query RouteTables[].RouteTableId --output text)
+
 # enable zone group
 aws ec2 modify-availability-zone-group \
     --group-name "${LOCAL_ZONE_GROUP_BUE}" \
@@ -91,29 +97,21 @@ aws ec2 modify-availability-zone-group \
 # Local Zone takes some time to be enabled (when not opted-in)
 sleep 60
 
-export INFRA_ID="$(./oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')"
 export STACK_LZ=${INFRA_ID}-${LOCAL_ZONE_NAME_BUE}
-
-# extract public and private subnetIds from VPC CloudFormation
-export VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=${INFRA_ID}-vpc" --query Vpcs[].VpcId --output text)
-export VPC_RTB_PUB=$(aws ec2 describe-route-tables --filters "Name=tag:Name,Values=${INFRA_ID}-public" --query RouteTables[].RouteTableId --output text)
-
 aws cloudformation create-stack --stack-name ${STACK_LZ} \
-    --template-body file://template-lz.yaml \
-    --parameters \
-        ParameterKey=VpcId,ParameterValue="${VPC_ID}" \
-        ParameterKey=PublicRouteTableId,ParameterValue="${VPC_RTB_PUB}" \
-        ParameterKey=ZoneName,ParameterValue="${LOCAL_ZONE_NAME_BUE}" \
-        ParameterKey=SubnetName,ParameterValue="${SUBNET_NAME_BUE}" \
-        ParameterKey=PublicSubnetCidr,ParameterValue="${LOCAL_ZONE_CIDR_BUE}"
-
-aws cloudformation wait stack-create-complete --stack-name ${STACK_LZ}
+  --template-body file://template-lz.yaml \
+  --parameters \
+      ParameterKey=VpcId,ParameterValue="${VPC_ID}" \
+      ParameterKey=PublicRouteTableId,ParameterValue="${VPC_RTB_PUB}" \
+      ParameterKey=ZoneName,ParameterValue="${LOCAL_ZONE_NAME_BUE}" \
+      ParameterKey=SubnetName,ParameterValue="${SUBNET_NAME_BUE}" \
+      ParameterKey=PublicSubnetCidr,ParameterValue="${LOCAL_ZONE_CIDR_BUE}" &&\
+  aws cloudformation wait stack-create-complete --stack-name ${STACK_LZ}
 
 aws cloudformation describe-stacks --stack-name ${STACK_LZ}
 
 export SUBNET_ID_BUE=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}" \
   | jq -r .Stacks[0].Outputs[0].OutputValue)
-
 
 SG_NAME_INGRESS=${INFRA_ID}-localzone-ingress
 SG_ID_INGRESS=$(aws ec2 create-security-group \
@@ -127,11 +125,10 @@ aws ec2 authorize-security-group-ingress \
     --port 80 \
     --cidr "0.0.0.0/0"
 
-aws ec2 authorize-security-group-ingress \
-    --group-id $SG_ID_INGRESS \
-    --protocol tcp \
-    --port 443 \
-    --cidr "0.0.0.0/0"
+yq_version=v4.34.2
+yq_bin_arch=yq_linux_amd64
+wget https://github.com/mikefarah/yq/releases/download/${yq_version}/${yq_bin_arch} \
+  -O ./yq && chmod +x ./yq
 
 aws ec2 describe-instance-type-offerings --region ${AWS_REGION} \
     --location-type availability-zone \
@@ -140,9 +137,9 @@ aws ec2 describe-instance-type-offerings --region ${AWS_REGION} \
 
 export INSTANCE_TYPE_BUE=m5.2xlarge
 
-BASE_MANIFEST=$(oc get machineset -n openshift-machine-api -o jsonpath='{range .items[*].metadata}{.name}{"\n"}{end}' | grep nyc-1)
+export BASE_MACHINESET_NYC=$(oc get machineset -n openshift-machine-api -o jsonpath='{range .items[*].metadata}{.name}{"\n"}{end}' | grep nyc-1)
 
-oc get machineset -n openshift-machine-api ${BASE_MANIFEST} -o yaml \
+oc get machineset -n openshift-machine-api ${BASE_MACHINESET_NYC} -o yaml \
   | sed -s "s/nyc-1/bue-1/g" > machineset-lz-bue-1a.yaml
 
 KEYS=(.metadata.annotations)
@@ -179,7 +176,7 @@ spec:
               - name: "tag:Name"
                 values:
                   - ${INFRA_ID}-worker-sg
-                  - ${INFRA_ID}-localzone-public-ingress
+                  - ${SG_NAME_INGRESS}
 EOF
 
 ./yq -i '. *= load("machineset-lz-bue-1a.patch.yaml")' machineset-lz-bue-1a.yaml
@@ -250,21 +247,22 @@ create_deployment "${AWS_REGION}-nyc-1" "app-nyc-1" "yes"
 # App running in a node in Buenos Aires
 create_deployment "${AWS_REGION}-bue-1" "app-bue-1" "yes"
 
-NODE_NAME=$(./oc get nodes -l node-role.kubernetes.io/worker='',topology.kubernetes.io/zone=${AWS_REGION}a -o jsonpath='{.items[0].metadata.name}')
+NODE_NAME=$(./oc get nodes -l node-role.kubernetes.io/worker='',topology.kubernetes.io/zone=${AWS_REGION}a \
+  -o jsonpath='{.items[0].metadata.name}')
+
 ./oc label node ${NODE_NAME} machine.openshift.io/zone-group=${AWS_REGION}
 
-# App running in a node in the regular zones
+# Deploy a running in a node in the regular zones
 create_deployment "${AWS_REGION}" "app-default"
 
-./oc get pods -o wide  -n $APPS_NAMESPACE
+./oc get pods -o wide -n $APPS_NAMESPACE
 
-./oc get pods --show-labels
+./oc get pods --show-labels -n $APPS_NAMESPACE
 ```
 
 - Create ingress
 
 ```bash
-# AZ ingress
 cat << EOF | oc create -f -
 apiVersion: v1
 kind: Service 
@@ -293,10 +291,10 @@ spec:
     name: app-default
 EOF
 
-APP_HOST_AZ="$(oc get route.route.openshift.io/app-default -o jsonpath='{.status.ingress[0].host}')"
+APP_HOST_AZ="$(oc get -n ${APPS_NAMESPACE} route.route.openshift.io/app-default -o jsonpath='{.status.ingress[0].host}')"
 ```
 
-- Install ALBO
+### Install ALBO
 
 
 ```bash
@@ -364,7 +362,11 @@ EOF
 
 oc get installplan -n $ALBO_NS
 oc get all -n $ALBO_NS
+```
 
+- Wait the resources to be created, then create the controller:
+
+```bash
 # Create cluster ALBO controller
 cat <<EOF | oc create -f -
 apiVersion: networking.olm.openshift.io/v1alpha1
@@ -380,13 +382,18 @@ spec:
     - AWSWAFv2
 EOF
 
-oc get all -n $ALBO_NS -l app.kubernetes.io/name=aws-load-balancer-operator
+# Wait for the pod becamig running
+oc get pods -w -n $ALBO_NS -l app.kubernetes.io/name=aws-load-balancer-operator
 ```
+
+
+### Ingress for NYC (New York) Local Zone app
 
 - Deploy App in NYC using ALB as ingress
 
 ```bash
-SUBNET_NAME_NYC=$(./oc get machineset -n openshift-machine-api $BASE_MANIFEST  -o json | jq -r .spec.template.spec.providerSpec.value.subnet.filters[].values[])
+SUBNET_NAME_NYC="${INFRA_ID}-public-${LOCAL_ZONE_NAME_NYC}"
+
 SUBNET_ID_NYC=$(aws ec2 describe-subnets \
   --filters Name=vpc-id,Values=$VPC_ID \
   --query "Subnets[].{Name: Tags[?Key==\`Name\`].Value|[0], ID: SubnetId} | [?Name==\`${SUBNET_NAME_NYC}\`].ID" \
@@ -432,24 +439,27 @@ spec:
                   number: 80
 EOF
 
-sleep 300
+sleep 30
 
-APP_HOST_NYC=$(oc get ingress -n ${APPS_NAMESPACE} ingress-lz-nyc-1 --template='{{(index .status.loadBalancer.ingress 0).hostname}}')
+APP_HOST_NYC=$(./oc get ingress -n ${APPS_NAMESPACE} ingress-lz-nyc-1 \
+  --template='{{(index .status.loadBalancer.ingress 0).hostname}}')
 
-
+while ! curl $APP_HOST_NYC; do sleep 5; done
 ```
 
-- Ingress for BUE1
+### Ingress for BUE (Buenos Aires) Local Zone app
+
 
 ```bash
-cat << EOF | oc create -f -
+# Create a sharded ingressController
+cat << EOF | ./oc create -f -
 apiVersion: operator.openshift.io/v1
 kind: IngressController
 metadata:
   name: ingress-lz-bue-1
   namespace: openshift-ingress-operator
   labels:
-    zoneGroup: us-east-1
+    zoneGroup: ${LOCAL_ZONE_GROUP_BUE}
 spec:
   endpointPublishingStrategy:
     type: HostNetwork
@@ -458,7 +468,7 @@ spec:
   nodePlacement:
     nodeSelector:
       matchLabels:
-        machine.openshift.io/zone-group: us-east-1-bue-1
+        machine.openshift.io/zone-group: ${LOCAL_ZONE_GROUP_BUE}
     tolerations:
       - key: "node-role.kubernetes.io/edge"
         operator: "Equal"
@@ -467,14 +477,17 @@ spec:
   routeSelector:
     matchLabels:
       type: sharded
----
+EOF
+
+# Create the service and the route:
+cat << EOF | ./oc create -f -
 apiVersion: v1
 kind: Service 
 metadata:
   name: app-bue-1
   namespace: ${APPS_NAMESPACE}
   labels:
-    zoneGroup: us-east-1-bue-1
+    zoneGroup: ${LOCAL_ZONE_GROUP_BUE}
     app: app-bue-1
 spec:
   ports:
@@ -501,37 +514,49 @@ spec:
     name: app-bue-1
 EOF
 
-APP_HOST_BUE="$(oc get route.route.openshift.io/app-bue-1 -o jsonpath='{.status.ingress[0].host}')"
+APP_HOST_BUE="$(oc get route.route.openshift.io/app-bue-1 \
+  -n ${APPS_NAMESPACE} -o jsonpath='{.status.ingress[0].host}')"
+
 IP_HOST_BUE="$(oc get nodes -l topology.kubernetes.io/zone=us-east-1-bue-1a -o json | jq -r '.items[].status.addresses[] | select (.type=="ExternalIP").address')"
-curl -H "Host: $APP_HOST_BUE" http://$IP_HOST_BUE
+
+while ! curl -H "Host: $APP_HOST_BUE" http://$IP_HOST_BUE; do sleep 5; done
+
 ```
 
-- Benckmark
+## Benchmark the applications
+
+- Generate the test script:
 
 ```bash
 # Create the script
-echo "
+cat <<EOF > curl.sh
 #!/usr/bin/env bash
-echo \"# Client Location: \"
-curl -s http://ip-api.com/json/\$(curl -s ifconfig.me) |jq -r '[.city, .countryCode]'
+echo "# Client Location:"
+curl -s http://ip-api.com/json/\$(curl -s ifconfig.me) |jq -cr '[.city, .countryCode]'
 
 run_curl() {
-  echo -e \"time_namelookup\\t time_connect \\t time_starttransfer \\t time_total\"
+  echo -e "time_namelookup\t time_connect \t time_starttransfer \t time_total"
   for idx in \$(seq 1 5); do
-    curl -sw \"%{time_namelookup} \\t %{time_connect} \\t %{time_starttransfer} \\t\\t %{time_total}\\n\" \
-    -o /dev/null -H \"Host: \$1\" \${2:-\$1}
+    curl -sw "%{time_namelookup} \t %{time_connect} \t %{time_starttransfer} \t\t %{time_total}\n" \
+    -o /dev/null -H "Host: \$1" \${2:-\$1}
   done
 }
 
-echo -e \"\n# Collecting request times to server running in AZs/Regular zones [endpoint ${APP_HOST_AZ}]\"
+echo -e "\n# Collecting request times to server running in AZs/Regular zones \n# [endpoint ${APP_HOST_AZ}]"
 run_curl ${APP_HOST_AZ}
 
-echo -e \"\n# Collecting request times to server running in Local Zone NYC [endpoint ${APP_HOST_NYC}]\"
+echo -e "\n# Collecting request times to server running in Local Zone NYC \n# [endpoint ${APP_HOST_NYC}]"
 run_curl ${APP_HOST_NYC}
 
-echo -e \"\n# Collecting request times to server running in Local Zone BUE [endpoint ${APP_HOST_BUE}]\"
+echo -e "\n# Collecting request times to server running in Local Zone BUE \n# [endpoint ${APP_HOST_BUE}]"
 run_curl ${APP_HOST_BUE} ${IP_HOST_BUE}
-" > curl.sh
+EOF
+
+```
+
+- Provision the external clients in NYC and UK using DigitalOcean Droplets, and test the endpoints:
+
+```bash
 
 # setup the external clients
 export DIGITALOCEAN_ACCESS_TOKEN=$MRBRAGA_DO_API_TOKEN
@@ -574,8 +599,12 @@ export CLIENT_IP_UK=$DROPLET_IP
 bash curl.sh
 ssh -o StrictHostKeyChecking=no root@$CLIENT_IP_NYC "bash curl.sh"
 ssh -o StrictHostKeyChecking=no root@$CLIENT_IP_UK "bash curl.sh"
+```
 
-# Destroy
+- Destroy the clients:
+
+```bash
+# Destroy the droplets
 doctl compute droplet delete $CLIENT_NAME_NYC -f
 doctl compute droplet delete $CLIENT_NAME_UK -f
 ```

@@ -40,6 +40,7 @@ theme:
     - search.share
     - search.suggest
     - content.tabs.link
+    - content.code.copy
 
   font:
     text: Roboto
@@ -68,6 +69,14 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+
+  # Copy code block config: https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
 
 extra:
   analytics:
@@ -129,7 +138,7 @@ nav:
         - Blog HC - hands-on (Draft): guides/ocp-aws-local-zones-blog-hc.md
         - Patch MTU on Installed clusters with Local Zones: guides/ocp-aws-local-zones-day-2-patch-mtu.md
         - OCP + AWS Local Zones demo script: guides/ocp-aws-local-zones-demo.md
-        - Blog HC - Installing with Local Zone nodes with full automation (4.14+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413.md
+        - Blog HC - Installing with Local Zone nodes with full automation (4.14+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-414.md
         - Blog HC script - Installing with Local Zone nodes with full automation (4.14+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-414-script.md
 
       - OpenShift Dev:
