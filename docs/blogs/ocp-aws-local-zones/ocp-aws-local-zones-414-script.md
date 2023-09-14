@@ -1,9 +1,23 @@
 # Script for blog: Extending Red Hat OpenShift Container Platform to AWS Local Zones (4.14+)
 
+> This document will not be published, and can be skipped in the review process if you want. =]
+
+Hands-on script to deploy the entire environment described in the blog post.
+
+Just copy and paste it! =)
+
+> Note: keep attention in the details, outputs of commands. The steps are not fully safe checking/waiting resources to be created. You must double check it, some resources like EC2 could take longer preventing pods/workloads to be scheduled leading failures in variables discovery, like URL for the router while the service is not created.
+
 ## Prerequisites
 
-- AWS CLI
-- Templates
+- AWS CLI installed
+- AWS credentials exported with a user with permissions to create AWS cluster
+- Optionally, to measure the benchmark: Digital Ocean account and token created
+- Red Hat pull secret saved in the path `$PULL_SECRET_FILE`
+
+## Steps
+
+- Extract the openshift clients
 
 ```bash
 PULL_SECRET_FILE="$HOME/.openshift/pull-secret-latest.json"
@@ -12,12 +26,9 @@ tar xfz openshift-install-linux-4.14.0-ec.4.tar.gz
 tar xfz openshift-client-linux-4.14.0-ec.4.tar.gz
 ```
 
-## Steps
-
 - Create the Cluster
 
 ```bash
-
 export CLUSTER_NAME=demo-lz
 export CLUSTER_BASEDOMAIN="devcluster.openshift.com"
 export PULL_SECRET_PATH="$HOME/.openshift/pull-secret-latest.json"

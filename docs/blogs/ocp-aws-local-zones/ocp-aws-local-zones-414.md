@@ -14,7 +14,7 @@ to extend worker nodes to AWS Local Zones.
 
 ![AWS Infrastructure Continuum][aws-infrastructure-continuum]
 
-<p align="center">Figure-1 AWS Infrastructure Continuum</p>
+<p align="center">Figure 1 AWS Infrastructure Continuum</p>
 
 ## OpenShift and AWS Local Zones
 
@@ -23,6 +23,14 @@ Using OpenShift with Local Zones, application developers and service consumers m
 - Improving application performance and user experience by hosting resources closer to the user. Local Zones reduce the time it takes for data to travel over the network, resulting in faster load times and more responsive applications. This is especially important for applications, such as video streaming or online gaming, that require low-latency performance and real-time data access.
 - Saving costs by avoiding data transfer charges when hosting resources in specific geographic locations, whereby customers avoid high costs associated with data transfer charges, such as cloud egress charges, which is a significant business expense, when large volumes of data are moved between regions in the case of image, graphics, and video related applications.
 - Providing to regulated industries, such as healthcare, government agencies, financial institutions, and others, a way to meet data residency requirements by hosting data and applications in specific locations to comply with regulatory laws and mandates.
+
+## AWS Local Zones limitations in OpenShift
+
+There are a few limitations in the current AWS Local Zones offering that requires attention when deploying OpenShift:
+
+- The Maximum Transmission Unit (MTU) between an Amazon EC2 instance in a Local Zone and an Amazon EC2 instance in the Region is 1300. This causes the overlay network MTU to change according to the network plugin that is used on the deployment.
+- Network resources such as Network Load Balancer (NLB), Classic Load Balancer, and Nat Gateways are not globally available in AWS Local Zones, so the installer will not deploy those resources automatically.
+- The AWS Elastic Block Storage (EBS) volume type `gp3` is the default for node volumes and the storage class set on AWS OpenShift clusters. This volume type is not globally available in Local Zones locations. By default, the nodes running in Local Zones are deployed with the `gp2` EBS volume type, and the `gp2-csi` StorageClass must be set when creating workloads into those nodes.
 
 ## Hands-on!
 
@@ -36,7 +44,7 @@ The following diagram plots the geographically distributed deployment explored i
 
 ![aws-local-zones-diagram-ocp-lz-413-map drawio][aws-local-zones-diagram-ocp-lz-413-map]
 
-<p align="center">Figure-2 User Workloads in Local Zones</p>
+<p align="center">Figure 2 User Workloads in Local Zones</p>
 
 The topology diagram below shows the infrastructure components created by the IPI installation:
 
@@ -53,21 +61,15 @@ Additionally, the steps for the Day 2 operation create:
 
 ![aws-local-zones-diagram-blog-hc-414-diagram drawio][aws-local-zones-diagram-blog-hc-414-diagram]
 
-<p align="center">Figure-3 OpenShift Cluster installed in us-east-1 extending nodes to Local Zone in New York</p>
+<p align="center">Figure 3 OpenShift Cluster installed in us-east-1 extending nodes to Local Zone in New York</p>
 
 ## Installing an OpenShift cluster with AWS Local Zones
 
-To deploy an OpenShift cluster extending compute nodes in Local Zone subnets, it is required to define the `edge` compute pool in the `install-config.yaml` file, not enabled by default, then the installer creates the network components in Local Zone classifying those as "Edge Zone", creating MachineSet manifests for each location. See the [OpenShift documentation][ocp-docs-localzone] for more details.
+To deploy an OpenShift cluster extending compute nodes in Local Zone subnets, it is required to define the `edge` compute pool in the `install-config.yaml` file, not enabled by default.
 
-The installation process automatically creates tainted nodes with `NoSchedule` in Local Zone locations. This allows the administrator to choose workloads running on it, without needing additional steps to isolate the applications.
+The installation process creates the network components in Local Zone classifying those as "Edge Zone", creating MachineSet manifests for each location. See the [OpenShift documentation][ocp-docs-localzone] for more details.
 
 Once the cluster is installed, the label `node-role.kubernetes.io/edge` is set to each node located in the Local Zones, along with the regular `node-role.kubernetes.io/worker`.
-
-Note the following considerations when deploying a cluster in AWS Local Zones:
-
-- The Maximum Transmission Unit (MTU) between an Amazon EC2 instance in a Local Zone and an Amazon EC2 instance in the Region is 1300. This causes the overlay network MTU to change according to the network plugin that is used on the deployment.
-- Network resources such as Network Load Balancer (NLB), Classic Load Balancer, and Nat Gateways are not globally available in AWS Local Zones, so the installer will not deploy those resources automatically.
-- The AWS Elastic Block Storage (EBS) volume type `gp3` is the default for node volumes and the storage class set on AWS OpenShift clusters. This volume type is not globally available in Local Zones locations. By default, the nodes running in Local Zones are deployed with the `gp2` EBS volume type, and the `gp2-csi` StorageClass must be set when creating workloads into those nodes.
 
 ### Prerequisites
 
@@ -154,7 +156,7 @@ ip-10-0-194-188.ec2.internal   Ready    edge,worker   5m45s   v1.27.3+4aaeaec
 
 ![ocp-aws-localzones-step4-ocp-nodes-ec2][ocp-aws-localzones-step4-ocp-nodes-ec2]
 
-<p align="center">Figure-4: OpenShift nodes created by the installer in AWS EC2 Console</p>
+<p align="center">Figure 4: OpenShift nodes created by the installer in AWS EC2 Console</p>
 
 ## Extending an existing OpenShift cluster to new AWS Local Zones
 
@@ -171,6 +173,7 @@ OpenShift cluster
 - The cluster must be installed with Local Zones support. If the cluster was not installed using IPI with Local Zone support, the Maximum Transmit Unit (MTU) for the cluster-wide network must be adjusted before proceeding. See the "[AWS Local Zone tasks][ocp-aws-localzones-day2]" in the OpenShift documentation for more information.
 
 - Export the variables:
+
 ```bash
 export CLUSTER_NAME=demo-lz
 export CLUSTER_BASEDOMAIN="example.com"
@@ -260,7 +263,7 @@ export SUBNET_ID_BUE=$(aws cloudformation describe-stacks --stack-name "${STACK_
 
 ![ocp-aws-localzones-step5-cfn-subnet-bue-1a][ocp-aws-localzones-step5-cfn-subnet-bue-1a]
 
-<p align="center">Figure-5: CloudFormation Stack for Local Zone subnet in us-east-1-bue-1a</p>
+<p align="center">Figure 5: CloudFormation Stack for Local Zone subnet in us-east-1-bue-1a</p>
 
 ### Step 2. Create the additional Security Group
 
@@ -390,7 +393,7 @@ All done, now the cluster has nodes running into two Local Zones: New York (US) 
 
 ![ocp-aws-localzones-step5-ec2-bue-1a][ocp-aws-localzones-step5-ec2-bue-1a]
 
-<p align="center">Figure-6: OpenShift nodes running in AWS Local Zones in EC2 Console</p>
+<p align="center">Figure 6: OpenShift nodes running in AWS Local Zones in EC2 Console</p>
 
 ## Deploying workloads in AWS Local Zones
 
@@ -650,11 +653,11 @@ ingress-lz-nyc-1   cloud   *       k8s-localzon-ingressl-814f3fc007-1883787437.u
 
 ![ocp-aws-localzones-step7-alb-nyc][ocp-aws-localzones-step7-alb-nyc]
 
-<p align="center">Figure-7: Load Balancer created for the ingress using NYC Local Zone subnet</p>
+<p align="center">Figure 7: Load Balancer created for the ingress using NYC Local Zone subnet</p>
 
 ![ocp-aws-localzones-step7-alb-tg-nyc][ocp-aws-localzones-step7-alb-tg-nyc]
 
-<p align="center">Figure-8: Target Group added the Local Zone node as a target</p>
+<p align="center">Figure 8: Target Group added the Local Zone node as a target</p>
 
 Once the Application Load Balancer has been provisioned, get the DNS name and test it:
 
@@ -898,14 +901,14 @@ time_namelookup time_connect time_starttransfer time_total
 
 <p align="center">
   <img src="https://github.com/mtulio/mtulio.labs/assets/3216894/9250fb62-fd99-4c31-9d77-178c82e38cb7" />
-  <p align="center"> Figure-9: Average connect and total time with slower points based on the baseline (fastest) </p>
+  <p align="center"> Figure 9: Average connect and total time with slower points based on the baseline (fastest) </p>
 </p>
 
-The total time to connect, in milliseconds, from the client in NYC (outside AWS) to the OpenShift edge node running in the Local Zone was ~66% faster than the server running in the regular zones. It's also worth mentioning that there are improvements in clients accessing from different countries, looking at the results from the client in Brazil decreased by more than 100% of the total request time when accessing the Buenos Aires server, instead of going to the Region due to the geographic proximity of those locations.
+The total time to connect, in milliseconds, from the client in NYC (outside AWS) to the OpenShift edge node running in the Local Zone was ~66% lower than the application running in the regular zones. It's also worth mentioning that there are benefits when clients accessing from different countries: the results from the client in Brazil decreased by more than 100% of the total request time when accessing the Buenos Aires deployment, instead of going to the Region's app due to the geographic proximity of those locations.
 
 <p align="center">
   <img src="https://github.com/mtulio/mtulio.labs/assets/3216894/85c059f3-cfe5-4381-a4b4-fba7cce976d2" />
-  <p align="center"> Figure-10: Client in NYC getting better experience accessing the NYC Local Zone, than the app in the region </p>
+  <p align="center"> Figure 10: Client in NYC getting better experience accessing the NYC Local Zone, than the app in the region </p>
 </p>
 
 
