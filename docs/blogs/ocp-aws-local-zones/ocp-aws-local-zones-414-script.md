@@ -20,6 +20,7 @@ Just copy and paste it! =)
 - Extract the openshift clients
 
 ```bash
+# Extract OpenShift clients
 PULL_SECRET_FILE="$HOME/.openshift/pull-secret-latest.json"
 oc adm release extract --tools quay.io/openshift-release-dev/ocp-release:4.14.0-ec.4-x86_64 -a $PULL_SECRET_FILE
 tar xfz openshift-install-linux-4.14.0-ec.4.tar.gz
@@ -29,6 +30,7 @@ tar xfz openshift-client-linux-4.14.0-ec.4.tar.gz
 - Create the Cluster
 
 ```bash
+# Extract cluster configuration
 export CLUSTER_NAME=demo-lz
 export CLUSTER_BASEDOMAIN="devcluster.openshift.com"
 export PULL_SECRET_PATH="$HOME/.openshift/pull-secret-latest.json"
@@ -148,10 +150,12 @@ aws ec2 describe-instance-type-offerings --region ${AWS_REGION} \
 
 export INSTANCE_TYPE_BUE=m5.2xlarge
 
-export BASE_MACHINESET_NYC=$(oc get machineset -n openshift-machine-api -o jsonpath='{range .items[*].metadata}{.name}{"\n"}{end}' | grep nyc-1)
+lz_base=nyc
+lz_prefix=mia
+export BASE_MACHINESET_NYC=$(oc get machineset -n openshift-machine-api -o jsonpath='{range .items[*].metadata}{.name}{"\n"}{end}' | grep ${lz_base}-1)
 
 oc get machineset -n openshift-machine-api ${BASE_MACHINESET_NYC} -o yaml \
-  | sed -s "s/nyc-1/bue-1/g" > machineset-lz-bue-1a.yaml
+  | sed -s "s/${lz_base}-1/${lz_prefix}-1/g" > machineset-lz-bue-1a.yaml
 
 KEYS=(.metadata.annotations)
 KEYS+=(.metadata.uid)
@@ -271,7 +275,7 @@ create_deployment "${AWS_REGION}" "app-default"
 ./oc get pods --show-labels -n $APPS_NAMESPACE
 ```
 
-- Create ingress
+- Create ingress Default
 
 ```bash
 cat << EOF | oc create -f -
@@ -525,12 +529,12 @@ spec:
     name: app-bue-1
 EOF
 
-APP_HOST_BUE="$(oc get route.route.openshift.io/app-bue-1 \
+APP_HOST_BUE="$(./oc get route.route.openshift.io/app-$lz_prefix-1 \
   -n ${APPS_NAMESPACE} -o jsonpath='{.status.ingress[0].host}')"
 
-IP_HOST_BUE="$(oc get nodes -l topology.kubernetes.io/zone=us-east-1-bue-1a -o json | jq -r '.items[].status.addresses[] | select (.type=="ExternalIP").address')"
+IP_HOST_BUE="$(./oc get nodes -l topology.kubernetes.io/zone=us-east-1-$lz_prefix-1a -o json | jq -r '.items[].status.addresses[] | select (.type=="ExternalIP").address')"
 
-while ! curl -H "Host: $APP_HOST_BUE" http://$IP_HOST_BUE; do sleep 5; done
+while ! curl -H "Host: $APP_HOST_BUE" http://$IP_HOST_BUE; do date; sleep 5; IP_HOST_BUE="$(./oc get nodes -l topology.kubernetes.io/zone=us-east-1-$lz_prefix-1a -o json | jq -r '.items[].status.addresses[] | select (.type=="ExternalIP").address')"; done
 
 ```
 
@@ -593,6 +597,7 @@ function create_droplet() {
 
   echo "Waiting for SSH is UP in $client_ip..."
   while ! ssh -o StrictHostKeyChecking=no root@$client_ip "echo ssh up"; do sleep 5; done
+  echo "Copying test script to remote host..."
   scp -o StrictHostKeyChecking=no curl.sh root@$client_ip:~/
 }
 
@@ -618,4 +623,10 @@ ssh -o StrictHostKeyChecking=no root@$CLIENT_IP_UK "bash curl.sh"
 # Destroy the droplets
 doctl compute droplet delete $CLIENT_NAME_NYC -f
 doctl compute droplet delete $CLIENT_NAME_UK -f
+```
+
+- Destroy cluster:
+
+```bash
+ ./openshift-install destroy cluster
 ```
