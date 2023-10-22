@@ -139,7 +139,6 @@ nav:
         - Patch MTU on Installed clusters with Local Zones: guides/ocp-aws-local-zones-day-2-patch-mtu.md
         - OCP + AWS Local Zones demo script: guides/ocp-aws-local-zones-demo.md
         - Blog HC - Installing with Local Zone nodes with full automation (4.14+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-414.md
-        - Blog HC script - Installing with Local Zone nodes with full automation (4.14+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-414-script.md
 
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
