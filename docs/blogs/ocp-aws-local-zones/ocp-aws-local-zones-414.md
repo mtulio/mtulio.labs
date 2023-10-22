@@ -162,22 +162,22 @@ ip-10-0-194-188.ec2.internal   Ready    edge,worker   5m45s   v1.27.3+4aaeaec
 
 The cluster is installed and is ready to run workloads in Edge Compute nodes.
 
-The following references share how to enhance OpenShift and Local Zones:
+The following links describe more activities allowed to enhance OpenShift and Local Zones:
 
-- Day 2 tasks in Local Zones: creating workloads
-- Extending existing clusters to AWS Local Zones
-- Application Load Balancer Operator
+- [Day 2 tasks in Local Zones: creating workloads](https://docs.openshift.com/container-platform/4.14/post_installation_configuration/aws-compute-edge-tasks#installation-extend-edge-nodes-aws-local-zones_aws-compute-edge-tasks)
+- [Extending existing clusters to AWS Local Zones](https://docs.openshift.com/container-platform/4.14/post_installation_configuration/aws-compute-edge-tasks#post-install-edge-aws-extend-cluster_aws-compute-edge-tasks)
+- [Application Load Balancer Operator](https://docs.openshift.com/container-platform/4.14/networking/aws_load_balancer_operator/aws-load-balancer-operator-release-notes.html)
 
 ## Benchmarking the application connection time
 
 To validate the network improvement when delivering the application closer to the user,
-we expanded the cluster installed in the section "" to create a node in a new Local Zone `us-east-1-bue-1a`.
+we expanded the cluster installed in the last section to create a node in a new Local Zone `us-east-1-bue-1a`.
 
-The tests measure client connectivity to the application endpoint deployed in the cluster from different locations on the internet, some are closer to the metropolitan regions covered by nodes deployed in Local Zones, allowing us to measure the network benefits of using edge compute pools in OpenShift.
+The tests measure client connectivity to the application endpoint deployed in the cluster from different locations on the internet, some are closer to the metropolitan regions covered by nodes deployed in Local Zones, measuring the network benefits when using edge compute pools in OpenShift.
 
 The image below shows an overview of the tested environment:
 
-- three clients testing three endpoints
+- three clients testing three endpoints (servers)
 - clients are originating connections from New York (US), London (UK), South Brazil
 - application distributed into different locations in the same cluster: Local Zone New York (us-east-1-nyc-1a), Local Zone Buenos Aires (us-east-1-bue-1a), and in the availability zone in the region (us-east-1)
 
@@ -187,9 +187,9 @@ The image below shows an overview of the tested environment:
 
 ### Environment
 
-The tests make a few requests from different clients, extracting the [`curl` variables writing it out][curl-vars-wout] to the console.
+The tests generate requests from different clients, extracting the [`curl` variables writing it out][curl-vars-wout] to the console.
 
-Generate the script `curl.sh` to test the endpoints:
+Create the script `curl.sh` to test the endpoints:
 
 ~~~bash
 cat <<EOF > curl.sh
@@ -216,11 +216,13 @@ run_curl ${APP_HOST_BUE} ${IP_HOST_BUE}
 EOF
 ~~~
 
-Copy and run `curl.sh` to the clients and run it:
+Copy and run `curl.sh` to the clients, then run it:
 
 ```bash
-bash curl.sh 
+./curl.sh
 ```
+
+Results by client:
 
 - Results of the **client** located in the region of **US/New York**:
 
