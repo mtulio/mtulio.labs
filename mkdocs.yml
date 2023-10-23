@@ -112,6 +112,7 @@ nav:
         - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
         - Installing Hypershift on AWS with STS (draft/unfinished): playbooks/openshift/hypershift-install-sts.md
         - Installing single node (SNO) on AWS [draft]: playbooks/openshift/ocp-aws-sno-install.md
+        - Installing on Azure with etcd in Data Disks: playbooks/openshift/ocp-azure-disk-ephemeral.md
 
       - OpenShift on AWS with STS:
         - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
