@@ -133,7 +133,8 @@ nav:
         - Blog demo - Installing with Local Zone nodes with full automation (4.14+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-414-demo.md
         - Blog - Installing Local Zone nodes in Existing VPC (4.13+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413.md
         - Blog demo - Installing with Local Zone nodes in Existing VPC (4.13+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413-script.md
-        - Blog HC - hands-on (Draft): guides/ocp-aws-local-zones-hands-on.md
+        - Hands-on Local Zones (verbose draft) : guides/ocp-aws-local-zones-hands-on.md
+        - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelengh-zones-hands-on.md
 
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
