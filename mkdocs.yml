@@ -105,6 +105,7 @@ nav:
         - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
         - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
         - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
+        - Benchmark AWS disks on OCP: playbooks/openshift/ocp-aws-disk-benchmark.md
 
       - OpenShift Installing:
         - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
