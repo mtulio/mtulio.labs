@@ -1,0 +1,27 @@
+- hosts: localhost
+  connection: local
+  vars:
+    date1: "{{ ansible_date_time.date }} {{ ansible_date_time.time }}"
+    date1i: " {{ ansible_date_time.iso8601 }}"
+  
+  tasks:
+  - pause:
+      seconds: 10
+  
+  - set_fact:
+      date2: "{{ ansible_date_time.date }} {{ ansible_date_time.time }}"
+      date2i: " {{ ansible_date_time.iso8601 }}"
+
+
+
+  - name: Set variables
+    set_fact:
+      date3: "{{ tstamp.stdout }}"
+
+  - debug:
+      msg:
+      - "{{ date1 }} > {{ date1i }}"
+      - "{{ date2 }} > {{ date2i }}"
+      - "{{ date3 }}"
+      - "{{ ((date2|to_datetime) - (date1|to_datetime)).seconds }}"
+      - "{{ ((date3|to_datetime) - (date1|to_datetime)) }}"

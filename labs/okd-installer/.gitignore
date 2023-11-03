@@ -1,1 +1,6 @@
-.env
+.env*
+.env-aws
+collections/ansible_collections/ionoscloudsdk*
+collections/ansible_collections/community*
+collections/ansible_collections/kubernetes*
+.opct*
