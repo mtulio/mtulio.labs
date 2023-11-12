@@ -40,6 +40,7 @@ theme:
     - search.share
     - search.suggest
     - content.tabs.link
+    - content.code.copy
 
   font:
     text: Roboto
@@ -68,6 +69,14 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+
+  # Copy code block config: https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
 
 extra:
   analytics:
