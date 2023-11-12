@@ -66,3 +66,80 @@ Example output
     "Return": true
 }
 ```
+
+### opt-in wavelength zones in all regions
+
+
+```bash
+ZONE_TYPE=wavelength-zone
+for REGION_NAME in $(aws ec2 describe-regions --all-regions --query "Regions[].RegionName" | jq -r .[]); do
+    for ZONE_GROUP in $(aws ec2 describe-availability-zones \
+        --filters Name=region-name,Values=${REGION_NAME} Name=zone-type,Values=$ZONE_TYPE \
+        --query 'AvailabilityZones[].GroupName' --output text \
+        --all-availability-zones --region ${REGION_NAME}); do
+
+        echo "# Modifying Zone group ${ZONE_GROUP}"
+        aws ec2 modify-availability-zone-group \
+            --group-name "${ZONE_GROUP}" \
+            --opt-in-status opted-in \
+            --region ${REGION_NAME}
+    done
+done
+```
+
+## Custom executions
+
+Describe specific ARM instances in the regions:
+
+- ARM vs Intel
+
+```bash
+RUN_NAME="data-ec2-general-arm-vs-intel" \
+    FILTER_ZONE_TYPES="availability-zone" \
+    FILTER_EC2_TYPES="m6g.xlarge,m7g.xlarge,m6i.xlarge,m7i.xlarge" \
+    ./list-instances-by-az.py
+```
+
+- ARM Offerings
+
+```bash
+RUN_NAME="data-ec2-general-arm-mdrc" \
+    FILTER_ZONE_TYPES="availability-zone" \
+    FILTER_EC2_TYPES="m6g.xlarge,m6gd.xlarge,r6g.xlarge,c6g.2xlarge" \
+    ./list-instances-by-az.py
+```
+
+- ARM vs Intel vs AMD
+
+```bash
+RUN_NAME="data-ec2-general-arm-vs-intel-vs-amd" \
+    FILTER_ZONE_TYPES="availability-zone" \
+    FILTER_EC2_TYPES="m6g.xlarge,m7g.xlarge,m6i.xlarge,m6a.xlarge" \
+    ./list-instances-by-az.py
+```
+
+- EC2 offerings in specific region (il-central-1)
+
+```bash
+RUN_NAME="data-ec2-region-filter-il-central-1" \
+    FILTER_REGIONS="il-central-1" \
+    FILTER_ZONE_TYPES="availability-zone" \
+    ./list-instances-by-az.py
+```
+
+
+- EC2 offerings in Wavelength Zones
+
+```bash
+RUN_NAME="data-ec2-wavelength-zones" \
+    FILTER_ZONE_TYPES="wavelength-zone" \
+    ./list-instances-by-az.py
+```
+
+- EC2 offerings in Local Zones
+
+```bash
+RUN_NAME="data-ec2-local-zones" \
+    FILTER_ZONE_TYPES="local-zone" \
+    ./list-instances-by-az.py
+```

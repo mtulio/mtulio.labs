@@ -32,7 +32,7 @@ Table of Contents
 
 ```bash
 export CLUSTER_REGION=us-east-1
-export CLUSTER_NAME=ocp-lz15
+export CLUSTER_NAME=lzp1-04
 
 export STACK_VPC=${CLUSTER_NAME}-vpc
 aws cloudformation create-stack \
@@ -45,8 +45,8 @@ aws cloudformation create-stack \
     ParameterKey=AvailabilityZoneCount,ParameterValue=3 \
     ParameterKey=SubnetBits,ParameterValue=12
 
-aws cloudformation wait stack-create-complete --stack-name ${STACK_VPC}
-aws cloudformation describe-stacks --stack-name ${STACK_VPC}
+aws --region $CLUSTER_REGION cloudformation wait stack-create-complete --stack-name ${STACK_VPC}
+aws --region $CLUSTER_REGION cloudformation describe-stacks --stack-name ${STACK_VPC}
 
 # Choosing randomly the AZ withing the Region (best choice to test any AZ - and detect possible errors)
 AZ_NAME=$(aws --region $CLUSTER_REGION ec2 describe-availability-zones \
@@ -62,19 +62,19 @@ AZ_GROUP=$(aws --region $CLUSTER_REGION ec2 describe-availability-zones \
 
 export STACK_LZ=${CLUSTER_NAME}-lz-${AZ_SUFFIX}
 export ZONE_GROUP_NAME=${AZ_GROUP}
-export VPC_ID=$(aws cloudformation describe-stacks \
+export VPC_ID=$(aws --region $CLUSTER_REGION cloudformation describe-stacks \
   --stack-name ${STACK_VPC} \
   | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="VpcId").OutputValue' )
 
-export VPC_RTB_PUB=$(aws cloudformation describe-stacks \
+export VPC_RTB_PUB=$(aws --region $CLUSTER_REGION cloudformation describe-stacks \
   --stack-name ${STACK_VPC} \
   | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="PublicRouteTableId").OutputValue' )
 
-aws ec2 modify-availability-zone-group \
+aws --region $CLUSTER_REGION ec2 modify-availability-zone-group \
     --group-name "${ZONE_GROUP_NAME}" \
     --opt-in-status opted-in
 
-aws cloudformation create-stack --stack-name ${STACK_LZ} \
+aws --region $CLUSTER_REGION cloudformation create-stack --stack-name ${STACK_LZ} \
      --template-body file://template-lz.yaml \
      --parameters \
         ParameterKey=ClusterName,ParameterValue="${CLUSTER_NAME}" \
@@ -84,28 +84,32 @@ aws cloudformation create-stack --stack-name ${STACK_LZ} \
         ParameterKey=LocalZoneNameShort,ParameterValue="${AZ_SUFFIX}" \
         ParameterKey=PublicSubnetCidr,ParameterValue="10.0.128.0/20"
 
-aws cloudformation wait stack-create-complete --stack-name ${STACK_LZ}
-aws cloudformation describe-stacks --stack-name ${STACK_LZ}
+aws --region $CLUSTER_REGION cloudformation wait stack-create-complete --stack-name ${STACK_LZ}
+aws --region $CLUSTER_REGION cloudformation describe-stacks --stack-name ${STACK_LZ}
 
-mapfile -t SUBNETS < <(aws cloudformation describe-stacks \
+mapfile -t SUBNETS < <(aws --region $CLUSTER_REGION cloudformation describe-stacks \
   --stack-name "${STACK_VPC}" \
   | jq -r '.Stacks[0].Outputs[0].OutputValue' | tr ',' '\n')
 
-mapfile -t -O "${#SUBNETS[@]}" SUBNETS < <(aws cloudformation describe-stacks \
+mapfile -t -O "${#SUBNETS[@]}" SUBNETS < <(aws --region $CLUSTER_REGION cloudformation describe-stacks \
   --stack-name "${STACK_VPC}" \
   | jq -r '.Stacks[0].Outputs[1].OutputValue' | tr ',' '\n')
 
 # get the Local Zone subnetID
-export SUBNET_ID=$(aws cloudformation describe-stacks --stack-name "${STACK_LZ}" \
+export SUBNET_ID=$(aws --region $CLUSTER_REGION cloudformation describe-stacks --stack-name "${STACK_LZ}" \
   | jq -r .Stacks[0].Outputs[0].OutputValue)
 
+
+echo ${SUBNETS[*]}
+SUBNETS+=(${SUBNET_ID})
+echo ${SUBNETS[*]}
 ```
 
 - Append the LZ Subnet to the Subnets array - available only in the `phase-1` of Local Zones implementation (not covered on HC blog):
 
 > Phase-1 means the installer should discovery the Local Zone subnet by it's ID, parse it and automatically create the Machine Sets for those zones
 
-```
+```bash
 echo ${SUBNETS[*]}
 SUBNETS+=(${SUBNET_ID})
 echo ${SUBNETS[*]}
@@ -123,7 +127,8 @@ echo ${SUBNETS[*]}
 export BASE_DOMAIN=devcluster.openshift.com
 export SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
 
-INSTALL_DIR=${CLUSTER_NAME}-06
+CLUSTER_NAME_VARIANT=${CLUSTER_NAME}1
+INSTALL_DIR=${CLUSTER_NAME_VARIANT}
 mkdir $INSTALL_DIR
 
 cat <<EOF > ${INSTALL_DIR}/install-config.yaml
@@ -131,13 +136,13 @@ apiVersion: v1
 publish: External
 baseDomain: ${BASE_DOMAIN}
 metadata:
-  name: "${CLUSTER_NAME}"
+  name: "${CLUSTER_NAME_VARIANT}"
 platform:
   aws:
     region: ${CLUSTER_REGION}
     subnets:
 $(for SB in ${SUBNETS[*]}; do echo "    - $SB"; done)
-pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
+pullSecret: '$(cat ${PULL_SECRET_FILE} | awk -v ORS= -v OFS= '{$1=$1}1')'
 sshKey: |
   $(cat ${SSH_PUB_KEY_FILE})
 EOF
@@ -204,9 +209,37 @@ EOF
 ### Create the manifests
 
 ```bash
+export BASE_DOMAIN=devcluster.openshift.com
+export SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
+
+CLUSTER_NAME_VARIANT=${CLUSTER_NAME}12
+INSTALL_DIR=${CLUSTER_NAME_VARIANT}
+mkdir $INSTALL_DIR
+
+cat <<EOF > ${INSTALL_DIR}/install-config.yaml
+apiVersion: v1
+publish: External
+baseDomain: ${BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME_VARIANT}"
+platform:
+  aws:
+    region: ${CLUSTER_REGION}
+    subnets:
+$(for SB in ${SUBNETS[*]}; do echo "    - $SB"; done)
+compute:
+- name: edge
+  replicas: 0
+pullSecret: '$(cat ${PULL_SECRET_FILE} | awk -v ORS= -v OFS= '{$1=$1}1')'
+sshKey: |
+  $(cat ${SSH_PUB_KEY_FILE})
+EOF
+
+
+
 # Installer version/path
-export INSTALLER=./openshift-install_pr7070
-export RELEASE="quay.io/openshift-release-dev/ocp-release:4.13.0-rc.0-x86_64"
+export INSTALLER=./openshift-install
+export RELEASE="quay.io/openshift-release-dev/ocp-release:4.14.0-ec.3-x86_64"
 
 cp $INSTALL_DIR/install-config.yaml $INSTALL_DIR/install-config.yaml-bkp
 

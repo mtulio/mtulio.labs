@@ -1,0 +1,497 @@
+2023-07-25 18:09:06.213413>> Show EC2 Offerings by Local Zone
+AWS_Regions-(EC2 Offerings Zones)
+├── ap-south-1
+│   ├── ap-south-1-del-1a
+│   │   ├── r5.2xlarge
+│   │   ├── t3.xlarge
+│   │   ├── m5.2xlarge
+│   │   ├── m4.large
+│   │   ├── c5.12xlarge
+│   │   ├── m4.4xlarge
+│   │   ├── m4.2xlarge
+│   │   ├── t3.medium
+│   │   ├── m4.10xlarge
+│   │   ├── c5.2xlarge
+│   │   ├── m4.16xlarge
+│   │   ├── m4.xlarge
+│   │   └── g4dn.2xlarge
+│   └── ap-south-1-ccu-1a
+│       ├── r5.2xlarge
+│       ├── m4.4xlarge
+│       ├── t3.xlarge
+│       ├── c5.12xlarge
+│       ├── m4.2xlarge
+│       ├── m4.xlarge
+│       ├── m4.16xlarge
+│       ├── t3.medium
+│       ├── c5.2xlarge
+│       ├── m4.10xlarge
+│       ├── m5.2xlarge
+│       ├── m4.large
+│       └── g4dn.2xlarge
+├── eu-central-1
+│   ├── eu-central-1-waw-1a
+│   │   ├── c5.12xlarge
+│   │   ├── c5.24xlarge
+│   │   ├── c5.4xlarge
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── c5.2xlarge
+│   │   ├── g4dn.2xlarge
+│   │   ├── r5.2xlarge
+│   │   └── m5.2xlarge
+│   └── eu-central-1-ham-1a
+│       ├── t3.xlarge
+│       ├── c5.12xlarge
+│       ├── t3.medium
+│       ├── m5.2xlarge
+│       ├── r5.2xlarge
+│       ├── g4dn.2xlarge
+│       └── c5.2xlarge
+├── us-west-2
+│   ├── us-west-2-lax-1a
+│   │   ├── i3en.24xlarge
+│   │   ├── r5.24xlarge
+│   │   ├── g5.4xlarge
+│   │   ├── r5.4xlarge
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── g4dn.12xlarge
+│   │   ├── i3en.12xlarge
+│   │   ├── m5.12xlarge
+│   │   ├── t3.large
+│   │   ├── c5.4xlarge
+│   │   ├── r5.large
+│   │   ├── m5.24xlarge
+│   │   ├── m5.8xlarge
+│   │   ├── r5d.4xlarge
+│   │   ├── m5.xlarge
+│   │   ├── c5.xlarge
+│   │   ├── c5.12xlarge
+│   │   ├── m5.metal
+│   │   ├── i3en.3xlarge
+│   │   ├── g4dn.metal
+│   │   ├── t3.2xlarge
+│   │   ├── i3en.xlarge
+│   │   ├── m5.16xlarge
+│   │   ├── m5.2xlarge
+│   │   ├── c5.2xlarge
+│   │   ├── c5.metal
+│   │   ├── r5.metal
+│   │   ├── r5.xlarge
+│   │   ├── r5.12xlarge
+│   │   ├── r5d.metal
+│   │   ├── c5.24xlarge
+│   │   ├── c5.large
+│   │   ├── r5.2xlarge
+│   │   ├── r5d.24xlarge
+│   │   ├── i3en.2xlarge
+│   │   ├── m5.large
+│   │   ├── r5d.16xlarge
+│   │   ├── r5d.large
+│   │   ├── i3en.large
+│   │   ├── m5.4xlarge
+│   │   ├── r5d.2xlarge
+│   │   ├── r5d.xlarge
+│   │   ├── t3.nano
+│   │   ├── r5.16xlarge
+│   │   ├── t3.micro
+│   │   ├── c5.9xlarge
+│   │   ├── g4dn.16xlarge
+│   │   ├── g4dn.xlarge
+│   │   ├── r5.8xlarge
+│   │   ├── r5d.8xlarge
+│   │   ├── g5.8xlarge
+│   │   ├── t3.small
+│   │   ├── g4dn.2xlarge
+│   │   ├── g4dn.8xlarge
+│   │   ├── i3en.6xlarge
+│   │   ├── r5d.12xlarge
+│   │   ├── g4dn.4xlarge
+│   │   ├── c5.18xlarge
+│   │   └── i3en.metal
+│   ├── us-west-2-phx-1a
+│   │   ├── t3.xlarge
+│   │   ├── t3.medium
+│   │   ├── c5d.2xlarge
+│   │   ├── r5d.4xlarge
+│   │   ├── r5d.xlarge
+│   │   ├── r5d.2xlarge
+│   │   ├── r5d.8xlarge
+│   │   ├── g4dn.2xlarge
+│   │   └── g4dn.4xlarge
+│   ├── us-west-2-pdx-1a
+│   │   ├── t3.medium
+│   │   ├── c5d.12xlarge
+│   │   ├── t3.xlarge
+│   │   ├── c5d.2xlarge
+│   │   ├── c5d.4xlarge
+│   │   ├── r5d.2xlarge
+│   │   └── g4dn.2xlarge
+│   ├── us-west-2-den-1a
+│   │   ├── c5d.2xlarge
+│   │   ├── r5d.4xlarge
+│   │   ├── m5.12xlarge
+│   │   ├── t3.xlarge
+│   │   ├── c5d.12xlarge
+│   │   ├── t3.medium
+│   │   ├── c5d.4xlarge
+│   │   ├── r5d.8xlarge
+│   │   ├── r5d.2xlarge
+│   │   ├── r5d.xlarge
+│   │   ├── g4dn.4xlarge
+│   │   └── g4dn.2xlarge
+│   ├── us-west-2-sea-1a
+│   │   ├── c5d.2xlarge
+│   │   ├── t3.xlarge
+│   │   ├── t3.medium
+│   │   ├── c5d.12xlarge
+│   │   ├── c5d.4xlarge
+│   │   ├── r5d.2xlarge
+│   │   └── g4dn.2xlarge
+│   ├── us-west-2-las-1a
+│   │   ├── c5d.12xlarge
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── c5d.2xlarge
+│   │   ├── r5d.2xlarge
+│   │   ├── c5d.4xlarge
+│   │   └── g4dn.2xlarge
+│   └── us-west-2-lax-1b
+│       ├── g4dn.12xlarge
+│       ├── m5.xlarge
+│       ├── m5.12xlarge
+│       ├── i3en.24xlarge
+│       ├── c5.4xlarge
+│       ├── r5.24xlarge
+│       ├── g4dn.metal
+│       ├── t3.xlarge
+│       ├── r5.large
+│       ├── r5d.4xlarge
+│       ├── i3en.12xlarge
+│       ├── i3en.3xlarge
+│       ├── m5.24xlarge
+│       ├── t3.2xlarge
+│       ├── c5.xlarge
+│       ├── m5.metal
+│       ├── m5.8xlarge
+│       ├── t3.medium
+│       ├── t3.large
+│       ├── c5.12xlarge
+│       ├── r5.4xlarge
+│       ├── i3en.xlarge
+│       ├── m5.16xlarge
+│       ├── c5.2xlarge
+│       ├── r5d.metal
+│       ├── r5d.2xlarge
+│       ├── c5.metal
+│       ├── t3.micro
+│       ├── r5d.xlarge
+│       ├── r5d.24xlarge
+│       ├── r5.metal
+│       ├── m5.4xlarge
+│       ├── c5.24xlarge
+│       ├── i3en.large
+│       ├── r5.8xlarge
+│       ├── g4dn.xlarge
+│       ├── m5.2xlarge
+│       ├── r5d.16xlarge
+│       ├── t3.nano
+│       ├── r5.16xlarge
+│       ├── m5.large
+│       ├── r5.2xlarge
+│       ├── r5.xlarge
+│       ├── r5d.large
+│       ├── i3en.2xlarge
+│       ├── r5.12xlarge
+│       ├── c5.large
+│       ├── r5d.8xlarge
+│       ├── c5.9xlarge
+│       ├── g4dn.16xlarge
+│       ├── r5d.12xlarge
+│       ├── i3en.metal
+│       ├── g4dn.8xlarge
+│       ├── g4dn.4xlarge
+│       ├── i3en.6xlarge
+│       ├── g4dn.2xlarge
+│       ├── c5.18xlarge
+│       └── t3.small
+├── af-south-1
+│   └── af-south-1-los-1a
+│       ├── m5.2xlarge
+│       ├── g4dn.2xlarge
+│       ├── c5.2xlarge
+│       ├── c5.12xlarge
+│       ├── r5.2xlarge
+│       └── t3.xlarge
+├── eu-north-1
+│   ├── eu-north-1-hel-1a
+│   │   ├── t3.xlarge
+│   │   ├── t3.medium
+│   │   ├── r5.2xlarge
+│   │   ├── c5.2xlarge
+│   │   ├── m5.2xlarge
+│   │   ├── c5.12xlarge
+│   │   └── g4dn.2xlarge
+│   └── eu-north-1-cph-1a
+│       ├── r5.2xlarge
+│       ├── g4dn.2xlarge
+│       ├── c5.2xlarge
+│       ├── t3.medium
+│       ├── c5.12xlarge
+│       ├── m5.2xlarge
+│       └── t3.xlarge
+├── me-south-1
+│   └── me-south-1-mct-1a
+│       ├── g4dn.2xlarge
+│       ├── m5.2xlarge
+│       ├── t3.xlarge
+│       ├── r5.2xlarge
+│       ├── t3.medium
+│       ├── c5.2xlarge
+│       └── c5.12xlarge
+├── ap-northeast-1
+│   └── ap-northeast-1-tpe-1a
+│       ├── c5.12xlarge
+│       ├── t3.medium
+│       ├── t3.xlarge
+│       ├── m5.2xlarge
+│       ├── r5.2xlarge
+│       ├── c5.2xlarge
+│       └── g4dn.2xlarge
+├── ap-southeast-1
+│   ├── ap-southeast-1-mnl-1a
+│   │   ├── c5.24xlarge
+│   │   ├── c5.12xlarge
+│   │   ├── t3.medium
+│   │   ├── c5.4xlarge
+│   │   ├── t3.xlarge
+│   │   ├── r5.2xlarge
+│   │   ├── g4dn.2xlarge
+│   │   ├── m5.2xlarge
+│   │   └── c5.2xlarge
+│   └── ap-southeast-1-bkk-1a
+│       ├── t3.medium
+│       ├── t3.xlarge
+│       ├── c5.12xlarge
+│       ├── c5.2xlarge
+│       ├── g4dn.2xlarge
+│       ├── m5.2xlarge
+│       └── r5.2xlarge
+├── ap-southeast-2
+│   ├── ap-southeast-2-per-1a
+│   │   ├── c5.12xlarge
+│   │   ├── t3.xlarge
+│   │   ├── t3.medium
+│   │   ├── g4dn.2xlarge
+│   │   ├── m5.2xlarge
+│   │   ├── c5.2xlarge
+│   │   └── r5.2xlarge
+│   └── ap-southeast-2-akl-1a
+│       ├── t3.xlarge
+│       ├── c5.12xlarge
+│       ├── t3.medium
+│       ├── m5.2xlarge
+│       ├── r5.2xlarge
+│       ├── g4dn.2xlarge
+│       └── c5.2xlarge
+└── us-east-1
+    ├── us-east-1-wl1-clt-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-phl-1a
+    │   ├── c5d.12xlarge
+    │   ├── t3.xlarge
+    │   ├── c5d.2xlarge
+    │   ├── r5d.2xlarge
+    │   ├── r5d.xlarge
+    │   ├── t3.medium
+    │   ├── r5d.8xlarge
+    │   ├── c5d.4xlarge
+    │   ├── r5d.4xlarge
+    │   ├── g4dn.4xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-atl-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-lim-1a
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── c5.12xlarge
+    │   ├── r5.2xlarge
+    │   ├── c5.2xlarge
+    │   ├── m5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-mci-1a
+    │   ├── c5d.12xlarge
+    │   ├── t3.xlarge
+    │   ├── c5d.4xlarge
+    │   ├── r5d.2xlarge
+    │   ├── c5d.2xlarge
+    │   ├── t3.medium
+    │   └── g4dn.2xlarge
+    ├── us-east-1-mia-1a
+    │   ├── t3.xlarge
+    │   ├── m5.xlarge
+    │   ├── r5d.2xlarge
+    │   ├── c5d.2xlarge
+    │   ├── t3.medium
+    │   └── g4dn.2xlarge
+    ├── us-east-1-dfw-1a
+    │   ├── t3.xlarge
+    │   ├── c5d.12xlarge
+    │   ├── c5d.2xlarge
+    │   ├── r5d.8xlarge
+    │   ├── r5d.4xlarge
+    │   ├── r5d.xlarge
+    │   ├── r5d.2xlarge
+    │   ├── t3.medium
+    │   ├── c5d.4xlarge
+    │   ├── g4dn.2xlarge
+    │   └── g4dn.4xlarge
+    ├── us-east-1-bue-1a
+    │   ├── c5.4xlarge
+    │   ├── t3.xlarge
+    │   ├── c5.12xlarge
+    │   ├── t3.medium
+    │   ├── c5.2xlarge
+    │   ├── m5.2xlarge
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-atl-1a
+    │   ├── c5d.12xlarge
+    │   ├── t3.xlarge
+    │   ├── c5d.4xlarge
+    │   ├── r5d.xlarge
+    │   ├── t3.medium
+    │   ├── r5d.8xlarge
+    │   ├── r5d.4xlarge
+    │   ├── r5d.2xlarge
+    │   ├── c5d.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-qro-1a
+    │   ├── c5.4xlarge
+    │   ├── t3.xlarge
+    │   ├── c5.12xlarge
+    │   ├── t3.medium
+    │   ├── c5.24xlarge
+    │   ├── r5.2xlarge
+    │   ├── m5.2xlarge
+    │   ├── c5.2xlarge
+    │   ├── g4dn.4xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-nyc-1a
+    │   ├── c5d.12xlarge
+    │   ├── t3.xlarge
+    │   ├── r5d.2xlarge
+    │   ├── t3.medium
+    │   ├── c5d.4xlarge
+    │   ├── c5d.2xlarge
+    │   ├── g4dn.2xlarge
+    │   └── g4dn.4xlarge
+    ├── us-east-1-wl1-bna-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-msp-1a
+    │   ├── c5d.12xlarge
+    │   ├── t3.xlarge
+    │   ├── c5d.2xlarge
+    │   ├── r5d.2xlarge
+    │   ├── t3.medium
+    │   ├── c5d.4xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-scl-1a
+    │   ├── t3.xlarge
+    │   ├── c5.4xlarge
+    │   ├── t3.medium
+    │   ├── c5.24xlarge
+    │   ├── c5.12xlarge
+    │   ├── r5.2xlarge
+    │   ├── m5.2xlarge
+    │   ├── c5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-iah-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-mia-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-iah-1a
+    │   ├── t3.xlarge
+    │   ├── c5d.2xlarge
+    │   ├── r5d.2xlarge
+    │   ├── t3.medium
+    │   ├── g4dn.4xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-bos-1a
+    │   ├── c5d.12xlarge
+    │   ├── t3.xlarge
+    │   ├── r5d.4xlarge
+    │   ├── r5d.2xlarge
+    │   ├── c5d.4xlarge
+    │   ├── r5d.8xlarge
+    │   ├── c5d.2xlarge
+    │   ├── r5d.xlarge
+    │   ├── t3.medium
+    │   ├── g4dn.2xlarge
+    │   └── g4dn.4xlarge
+    ├── us-east-1-wl1-was-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-dtw-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-msp-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-nyc-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-chi-1a
+    │   ├── t3.xlarge
+    │   ├── r5d.4xlarge
+    │   ├── t3.medium
+    │   ├── c5d.2xlarge
+    │   ├── r5d.2xlarge
+    │   ├── r5d.xlarge
+    │   ├── r5d.8xlarge
+    │   ├── g4dn.4xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-bos-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-tpa-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-dfw-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    └── us-east-1-wl1-chi-wlz-1
+        ├── t3.xlarge
+        ├── t3.medium
+        ├── r5.2xlarge
+        └── g4dn.2xlarge
