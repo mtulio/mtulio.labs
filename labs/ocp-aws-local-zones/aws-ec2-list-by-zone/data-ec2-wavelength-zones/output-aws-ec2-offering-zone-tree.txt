@@ -1,0 +1,159 @@
+2023-08-08 19:00:39.278646>> Show EC2 Offerings by Local Zone
+AWS_Regions-(EC2 Offerings Zones)
+├── ca-central-1
+│   └── ca-central-1-wl1-yto-wlz-1
+│       ├── t3.xlarge
+│       ├── r5.2xlarge
+│       ├── t3.medium
+│       └── g4dn.2xlarge
+├── eu-central-1
+│   ├── eu-central-1-wl1-dtm-wlz-1
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── g4dn.2xlarge
+│   │   └── r5.2xlarge
+│   ├── eu-central-1-wl1-muc-wlz-1
+│   │   ├── t3.xlarge
+│   │   ├── t3.medium
+│   │   ├── r5.2xlarge
+│   │   └── g4dn.2xlarge
+│   └── eu-central-1-wl1-ber-wlz-1
+│       ├── t3.medium
+│       ├── t3.xlarge
+│       ├── g4dn.2xlarge
+│       └── r5.2xlarge
+├── us-west-2
+│   ├── us-west-2-wl1-lax-wlz-1
+│   │   ├── t3.xlarge
+│   │   ├── t3.medium
+│   │   ├── r5.2xlarge
+│   │   └── g4dn.2xlarge
+│   ├── us-west-2-wl1-sea-wlz-1
+│   │   ├── t3.xlarge
+│   │   ├── t3.medium
+│   │   ├── r5.2xlarge
+│   │   └── g4dn.2xlarge
+│   ├── us-west-2-wl1-den-wlz-1
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── r5.2xlarge
+│   │   └── g4dn.2xlarge
+│   ├── us-west-2-wl1-sfo-wlz-1
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── r5.2xlarge
+│   │   └── g4dn.2xlarge
+│   ├── us-west-2-wl1-las-wlz-1
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── r5.2xlarge
+│   │   └── g4dn.2xlarge
+│   └── us-west-2-wl1-phx-wlz-1
+│       ├── t3.medium
+│       ├── t3.xlarge
+│       ├── r5.2xlarge
+│       └── g4dn.2xlarge
+├── eu-west-2
+│   ├── eu-west-2-wl2-man-wlz-1
+│   │   ├── r5.2xlarge
+│   │   ├── t3.xlarge
+│   │   ├── t3.medium
+│   │   └── g4dn.2xlarge
+│   ├── eu-west-2-wl1-lon-wlz-1
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── r5.2xlarge
+│   │   └── g4dn.2xlarge
+│   └── eu-west-2-wl1-man-wlz-1
+│       ├── t3.xlarge
+│       ├── t3.medium
+│       ├── r5.2xlarge
+│       └── g4dn.2xlarge
+├── ap-northeast-2
+│   ├── ap-northeast-2-wl1-sel-wlz-1
+│   │   ├── t3.xlarge
+│   │   ├── r5.2xlarge
+│   │   ├── t3.medium
+│   │   └── g4dn.2xlarge
+│   └── ap-northeast-2-wl1-cjj-wlz-1
+│       ├── t3.xlarge
+│       ├── t3.medium
+│       ├── r5.2xlarge
+│       └── g4dn.2xlarge
+├── ap-northeast-1
+│   ├── ap-northeast-1-wl1-nrt-wlz-1
+│   │   ├── t3.medium
+│   │   ├── t3.xlarge
+│   │   ├── r5.2xlarge
+│   │   └── g4dn.2xlarge
+│   └── ap-northeast-1-wl1-kix-wlz-1
+│       ├── t3.medium
+│       ├── t3.xlarge
+│       ├── r5.2xlarge
+│       └── g4dn.2xlarge
+└── us-east-1
+    ├── us-east-1-wl1-chi-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-bos-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-nyc-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-iah-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-dfw-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-bna-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-dtw-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-mia-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-clt-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-tpa-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-msp-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    ├── us-east-1-wl1-atl-wlz-1
+    │   ├── t3.xlarge
+    │   ├── t3.medium
+    │   ├── r5.2xlarge
+    │   └── g4dn.2xlarge
+    └── us-east-1-wl1-was-wlz-1
+        ├── t3.xlarge
+        ├── t3.medium
+        ├── r5.2xlarge
+        └── g4dn.2xlarge
