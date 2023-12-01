@@ -32,15 +32,31 @@ Table of Contents
 
 ```bash
 export CLUSTER_REGION=us-east-1
-export CLUSTER_NAME=lzp1-04
+export CLUSTER_NAME=byon-lz415-00
+
+WORKDIR=${PWD}
+export INSTALL_DIR=${WORKDIR}/install-${CLUSTER_NAME}
+mkdir -p $INSTALL_DIR
+
+TEMPLATES_BASE=https://raw.githubusercontent.com/openshift/installer
+TEMPLATES_VERSION=master
+TEMPLATES_PATH=upi/aws/cloudformation
+
+TEMPLATE_URL=${TEMPLATES_BASE}/${TEMPLATES_VERSION}/${TEMPLATES_PATH}
+TEMPLATES=( "01_vpc.yaml" )
+TEMPLATES+=( "01.99_net_local-zone.yaml" )
+
+for TEMPLATE in "${TEMPLATES[@]}"; do
+  echo "Updating ${TEMPLATE}"
+  curl -sL "${TEMPLATE_URL}/${TEMPLATE}" > "${WORKDIR}/${TEMPLATE}"
+done
 
 export STACK_VPC=${CLUSTER_NAME}-vpc
 aws cloudformation create-stack \
   --region ${CLUSTER_REGION} \
   --stack-name ${STACK_VPC} \
-  --template-body file://template-vpc.yaml \
+  --template-body file://${WORKDIR}/01_vpc.yaml \
   --parameters \
-    ParameterKey=ClusterName,ParameterValue=${CLUSTER_NAME} \
     ParameterKey=VpcCidr,ParameterValue="10.0.0.0/16" \
     ParameterKey=AvailabilityZoneCount,ParameterValue=3 \
     ParameterKey=SubnetBits,ParameterValue=12
@@ -48,7 +64,7 @@ aws cloudformation create-stack \
 aws --region $CLUSTER_REGION cloudformation wait stack-create-complete --stack-name ${STACK_VPC}
 aws --region $CLUSTER_REGION cloudformation describe-stacks --stack-name ${STACK_VPC}
 
-# Choosing randomly the AZ withing the Region (best choice to test any AZ - and detect possible errors)
+# Choosing randomly the Local Zone available in the Region
 AZ_NAME=$(aws --region $CLUSTER_REGION ec2 describe-availability-zones \
   --filters Name=opt-in-status,Values=opted-in Name=zone-type,Values=local-zone \
   | jq -r .AvailabilityZones[].ZoneName | shuf | head -n1)
@@ -75,13 +91,12 @@ aws --region $CLUSTER_REGION ec2 modify-availability-zone-group \
     --opt-in-status opted-in
 
 aws --region $CLUSTER_REGION cloudformation create-stack --stack-name ${STACK_LZ} \
-     --template-body file://template-lz.yaml \
+     --template-body file://${WORKDIR}/01.99_net_local-zone.yaml \
      --parameters \
-        ParameterKey=ClusterName,ParameterValue="${CLUSTER_NAME}" \
         ParameterKey=VpcId,ParameterValue="${VPC_ID}" \
         ParameterKey=PublicRouteTableId,ParameterValue="${VPC_RTB_PUB}" \
-        ParameterKey=LocalZoneName,ParameterValue="${ZONE_GROUP_NAME}a" \
-        ParameterKey=LocalZoneNameShort,ParameterValue="${AZ_SUFFIX}" \
+        ParameterKey=ZoneName,ParameterValue="${AZ_NAME}" \
+        ParameterKey=SubnetName,ParameterValue="${CLUSTER_NAME}-public-${AZ_NAME}" \
         ParameterKey=PublicSubnetCidr,ParameterValue="10.0.128.0/20"
 
 aws --region $CLUSTER_REGION cloudformation wait stack-create-complete --stack-name ${STACK_LZ}
@@ -212,7 +227,7 @@ EOF
 export BASE_DOMAIN=devcluster.openshift.com
 export SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
 
-CLUSTER_NAME_VARIANT=${CLUSTER_NAME}12
+CLUSTER_NAME_VARIANT=${CLUSTER_NAME}1
 INSTALL_DIR=${CLUSTER_NAME_VARIANT}
 mkdir $INSTALL_DIR
 
@@ -235,11 +250,9 @@ sshKey: |
   $(cat ${SSH_PUB_KEY_FILE})
 EOF
 
-
-
 # Installer version/path
 export INSTALLER=./openshift-install
-export RELEASE="quay.io/openshift-release-dev/ocp-release:4.14.0-ec.3-x86_64"
+export RELEASE="quay.io/openshift-release-dev/ocp-release:4.15.0-ec.2-x86_64"
 
 cp $INSTALL_DIR/install-config.yaml $INSTALL_DIR/install-config.yaml-bkp
 
@@ -249,7 +262,7 @@ OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="$RELEASE" $INSTALLER create manifests 
 
 # Review if MTU patch has been created
 ls -ls $INSTALL_DIR/manifests/cluster-network-*
-cat $INSTALL_DIR/manifests/cluster-network-03-config.yml
+yq ea .spec.defaultNetwork $INSTALL_DIR/manifests/cluster-network-03-config.yml
 
 # Review if MachineSet for Local Zone has been created
 ls -la $INSTALL_DIR/openshift/99_openshift-cluster-api_worker-machineset*
@@ -547,7 +560,7 @@ Test the endpoint (using ALB DNS):
 
 ```bash
 $ HOST=$(oc get ingress -n lz-apps ingress-lz-nyc-1 --template='{{(index .status.loadBalancer.ingress 0).hostname}}')
-$ $ echo $HOST
+$ echo $HOST
 k8s-lzapps-ingressl-49a869b572-66443804.us-east-1.elb.amazonaws.com
 
 $ curl $HOST
