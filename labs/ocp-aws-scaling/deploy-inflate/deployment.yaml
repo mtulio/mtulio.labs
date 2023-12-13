@@ -20,6 +20,9 @@ spec:
         - name: inflate
           image: public.ecr.aws/eks-distro/kubernetes/pause:3.2
           resources:
+            limits:
+              cpu: 1
+              memory: 1GiB
             requests:
               cpu: 1
               memory: 1Gi

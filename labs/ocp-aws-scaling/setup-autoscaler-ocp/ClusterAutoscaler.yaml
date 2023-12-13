@@ -5,18 +5,18 @@ metadata:
 spec:
   podPriorityThreshold: -10
   resourceLimits:
-    maxNodesTotal: 10
+    maxNodesTotal: 16
     cores:
-      min: 8
-      max: 80
+      min: 0
+      max: 128
     memory:
-      min: 4
+      min: 0
       max: 128
   logVerbosity: 4
   scaleDown:
     enabled: true
-    delayAfterAdd: 10m
-    delayAfterDelete: 5m
+    delayAfterAdd: 5m
+    delayAfterDelete: 3m
     delayAfterFailure: 30s
     unneededTime: 5m
     utilizationThreshold: "0.4"
