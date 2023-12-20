@@ -1,14 +1,56 @@
 # Install a cluster with Transit Gateway
 
-!!! warn "Experimental steps"
-    The steps described in this page is experimental, as usual in my labs website! =]
+!!! warning "Experimental steps"
+    The steps described on this page are experimental, as usual on my lab's website! =]
 
 !!! info "CloudFormation templates"
-    The CloudFormation templates mentioned in this page is available in the path:
+    The CloudFormation templates mentioned on this page are available in the path:
     [mtulio.labs/labs/labs/ocp-install-iac/aws-cloudformation-templates](https://github.com/mtulio/mtulio.labs/tree/master/labs/ocp-install-iac/aws-cloudformation-templates)
 
-Create a Hub-Spoke deployment to use centralized egress-gateway to
+Create a Hub-Spoke deployment to use a centralized egress gateway to
 deploy OpenShift cluster.
+
+Overview of the network diagram:
+
+```mermaid
+graph LR
+  hub-igw --> INTERNET
+  sp1-igw --> INTERNET
+  spN-igw --> INTERNET
+  subgraph cluster1 [AWS Account 'Management']
+    subgraph cluster12 [Hub_VPC_172.16.0/16];
+      hub-net-pub[public subnets]<-.->hub-rtb-pub[Public Rtb]
+      hub-net-pvt[private subnets]<-.->hub-rtb-pvt[Private Rtb]
+      hub-NATGW[NAT GW] --> hub-net-pub;
+      hub-TGWA[TGW-Attachment]
+    end
+    TGW<-.->hub-TGWA <-- 10.0.0.0/8 -->hub-rtb-pvt
+    hub-rtb-pvt -- 0.0.0.0/0 --> hub-NATGW
+    hub-rtb-pub  <-- 0.0.0.0/0 --> hub-igw[IGW]
+  end
+  subgraph cluster2 [AWS Account 'Client #N']
+    subgraph cluster22 [Spoke#N_VPC_10.10.0.0/16];
+      spN-net-pvt[Private subnets];
+      spN-net-pub[Public subnets]
+      spN-TGWA[TGW-Attachment]
+      spN-rtb-pvt[Private Rtb]<-.->spN-net-pvt;
+      spN-rtb-pub[Public Rtb]<-.->spN-net-pub;
+    end
+    TGW<-.->spN-TGWA <-- 0.0.0.0/0 -->spN-rtb-pvt
+    spN-igw[IGW] <-- 0.0.0.0/0 -->spN-rtb-pub
+  end
+  subgraph cluster3 [AWS Account 'Client #1']
+    subgraph cluster31 [Spoke#1_VPC_10.10.0.0/16];
+      sp1-net-pvt[Private subnets];
+      sp1-net-pub[Public subnets]
+      sp1-TGWA[TGW-Attachment]
+      sp1-rtb-pvt[Private Rtb]<-.->sp1-net-pvt;
+      sp1-rtb-pub[Public Rtb]<-.->sp1-net-pub;
+    end
+    TGW<-.->sp1-TGWA <-- 0.0.0.0/0 -->sp1-rtb-pvt
+    sp1-igw[IGW] <-- 0.0.0.0/0 -->sp1-rtb-pub
+  end
+```
 
 ### Prerequisites
 
@@ -42,7 +84,7 @@ aws cloudformation create-stack \
         ParameterKey=NamePrefix,ParameterValue=${RESOURCE_NAME_PREFIX}
 ```
 
-- Wait for creation complete:
+- Wait for creation to complete:
 
 ```sh
 aws cloudformation wait stack-create-complete \
@@ -71,17 +113,17 @@ Create the "Hub VPC" in the "Management" account.
 Overview of steps:
 
 - Create regular VPC (172.254.0.0/16)
-- Create a private and public subnets across zones
+- Create a private and public subnet across zones
 - Create IGW
 - Create a single Nat GW
 - Create public route table -> IGW
 - Create private route table -> NGW
 
-- Create Transit Gateway attachment
+- Create a Transit Gateway attachment
 - Create TGW default route to TG attachment in TG RTB
 - Create route entry to 10.0.0.0/8 to Attachment in both public and private route tables for the VPC
 
-- Deploy mirror registry into hub VPC in public subnet
+- Deploy mirror registry into hub VPC in the public subnet
 - Create DNS
 
 ### Prerequisites
@@ -172,7 +214,7 @@ aws cloudformation execute-change-set \
     --stack-name "${HUB_VPC_STACK_NAME}"
 ```
 
-- Wait for nested stack complete:
+- Wait for the nested stack to complete:
 
 ```sh
 aws cloudformation wait stack-create-complete \
@@ -180,9 +222,9 @@ aws cloudformation wait stack-create-complete \
     --stack-name "${HUB_VPC_STACK_NAME}"
 ```
 
-- Create static route for default route entry in TGW Rtb:
+- Create a static route for default route entry in TGW Rtb:
 
-> TODO: TGW module does not provide RTB ID, create custom resource.
+> TODO: TGW module does not provide RTB ID, create the custom resource.
 
 ```sh
 TGW_ATT_HUB=$(aws cloudformation describe-stacks \
@@ -207,17 +249,17 @@ aws cloudformation delete-stack --stack-name "transit-network-hub"
 Install OpenShift cluster in existing VPC (spoke VPC) on AWS using Transit Gateway as
 egress gateway for private subnets (spoke VPC).
 
-The CloudFormation templates have been split to provision resources individuallly,
-allowing creating single nested templates to deliver an solution.
+The CloudFormation templates have been split to provision resources individually,
+allowing creating single nested templates to deliver a solution.
 
-The steps described in this section creates nested stack to provision
+The steps described in this section create a nested stack to provision
 an AWS VPC and requirements components to deploy OpenShift, using
 the Transit Gateway ID to attach to the new VPC, using it as an egress
 traffic/default route entry in the private subnets, replacing the per
 VPC Nat Gateway resource.
 
 The OpenShift cluster deployment will follow the default flow of installing
-a cluster in existing network (BYO VPC) supplying the subnet IDs in the option
+a cluster in the existing network (BYO VPC) supplying the subnet IDs in the option
 `platform.aws.subnets`.
 
 ### Prerequisites
@@ -232,7 +274,7 @@ Overview:
 - Create regular VPC  (10.0.0.0/16)
 - Create private and public subnets across zones
 - Create IGW
-- Create Transit Gateway attachment
+- Create a Transit Gateway attachment
 - Create public route table -> IGW
 - Create private subnets -> TGW Attch
 
@@ -356,8 +398,8 @@ aws cloudformation delete-stack \
 Install OpenShift cluster on AWS using Transit Gateway as
 egress gateway for private subnets (spoke VPC).
 
-The steps described in this section creates an OpenShift cluster,
-forcing to create an Transit Gateway Attachment linked to the VPC
+The steps described in this section create an OpenShift cluster,
+forcing to create a Transit Gateway Attachment linked to the VPC
 when the install-config option `platform.aws.privateEgressTransitGatewayId`
 is set with the Transit Gateway ID created in the section "".
 The installer skips the Nat Gateway creation, adding the default
@@ -376,9 +418,9 @@ Overview:
 - Create regular VPC  (10.1.0.0/16)
 - Create private and public subnets across zones
 - Create IGW
-- Create Transit Gateway attachment
+- Create a Transit Gateway attachment
 - Create public route table -> IGW
-- Create private subnets -> TGW Attch
+- Create private subnets -> TGW Attach
 
 Deploy:
 
