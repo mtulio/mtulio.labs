@@ -1,8 +1,10 @@
-# Kubernetes Scaling Lab | Setup OpenShift ClusterAutoscaler
+# Kubernetes Scaling Lab | OpenShift ClusterAutoscaler
 
 ### OpenShift cluster auto scaling
 
+
 ```sh
+# Choose one
 DEDICATED_NODE=true
 PATCH_DEDICATED="{\"spec\":{
       \"template\":{
@@ -10,6 +12,8 @@ PATCH_DEDICATED="{\"spec\":{
           \"metadata\":{\"labels\":{\"lab-scaling-test\":\"true\"}},
           \"taints\":[{\"key\": \"lab-scaling-test\", \"effect\":\"NoSchedule\"}]
           }}}}"
+
+DEDICATED_NODE=false
 PATCH_LABEL="{\"spec\":{
       \"template\":{
         \"spec\":{

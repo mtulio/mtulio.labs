@@ -1,11 +1,15 @@
-# Kubernetes Scale Validation
+# Kubernetes scaling exploration
 
-Simple way to create "workloads" (pause pods with fixed requests) to validate the
-cluster scale up/down.
+Some options to create "workloads" to exercise the kube cluster scale up/down in OpenShift.
 
 ## Requirements
 
 ### Install clients
+
+- openshift-install
+- oc
+
+**Optional**:
 
 - kustomize
 
@@ -14,8 +18,14 @@ wget -O /tmp/kustomize.tgz  https://github.com/kubernetes-sigs/kustomize/release
 tar xvfz /tmp/kustomize.tgz  -C ~/bin/
 ```
 
-- openshift-install
-- oc
+- k9s
+
+```sh
+wget -qO /tmp/k9s.tgz https://github.com/derailed/k9s/releases/download/v0.29.1/k9s_Linux_amd64.tar.gz
+tar xvfz /tmp/k9s.tgz  -C /tmp/ && mv /tmp/k9s ~/bin/k9s
+```
+
+
 
 ### Install OpenShift cluster on AWS (default)
 
@@ -103,7 +113,7 @@ oc apply -k overlay/inflate-00-up-1
 oc get pods -n lab-scaling
 ~~~
 
-> Check if the ClusterAutoscaling triggered the Machine creation through MachineAutoscaling/MachineSet.
+> Check if the Cluster Autoscaler triggered the Machine creation through MachineAutoscaling/MachineSet.
 
 - Inflate the cluster to 12 pods (medium?)
 
@@ -137,6 +147,12 @@ oc get nodes
 oc apply -k overlay/inflate-00-up-1
 ~~~
 
+- Scale down to 0 replica (expect to remove nodes):
+
+~~~sh
+oc apply -k overlay/inflate-00-up-0
+~~~
+
 ### Tests using the with kube-burner
 
 [kube-burner](https://cloud-bulldozer.github.io/kube-burner/latest/ocp/?h=density+v2#metrics-profile-type)
@@ -153,7 +169,9 @@ tar xfz /tmp/kube-burner.tgz -C /tmp && mv /tmp/kube-burner ~/bin
 - Run cluster-density-v2
 
 ```sh
-kube-burner ocp cluster-density-v2 --iterations=1 --churn-duration=2m0s 
+kube-burner ocp cluster-density-v2 --iterations=1 --churn-duration=5m0s  
+
+kube-burner ocp cluster-density-v2 --iterations=50 --churn-duration=5m0s
 ```
 
 - Run cluster-density-v2
@@ -163,3 +181,15 @@ kube-burner ocp node-density --pods-per-node=150 --burst 50
 ```
 
 - (TODO?) Run the web-burner-cluster-density
+
+
+
+## References
+
+Other future explorations:
+
+- [AWS Auto Scaling Group with native Kubernetes Cluster Autoscaler](https://aws.github.io/aws-eks-best-practices/cluster-autoscaling/)
+- [KEDA + Karpenter](https://github.com/aws-samples/
+amazon-eks-scaling-with-keda-and-karpenter)
+    - [Use case: Mastercard](https://www.youtube.com/watch?v=yOzyXY97CrI)
+- [Native AWS predictive Scaling with Kube?](https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-predictive-scaling.html)

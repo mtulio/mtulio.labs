@@ -114,6 +114,7 @@ nav:
         - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
         - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
         - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
+        - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
 
       - OpenShift Installing:
         - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
@@ -143,7 +144,7 @@ nav:
         - Blog - Installing Local Zone nodes in Existing VPC (4.13+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413.md
         - Blog demo - Installing with Local Zone nodes in Existing VPC (4.13+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413-script.md
         - Hands-on Local Zones (verbose draft) : guides/ocp-aws-local-zones-hands-on.md
-        - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelengh-zones-hands-on.md
+        - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelength-zones-hands-on.md
 
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md

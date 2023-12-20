@@ -8,10 +8,10 @@ spec:
     maxNodesTotal: 16
     cores:
       min: 0
-      max: 128
+      max: 192
     memory:
       min: 0
-      max: 128
+      max: 256
   logVerbosity: 4
   scaleDown:
     enabled: true
