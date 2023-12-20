@@ -13,16 +13,20 @@ spec:
       labels:
         app: inflate
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/worker: ""
+      # nodeSelector:
+      #   lab-scaling-test: "true"
+      # tolerations: 
+      # - key: "lab-scaling-test"
+      #   operator: "Exists"
+      #   effect: "NoSchedule"
       terminationGracePeriodSeconds: 0
       containers:
         - name: inflate
           image: public.ecr.aws/eks-distro/kubernetes/pause:3.2
           resources:
-            limits:
-              cpu: 1
-              memory: 1GiB
             requests:
-              cpu: 1
-              memory: 1Gi
+              memory: "1Gi"
+              cpu: "1000m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
