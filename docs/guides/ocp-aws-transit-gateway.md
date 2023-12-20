@@ -1,4 +1,4 @@
-# Install a cluster with Transit Gateway
+# Install an OCP cluster on AWS with Transit Gateway
 
 !!! warning "Experimental steps"
     The steps described on this page are experimental, as usual on my lab's website! =]
@@ -24,20 +24,20 @@ graph LR
       hub-NATGW[NAT GW] --> hub-net-pub;
       hub-TGWA[TGW-Attachment]
     end
-    TGW<-.->hub-TGWA <-- 10.0.0.0/8 -->hub-rtb-pvt
     hub-rtb-pvt -- 0.0.0.0/0 --> hub-NATGW
     hub-rtb-pub  <-- 0.0.0.0/0 --> hub-igw[IGW]
+    TGW  -- 0.0.0.0/0 -->  hub-TGWA <-- 10.0.0.0/8 -->hub-rtb-pvt
   end
   subgraph cluster2 [AWS Account 'Client #N']
-    subgraph cluster22 [Spoke#N_VPC_10.10.0.0/16];
+    subgraph cluster22 [Spoke#N_VPC_10.N.0.0/16];
       spN-net-pvt[Private subnets];
       spN-net-pub[Public subnets]
       spN-TGWA[TGW-Attachment]
       spN-rtb-pvt[Private Rtb]<-.->spN-net-pvt;
       spN-rtb-pub[Public Rtb]<-.->spN-net-pub;
     end
-    TGW<-.->spN-TGWA <-- 0.0.0.0/0 -->spN-rtb-pvt
     spN-igw[IGW] <-- 0.0.0.0/0 -->spN-rtb-pub
+    TGW -- 10.N.0.0/16 --> spN-TGWA <-- 0.0.0.0/0 -->spN-rtb-pvt
   end
   subgraph cluster3 [AWS Account 'Client #1']
     subgraph cluster31 [Spoke#1_VPC_10.10.0.0/16];
@@ -47,8 +47,8 @@ graph LR
       sp1-rtb-pvt[Private Rtb]<-.->sp1-net-pvt;
       sp1-rtb-pub[Public Rtb]<-.->sp1-net-pub;
     end
-    TGW<-.->sp1-TGWA <-- 0.0.0.0/0 -->sp1-rtb-pvt
-    sp1-igw[IGW] <-- 0.0.0.0/0 -->sp1-rtb-pub
+    sp1-igw[IGW] <-- 0.0.0.0/0 --> sp1-rtb-pub
+    TGW -- 10.10.0.0/16 --> sp1-TGWA <-- 0.0.0.0/0 --> sp1-rtb-pvt
   end
 ```
 
