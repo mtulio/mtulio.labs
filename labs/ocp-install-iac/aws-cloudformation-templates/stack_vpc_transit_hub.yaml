@@ -1,0 +1,183 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Nested Stack for the Hub VPC used by Egress traffic through Transit Gateway.
+# Options:
+#   Tags:
+#   - Key: AppManagerCFNStackKey
+#     Value: true
+Parameters:
+  VpcCidr:
+    #AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
+    #ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
+    Default: 172.16.0.0/16
+    Description: CIDR block for VPC.
+    Type: String
+
+  AllowedEgressCidr:
+    #AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
+    #ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
+    Default: 10.0.0.0/16
+    Description: Transit CIDR block for all the Spoke VPCs.
+    Type: String
+
+  NamePrefix:
+    AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
+    MaxLength: 27
+    MinLength: 1
+    ConstraintDescription: Cluster name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
+    Description: A short, representative cluster name to use for host names and other identifying names.
+    Type: String
+
+  TemplatesBaseURL:
+    Type: String
+    Description: Choose 2 Subnets to create Load balancer and ASG
+
+  PrivateEgressTransitGatewayID:
+    Type: String
+    Description: Choose 2 Subnets to create Load balancer and ASG
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_00_standalone.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        VpcCidr: !Ref VpcCidr
+
+  PublicRouteTable:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_route_table.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        NameSuffix: "public"
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+
+  PrivateRouteTable:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_route_table.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        NameSuffix: "private"
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+
+  Subnets1a:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_subnet.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        ClusterName: !Ref NamePrefix
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+        ZoneName: us-east-1a
+        PublicRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        PublicSubnetCidr: "172.16.0.0/24"
+        PrivateRouteTableId: !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
+        PrivateSubnetCidr: "172.16.16.0/24"
+
+  Subnets1b:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_subnet.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        ClusterName: !Ref NamePrefix
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+        ZoneName: us-east-1b
+        PublicRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        PublicSubnetCidr: "172.16.1.0/24"
+        PrivateRouteTableId: !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
+        PrivateSubnetCidr: "172.16.17.0/24"
+
+  Subnets1c:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_subnet.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        ClusterName: !Ref NamePrefix
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+        ZoneName: us-east-1c
+        PublicRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        PublicSubnetCidr: "172.16.2.0/24"
+        PrivateRouteTableId: !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
+        PrivateSubnetCidr: "172.16.18.0/24"
+
+  InternetGateway:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_internet_gateway.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        DefaultRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        NamePrefix: !Ref NamePrefix
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+
+  NatGatewayStandalone:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+    - InternetGateway
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_nat_gateway.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        DefaultRouteTableId: !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
+        PublicSubnetId: !GetAtt 'Subnets1a.Outputs.PublicSubnetId'
+ 
+  TransitGatewayAttachment:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+    - Subnets1a
+    - Subnets1b
+    - Subnets1c
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_transit_gateway_attachment.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        SubnetIds: !Join [', ', [!GetAtt 'Subnets1a.Outputs.PrivateSubnetId', !GetAtt 'Subnets1b.Outputs.PrivateSubnetId', !GetAtt 'Subnets1c.Outputs.PrivateSubnetId']]
+        # TODO support more than one subnet
+        #  - !GetAtt 'Subnets1a.Outputs.PrivateSubnetId'
+        #  - !GetAtt 'Subnets1b.Outputs.PrivateSubnetId'
+        #  - !GetAtt 'Subnets1c.Outputs.PrivateSubnetId'
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+        TransitGatewayId: !Ref 'PrivateEgressTransitGatewayID'
+
+  PublicRouteSpokeNetworks:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+    - PublicRouteTable
+    - TransitGatewayAttachment
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_03_route_entry.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        RouteTableId:  !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        DestinationCidrBlock: !Ref AllowedEgressCidr
+        TransitGatewayId: !Ref 'PrivateEgressTransitGatewayID'
+
+  PrivateRouteSpokeNetworks:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+    - PrivateRouteTable
+    - TransitGatewayAttachment
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_03_route_entry.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        RouteTableId:  !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
+        DestinationCidrBlock: !Ref AllowedEgressCidr
+        TransitGatewayId: !Ref 'PrivateEgressTransitGatewayID'
+
+  # TODO: create default route in default TGW route table forwarding to Hub VPC/TGW-Attchm
+
+Outputs:
+  VpcId:
+    Value: !GetAtt 'VPC.Outputs.VpcId'
+  TransitGatewayAttachmentId:
+    Value: !GetAtt 'TransitGatewayAttachment.Outputs.TransitGatewayAttachmentId'

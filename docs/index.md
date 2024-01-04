@@ -9,10 +9,17 @@ Enjoy it! =)
 
 ## Pages
 
-- [Home](https://mtulio.net)
-- [Runbooks/Playbooks](https://mtulio.net/notes) : Steps to run some solution
-- [Notes](https://mtulio.net/notes) : Random notes organized by technology
-- [Articles](https://mtulio.net/articles) : Blog/Articles
+- [Home](https://mtulio.dev)
+- [Guides/Runbooks/Playbooks](https://mtulio.dev/playbooks) : Steps to run some solution
+- [Notes](https://mtulio.dev/notes) : Random notes organized by technology
+- [Articles](https://mtulio.dev/articles) : Blog/Articles
+
+## Serverless services
+
+- [What is my IP Address?](https://mtulio.dev/api/ip/ip)
+- [Geo information about my IP](https://mtulio.dev/api/geo)
+- [HTTP echo](https://mtulio.dev/api/echo/echo?just-a-test)
+- [Ping!](https://mtulio.dev/api/ping/ping)
 
 <!--
 
