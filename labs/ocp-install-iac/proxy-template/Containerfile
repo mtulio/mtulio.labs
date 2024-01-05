@@ -1,0 +1,3 @@
+FROM quay.io/fedora/fedora-minimal:39
+RUN microdnf install -y bash squid && \
+    microdnf clean all
