@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template for create IAM Role
+
+Parameters:
+  NamePrefix:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    AllowedPattern: ".+"
+    ConstraintDescription: ClusterName parameter must be specified.
+  NameSuffix:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    Default: ""
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: ""
+      Parameters:
+      - NamePrefix
+   
+    ParameterLabels:
+      NamePrefix:
+        default: "Prefix for Resource Name"
+
+Resources:
+  IamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+            - "ec2.amazonaws.com"
+          Action:
+          - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+      - PolicyName: !Join ["-", [!Ref NamePrefix, !Ref NameSuffix]]
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: "Allow"
+            Action: "ec2:Describe*"
+            Resource: "*"
+          - Effect: "Allow"
+            Action: "s3:Get*"
+            Resource: "*"
+          - Effect: "Allow"
+            Action: "s3:List*"
+            Resource: "*"
+Outputs:
+  IamRoleArn:
+    Description: The IAM Role ARN.
+    Value: !Ref IamRole

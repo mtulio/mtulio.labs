@@ -124,6 +124,8 @@ nav:
         - Installing single node (SNO) on AWS [draft]: playbooks/openshift/ocp-aws-sno-install.md
         - Installing on Azure with etcd in Data Disks: playbooks/openshift/ocp-azure-disk-ephemeral.md
         - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
+        - Installing Private clusters on AWS:
+          - Installing OCP on AWS with Proxy in IPv6 public subnet: guides/ocp-aws-private-proxy.md
 
       - OpenShift on AWS with STS:
         - Articles: playbooks/openshift/ocp-aws-cco-oidc.md

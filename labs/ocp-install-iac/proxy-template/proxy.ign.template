@@ -1,0 +1,70 @@
+{
+  "ignition": {
+    "config": {},
+    "security": {
+      "tls": {}
+    },
+    "timeouts": {},
+    "version": "3.0.0"
+  },
+  "passwd": {
+    "users": [
+      {
+        "name": "core",
+        "sshAuthorizedKeys": [
+          "${ssh_pub_key}"
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "files": [
+      {
+        "path": "/etc/squid/passwords",
+        "contents": {
+          "source": "data:text/plain;base64,${HTPASSWD_CONTENTS}"
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/squid/squid.conf",
+        "contents": {
+          "source": "data:text/plain;base64,${SQUID_CONFIG}"
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/squid.sh",
+        "contents": {
+          "source": "data:text/plain;base64,${SQUID_SH}"
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/squid/proxy.sh",
+        "contents": {
+          "source": "data:text/plain;base64,${PROXY_SH}"
+        },
+        "mode": 420
+      }
+    ]
+  },
+  "systemd": {
+    "units": [
+      {
+        "contents": "[Unit]\nWants=network-online.target\nAfter=network-online.target\n[Service]\n\nStandardOutput=journal+console\nExecStart=bash /etc/squid.sh\n\n[Install]\nRequiredBy=multi-user.target\n",
+        "enabled": true,
+        "name": "squid.service"
+      },
+      {
+        "dropins": [
+          {
+            "contents": "[Service]\nExecStart=\nExecStart=/usr/lib/systemd/systemd-journal-gatewayd \\\n  --key=/opt/openshift/tls/journal-gatewayd.key \\\n  --cert=/opt/openshift/tls/journal-gatewayd.crt \\\n  --trust=/opt/openshift/tls/root-ca.crt\n",
+            "name": "certs.conf"
+          }
+        ],
+        "name": "systemd-journal-gatewayd.service"
+      }
+    ]
+  }
+}
