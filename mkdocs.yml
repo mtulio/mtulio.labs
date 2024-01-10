@@ -115,6 +115,7 @@ nav:
         - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
         - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
         - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
+        - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
 
       - OpenShift Installing:
         - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
