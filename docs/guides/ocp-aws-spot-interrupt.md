@@ -25,12 +25,14 @@ curl -Lso ./50_fips_spot_interruption.yaml https://raw.githubusercontent.com/mtu
 - Create the CloudFormation stack targetting the cluster:
 
 ```sh
+export AWS_REGION=us-east-1
 # Create the experiment triggering many spot instances (100)
 ## Time before Interrupt in minutes
 BEFORE_INTERRUPTION_TIME=2
 SPOT_INSTANCE_COUNT=10
 TEMPLATE_PATH=file://./50_fips_spot_interruption.yaml
 # TEMPLATE_PATH=file://./labs/ocp-install-iac/aws-cloudformation-templates/50_fips_spot_interruption.yaml
+
 aws cloudformation create-stack \
     --region ${AWS_REGION} \
     --stack-name "${INFRA_ID}-spot-interrupt" \
@@ -70,7 +72,7 @@ aws fis start-experiment --experiment-template-id $EXPERIMENT_TEMPLATE_ID
 EXPERIMENT_ID=$(aws fis list-experiments \
     | jq -r ".experiments[] \
         | select (.state.status==\"completed\") \
-        | select(.experimentTemplateId==\"$EXPERIMENT_ID\").id")
+        | select(.experimentTemplateId==\"$EXPERIMENT_TEMPLATE_ID\").id")
 
 # Show the experiment (tip: AWS Console shows nodes affected, the CLI is not returning it.)
 aws fis get-experiment --id $EXPERIMENT_ID
