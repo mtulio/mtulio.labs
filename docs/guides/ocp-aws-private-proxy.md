@@ -7,6 +7,17 @@
     The CloudFormation templates mentioned on this page are available in the path:
     [mtulio.labs/labs/labs/ocp-install-iac/aws-cloudformation-templates](https://github.com/mtulio/mtulio.labs/tree/master/labs/ocp-install-iac/aws-cloudformation-templates)
 
+Exercising OpenShift on private networks to mitigate public IPv4 utilization.
+
+Options:
+0) Dualstack VPC with egress using IPv6
+1) Private/Proxy VPC with proxy running in the VPC in IPv6 subnets
+2) Private/Proxy disconnected VPC with proxy running outside VPC (custom PrivateLink service)
+3) Private/Disconnected VPC with mirrored images with registry running in the VPC with IPv6 subnets
+4) Private/Disconnected VPC with mirrored images with registry running outside the VPC with IPv6 subnets
+
+> NOTE: To access the cluster it is required a jump host. The jump host can: A) hosted in the public IPv6 subnet with SSH port forwarding; B) hosted in private subnet with SSM port forwarding
+
 Install an OCP cluster on AWS with private subnets with proxy using AWS VPC PrivateLink.
 
 
@@ -85,117 +96,63 @@ function update_templates() {
 }
 ```
 
-## Create VPC
+## Option 2) VPC dual-stack with IPv6 as egress traffic
 
-TODO
+| Publish | Install type | 
+| -- | -- |
+| Internal | BYO VPC/Restricted/Proxy |
 
-- Extract and merge the subnet IDs:
+Items:
+
+- Publish=Internal
+- Public subnets with dual-stack
+- Private subnets single-stack IPv4 with black hole default route
+- IPv4 public IP assignment blocked in public subnets
+- IPv6 IP assignment enabled by default in the public subnet
+
+Results:
+
+- ??
+
+Steps:
+
+- Sync Templates:
 
 ```sh
-export VPC_ID=vpc-0e64d023ca085182f
-mapfile -t SUBNETS < <(aws ec2 describe-subnets --filters Name=vpc-id,Values=${VPC_ID} --query "Subnets[?AssignIpv6AddressOnCreation==\`false\`].SubnetId" --output text | tr '[:space:]' '\n')
-```
-
-## Create install-config.yaml
-
-TODO for private with subnets
-
-> https://docs.openshift.com/container-platform/4.14/installing/installing_aws/installing-aws-private.html#installation-aws-config-yaml_installing-aws-private
-
-- Create install-config.yaml:
-
-```sh
-export PULL_SECRET_FILE=/path/to/pull-secret
+export CLUSTER_VPC_CIDR=10.0.0.0/16
 export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
-export BASE_DOMAIN=devcluster.openshift.com
-export INSTALL_DIR="${HOME}/openshift-labs/${CLUSTER_NAME}"
-mkdir $INSTALL_DIR
+export RESOURCE_NAME_PREFIX="lab-ci"
+export AWS_REGION=us-east-1
 
-cat <<EOF > ${INSTALL_DIR}/install-config.yaml
-apiVersion: v1
-publish: Internal
-baseDomain: ${BASE_DOMAIN}
-metadata:
-  name: "${CLUSTER_NAME}"
-networking:
-  machineNetwork:
-  - cidr: ${CLUSTER_VPC_CIDR}
-platform:
-  aws:
-    region: ${AWS_REGION}
-    subnets:
-$(for SB in ${SUBNETS[*]}; do echo "    - $SB"; done)
-
-pullSecret: '$(cat ${PULL_SECRET_FILE} | awk -v ORS= -v OFS= '{$1=$1}1')'
-sshKey: |
-  $(cat ${SSH_PUB_KEY_FILE})
-EOF
-```
-
-## Create Proxy
-
-### Prerequisites
-
-- switch to directory labs/ocp-install-iac
-
-- sync the cloudformation templates to the bucket
-
-```sh
-export TEMPLATES=()
-TEMPLATES+=("00_iam_role.yaml")
-TEMPLATES+=("01_vpc_99_security_group.yaml")
-TEMPLATES+=("04_ec2_instance.yaml")
-update_templates
-```
-
-- export variables used in the deployment
-
-```sh
 export WORKDIR=./labs/ocp-install-iac
 export CFN_TEMPLATE_PATH=${WORKDIR}/aws-cloudformation-templates
 export CFN_STACK_PATH=file://${CFN_TEMPLATE_PATH}
+
+export TEMPLATES=()
+TEMPLATES+=("01_vpc_00_standalone.yaml")
+TEMPLATES+=("01_vpc_01_route_table.yaml")
+TEMPLATES+=("01_vpc_01_cidr_block_ipv6.yaml")
+TEMPLATES+=("01_vpc_99_subnet.yaml")
+TEMPLATES+=("01_vpc_03_route_entry.yaml")
+TEMPLATES+=("01_vpc_01_route_table.yaml")
+TEMPLATES+=("01_vpc_01_internet_gateway.yaml")
+TEMPLATES+=("00_iam_role.yaml")
+TEMPLATES+=("01_vpc_99_security_group.yaml")
+TEMPLATES+=("04_ec2_instance.yaml")
+TEMPLATES+=("01_vpc_01_egress_internet_gateway.yaml")
+update_templates
 ```
 
-### Prepare the Proxy configuration
-
-- run the script:
+- Generate user data (ignitions) for proxy node server (squid):
 
 ```sh
-function generate_proxy_ignition() {
-  envsubst < ${WORKDIR}/proxy-template/proxy.ign.template > ${INSTALL_DIR}/proxy.ign
-  test -f ${INSTALL_DIR}/proxy.ign || echo "Failed to create ${INSTALL_DIR}/proxy.ign"
-  echo "${INSTALL_DIR}/proxy.ign"
-}
+curl -L -o /tmp/fcos.json https://builds.coreos.fedoraproject.org/streams/stable.json
 
-EXPIRATION_DATE=$(date -d '4 hours' --iso=minutes --utc)
-TAGS="Key=expirationDate,Value=${EXPIRATION_DATE}"
-
-CONFIG="${INSTALL_DIR}/install-config.yaml"
-
-#export  PROXY_IMAGE=registry.ci.openshift.org/origin/4.5:egress-http-proxy
 export PROXY_IMAGE=quay.io/mrbraga/squid:6.6
+export PROXY_NAME="${RESOURCE_NAME_PREFIX}-proxy"
+export PROXY_AMI_ID=$(jq -r .architectures.x86_64.images.aws.regions[\"${AWS_REGION}\"].image < /tmp/fcos.json)
 
-export PROXY_NAME="proxy-$(yq-go r "${CONFIG}" 'metadata.name')"
-export REGION="$(yq-go r "${CONFIG}" 'platform.aws.region')"
-echo Using region: ${REGION}
-test -n "${REGION}"
-
-curl -L -o /tmp/fcos-stable.json https://builds.coreos.fedoraproject.org/streams/stable.json
-export AMI_ID=$(jq -r .architectures.x86_64.images.aws.regions[\"${REGION}\"].image < /tmp/fcos-stable.json)
-if [ -z "${AMI}" ]; then
-  echo "Missing AMI in region: ${REGION}" 1>&2
-  exit 1
-fi
-export RELEASE=$(jq -r .architectures.x86_64.images.aws.regions[\"${REGION}\"].release < /tmp/fcos-stable.json)
-echo "Using FCOS ${RELEASE} AMI: ${AMI_ID}"
-
-export ssh_pub_key=$(<"${HOME}/.ssh/id_rsa.pub")
-
-# get the VPC ID from a subnet -> subnet.VpcId
-#PROXY_SUBNET_ID="$(yq-go r "${CONFIG}" 'platform.aws.subnets[0]')"
-PROXY_SUBNET_ID=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=${VPC_ID} --query "Subnets[?AssignIpv6AddressOnCreation==\`true\`].SubnetId" --output text | tr '[:space:]' '\n' | tail -n1)
-echo "Using aws_subnet: ${PROXY_SUBNET_ID}"
-
+export SSH_PUB_KEY=$(<"${SSH_PUB_KEY_FILE}")
 export PASSWORD="$(uuidgen | sha256sum | cut -b -32)"
 export HTPASSWD_CONTENTS="${PROXY_NAME}:$(openssl passwd -apr1 ${PASSWORD})"
 export HTPASSWD_CONTENTS="$(echo -e ${HTPASSWD_CONTENTS} | base64 -w0)"
@@ -209,70 +166,52 @@ export SQUID_SH="$(envsubst < ${WORKDIR}/proxy-template/squid.sh.template | base
 # define proxy.sh
 export PROXY_SH="$(base64 -w0 < ${WORKDIR}/proxy-template/proxy.sh)"
 
+# generate ignition file
+envsubst < ${WORKDIR}/proxy-template/proxy.ign.template > /tmp/proxy.ign
+test -f /tmp/proxy.ign || echo "Failed to create /tmp/proxy.ign"
 
-# create ignition entries for certs and script to start squid and systemd unit entry
-# create the proxy stack and then get its IP
+# publish ignition to shared bucket
 export PROXY_URI="s3://${BUCKET_NAME}/proxy.ign"
 export PROXY_URL="https://${BUCKET_NAME}.s3.amazonaws.com/proxy.ign"
 
-cat <<EOF
-PASSWORD=$PASSWORD
-HTPASSWD_CONTENTS=$HTPASSWD_CONTENTS
-SQUID_CONFIG=$SQUID_CONFIG
-SQUID_SH=$SQUID_SH
-PROXY_SH=$PROXY_SH
-PROXY_URL=$PROXY_URL
-PROXY_IMAGE=$PROXY_IMAGE
-EOF
+aws s3 cp /tmp/proxy.ign $PROXY_URI
 
-generate_proxy_ignition
-
-aws s3 cp ${INSTALL_DIR}/proxy.ign $PROXY_URI
-
-export USER_DATA=$(envsubst < labs/ocp-install-iac/proxy-template/userData.ign.template | base64 -w0)
+# Generate Proxy Instance user data
+export PROXY_USER_DATA=$(envsubst < ${WORKDIR}/proxy-template/userData.ign.template | base64 -w0)
 ```
 
-### Provision the instance
-
-Create the EC2 instance in the Public subnet with IPv6:
-
-> TODO --tags
+- Deploy VPC and Proxy node:
 
 ```sh
 cat <<EOF
-CFN_STACK_PATH=$CFN_STACK_PATH
-VPC_ID=$VPC_ID
-VPC_CIDR=$CLUSTER_VPC_CIDR
 NAME_PREFIX=${RESOURCE_NAME_PREFIX}-proxy
-AMI_ID=$AMI_ID
-PROXY_SUBNET_ID=$PROXY_SUBNET_ID
-USER_DATA=$USER_DATA
+PROXY_AMI_ID=$PROXY_AMI_ID
+PROXY_USER_DATA=$PROXY_USER_DATA
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-
-export PROXY_STACK_NAME="ocp-proxy10"
+export PROXY_STACK_NAME="${RESOURCE_NAME_PREFIX}-proxy-vpc8"
 aws cloudformation create-change-set \
 --stack-name "${PROXY_STACK_NAME}" \
 --change-set-name "${PROXY_STACK_NAME}" \
 --change-set-type "CREATE" \
---template-body ${CFN_STACK_PATH}/stack_ocp_private_proxy.yaml \
+--template-body ${CFN_STACK_PATH}/stack_ocp_private_vpc_ipv6_proxy.yaml \
 --include-nested-stacks \
 --capabilities CAPABILITY_IAM \
 --tags $TAGS \
 --parameters \
-  ParameterKey=VpcId,ParameterValue=${VPC_ID} \
   ParameterKey=VpcCidr,ParameterValue=${CLUSTER_VPC_CIDR} \
   ParameterKey=NamePrefix,ParameterValue=${RESOURCE_NAME_PREFIX}-proxy \
-  ParameterKey=AmiId,ParameterValue=${AMI_ID} \
-  ParameterKey=SubnetId,ParameterValue=${PROXY_SUBNET_ID} \
-  ParameterKey=UserData,ParameterValue=${USER_DATA} \
+  ParameterKey=ProxyAmiId,ParameterValue=${PROXY_AMI_ID} \
+  ParameterKey=ProxyUserData,ParameterValue=${PROXY_USER_DATA} \
   ParameterKey=TemplatesBaseURL,ParameterValue="${TEMPLATE_BASE_URL}"
+
 
 aws cloudformation describe-change-set \
 --stack-name "${PROXY_STACK_NAME}" \
 --change-set-name "${PROXY_STACK_NAME}"
 
+sleep 30
 aws cloudformation execute-change-set \
     --change-set-name "${PROXY_STACK_NAME}" \
     --stack-name "${PROXY_STACK_NAME}"
@@ -282,48 +221,120 @@ aws cloudformation wait stack-create-complete \
     --stack-name "${PROXY_STACK_NAME}"
 ```
 
-- Gather instance attributes
+- Create install-config.yaml
+
 ```sh
-export INSTANCE_ID="$(aws cloudformation describe-stacks \
+
+```
+
+
+- Discover the IP address of jump host
+
+```sh
+VPC_ID="$(aws cloudformation describe-stacks \
+  --stack-name "${PROXY_STACK_NAME}" \
+  --query 'Stacks[].Outputs[?OutputKey==`VpcId`].OutputValue' \
+  --output text)"
+PROXY_INSTANCE_ID="$(aws cloudformation describe-stacks \
   --stack-name "${PROXY_STACK_NAME}" \
   --query 'Stacks[].Outputs[?OutputKey==`ProxyInstanceId`].OutputValue' \
   --output text)"
+PROXY_INSTANCE_ID="i-0d3a2138e7f9395e8"
 
-export PRIVATE_PROXY_IP=$(aws cloudformation describe-stacks \
-  --stack-name "${PROXY_STACK_NAME}" \
-  --query 'Stacks[].Outputs[?OutputKey==`ProxyPrivateIp`].OutputValue' \
-  --output text)
+PROXY_IP6=$(aws ec2 describe-instances --instance-ids $PROXY_INSTANCE_ID --query 'Reservations[].Instances[].Ipv6Address' --output text)
 
-# AWS does not return IPv6 address in resource AWS::EC2::Instance
-# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-instance.html#aws-resource-ec2-instance-return-values
-export PUBLIC_PROXY_IP="$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[].Instances[].Ipv6Address" --output text)"
+PROXY_IP4=$(aws ec2 describe-instances --instance-ids $PROXY_INSTANCE_ID --query 'Reservations[].Instances[].PrivateIpAddress' --output text)
 
-export PROXY_URL="http://${PROXY_NAME}:${PASSWORD}@${PRIVATE_PROXY_IP}:3128/"
+export PROXY_SERVICE_URL="http://${PROXY_NAME}:${PASSWORD}@${PROXY_IP4}:3128"
 
-echo "Instance ${INSTANCE_ID}"
-echo "${PROXY_URL}"
-
-cat >> "${CONFIG}" << EOF
-proxy:
-  httpsProxy: ${PROXY_URL}
-  httpProxy: ${PROXY_URL}
-EOF
-
-echo "Instance ${INSTANCE_ID}"
+ssh -6 core@"[$PROXY_IP]" "pwd"
 ```
 
-### Destroy
+- Copy dependencies to jump host (proxy)
 
 ```sh
-aws cloudformation delete-stack --stack-name "$PROXY_STACK_NAME" &&
-
-update_templates
+scp -6 $(which openshift-install) core@"[$PROXY_IP]:~/"
+scp -6 $(which oc) core@"[$PROXY_IP]:~/"
 ```
 
-## Costs
 
-> TBD
+- Install the cluster
 
-## References
+```sh
+export PULL_SECRET_FILE=/path/to/pull-secret
+export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
+export BASE_DOMAIN=devcluster.openshift.com
+export CLUSTER_NAME="lab415"
+export CLUSTER_VPC_CIDR="10.0.0.0/16"
+export AWS_REGION=us-east-1
+export INSTALL_DIR="${HOME}/openshift-labs/${CLUSTER_NAME}"
+mkdir $INSTALL_DIR
 
-TBD
+mapfile -t SUBNETS < <(aws ec2 describe-subnets --filters Name=vpc-id,Values=${VPC_ID} --query "Subnets[?AssignIpv6AddressOnCreation==\`false\`].SubnetId" --output text | tr '[:space:]' '\n')
+
+cat <<EOF > ${INSTALL_DIR}/install-config.yaml
+apiVersion: v1
+publish: Internal
+baseDomain: ${BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME}"
+networking:
+  machineNetwork:
+  - cidr: ${CLUSTER_VPC_CIDR}
+platform:
+  aws:
+    region: ${AWS_REGION}
+    serviceEndpoints: 
+      - name: ec2
+        url: https://ec2.${AWS_REGION}.amazonaws.com
+      - name: elasticloadbalancing
+        url: https://elasticloadbalancing.${AWS_REGION}.amazonaws.com
+      - name: s3
+        url: https://s3.${AWS_REGION}.amazonaws.com
+      - name: iam
+        url: https://iam.${AWS_REGION}.amazonaws.com
+      - name: sts
+        url: https://sts.${AWS_REGION}.amazonaws.com
+      - name: kms
+        url: https://kms.${AWS_REGION}.amazonaws.com
+        
+    subnets:
+$(for SB in ${SUBNETS[*]}; do echo "    - $SB"; done)
+
+pullSecret: '$(cat ${PULL_SECRET_FILE} | awk -v ORS= -v OFS= '{$1=$1}1')'
+sshKey: |
+  $(cat ${SSH_PUB_KEY_FILE})
+
+proxy:
+  httpsProxy: ${PROXY_SERVICE_URL}
+  httpProxy: ${PROXY_SERVICE_URL}
+  noProxy: ec2.${AWS_REGION}.amazonaws.com,elasticloadbalancing.${AWS_REGION}.amazonaws.com,s3.${AWS_REGION}.amazonaws.com,sts.${AWS_REGION}.amazonaws.com,route53.${AWS_REGION}.amazonaws.com,iam.${AWS_REGION}.amazonaws.com
+EOF
+
+scp -6 ${INSTALL_DIR}/install-config.yaml core@"[$PROXY_IP]:~/install-config.yaml"
+
+ssh -6 core@$PROXY_IP "nohup ./openshift-install create cluster >> install.out 2>>&1 &"
+```
+
+<!-- 
+    serviceEndpoints: 
+      - name: ec2
+        url: https://ec2.${REGION}.amazonaws.com
+      - name: elasticloadbalancing
+        url: https://elasticloadbalancing.${REGION}.amazonaws.com
+      - name: s3
+        url: https://s3.${REGION}.amazonaws.com
+      - name: iam
+        url: https://iam.${REGION}.amazonaws.com
+      - name: tagging
+        url: https://tagging.${REGION}.amazonaws.com
+      - name: route53
+        url: https://route53.${REGION}.amazonaws.com
+      - name: sts
+        url: https://sts.${REGION}.amazonaws.com
+      - name: autoscaling
+        url: https://autoscaling.${REGION}.amazonaws.com
+      - name: servicequotas
+        url: https://servicequotas.${REGION}.amazonaws.com
+      - name: kms
+        url: https://kms.${REGION}.amazonaws.com -->
