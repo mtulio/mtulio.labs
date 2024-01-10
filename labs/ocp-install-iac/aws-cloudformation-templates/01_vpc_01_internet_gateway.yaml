@@ -32,13 +32,13 @@ Resources:
       VpcId: !Ref VpcId
       InternetGatewayId: !Ref Gateway
 
-  Route:
-    Type: "AWS::EC2::Route"
-    DependsOn: GatewayAttachment
-    Properties:
-      RouteTableId: !Ref DefaultRouteTableId
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref Gateway
+  # Route:
+  #   Type: "AWS::EC2::Route"
+  #   DependsOn: GatewayAttachment
+  #   Properties:
+  #     RouteTableId: !Ref DefaultRouteTableId
+  #     DestinationCidrBlock: 0.0.0.0/0
+  #     GatewayId: !Ref Gateway
 
 Outputs:
   InternetGatewayId:
