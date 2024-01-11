@@ -27,26 +27,26 @@ Resources:
       - Key: Name
         Value: !Join ['-', [!Ref NamePrefix, !Ref NameSuffix]]
 
-  S3Endpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Effect: Allow
-          Principal: '*'
-          Action:
-          - '*'
-          Resource:
-          - '*'
-      RouteTableIds:
-      - !Ref RouteTable
-      ServiceName: !Join
-      - ''
-      - - com.amazonaws.
-        - !Ref 'AWS::Region'
-        - .s3
-      VpcId: !Ref VpcId
+  # S3Endpoint:
+  #   Type: AWS::EC2::VPCEndpoint
+  #   Properties:
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #       - Effect: Allow
+  #         Principal: '*'
+  #         Action:
+  #         - '*'
+  #         Resource:
+  #         - '*'
+  #     RouteTableIds:
+  #     - !Ref RouteTable
+  #     ServiceName: !Join
+  #     - ''
+  #     - - com.amazonaws.
+  #       - !Ref 'AWS::Region'
+  #       - .s3
+  #     VpcId: !Ref VpcId
 
 Outputs:
   RouteTableId:

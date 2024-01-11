@@ -27,11 +27,11 @@ Resources:
       - Key: Name
         Value: !Join ['-', [!Ref NamePrefix, "vpc"]]
 
-  IPv6CidrBlock:
-    Type: AWS::EC2::VPCCidrBlock
-    Properties:
-        AmazonProvidedIpv6CidrBlock: true
-        VpcId: !Ref VPC
+  # IPv6CidrBlock:
+  #   Type: AWS::EC2::VPCCidrBlock
+  #   Properties:
+  #       AmazonProvidedIpv6CidrBlock: true
+  #       VpcId: !Ref VPC
 
 Outputs:
   VpcId:
@@ -40,6 +40,6 @@ Outputs:
   CidrBlock:
     Description: ID of the new VPC.
     Value: !GetAtt VPC.CidrBlock
-  Ipv6CidrBlocks:
-    Description: IPv6 CIDR block.
-    Value: !GetAtt VPC.Ipv6CidrBlocks
+  # Ipv6CidrBlocks:
+  #   Description: IPv6 CIDR block.
+  #   Value: !GetAtt VPC.Ipv6CidrBlocks

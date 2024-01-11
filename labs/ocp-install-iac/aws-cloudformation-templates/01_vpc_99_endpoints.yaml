@@ -7,35 +7,178 @@ Parameters:
     Type: String
     AllowedPattern: ^(?:(?:vpc)(?:-[a-zA-Z0-9]+)?\b|(?:[0-9]{1,3}\.){3}[0-9]{1,3})$
     ConstraintDescription: VPC ID must be with valid name, starting with vpc-.*.
-  ClusterName:
+  VpcCidr:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
+    Default: 10.0.0.0/16
+    Description: CIDR block for VPC.
+    Type: String
+  NamePrefix:
     Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
     Type: String
     AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
-    ConstraintDescription: ClusterName parameter must be specified.
+    ConstraintDescription: NamePrefix parameter must be specified.
+
+  SubnetIds:
+    Type: String
+    Default: "True"
+  GatewayEndpointRouteTableIds:
+    Type: String
+    Default: ""
+    Description: "Route table ids for Gateway service endpoint, sepparated by comma. Example: rtb-id1,rtb-id2"
+
+  CreateEndpointS3:
+    Type: String
+    Default: "True"
+    AllowedValues: ["True", "False"]
+
+  CreateEndpointEC2:
+    Type: String
+    Default: "True"
+    AllowedValues: ["True", "False"]
+
+  CreateEndpointELB:
+    Type: String
+    Default: "True"
+    AllowedValues: ["True", "False"]
+
+  CreateEndpointRoute53:
+    Type: String
+    Default: "True"
+    AllowedValues: ["True", "False"]
+
+  CreateEndpointSTS:
+    Type: String
+    Default: "True"
+    AllowedValues: ["True", "False"]
+
+  CreateEndpointKMS:
+    Type: String
+    Default: "True"
+    AllowedValues: ["True", "False"]
+
+  CreateEndpointIAM:
+    Type: String
+    Default: "True"
+    AllowedValues: ["True", "False"]
+
+Conditions:
+  EnableEndpointS3: !Equals [!Ref "CreateEndpointS3", "True"]
 
 Resources:
+
+  VPCeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security Group for VPC endpoints"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: !Ref VpcCidr
+      - IpProtocol: tcp
+        ToPort: 3128
+        FromPort: 3128
+        CidrIp: !Ref VpcCidr
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: !Ref VpcCidr
+      - IpProtocol: tcp
+        ToPort: 3128
+        FromPort: 3128
+        CidrIp: !Ref VpcCidr
+      VpcId: !Ref VpcId
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref NamePrefix, "sg-vpce"]]
+
   S3Endpoint:
     Type: AWS::EC2::VPCEndpoint
+    Condition: EnableEndpointS3
     Properties:
+      VpcEndpointType: 'Gateway'
       PolicyDocument:
         Version: 2012-10-17
         Statement:
         - Effect: Allow
           Principal: '*'
-          Action:
-          - '*'
-          Resource:
-          - '*'
-      RouteTableIds:
-      - !Ref PublicRouteTable
-      ServiceName: !Join
-      - ''
-      - - com.amazonaws.
-        - !Ref 'AWS::Region'
-        - .s3
+          Action: ['*']
+          Resource: ['*']
+      RouteTableIds: !Split [",", !Ref GatewayEndpointRouteTableIds]
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
       VpcId: !Ref VpcId
+      # Tags:
+      # - Key: Name
+      #   Value: !Join ['', [!Ref NamePrefix, "vpce-s3"]]
 
-Outputs:
-  PublicRouteTableId:
-    Description: Public Route table ID
-    Value: !Ref PublicRouteTable
+  EC2Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    # Condition: !Equals [!Ref "CreateEndpointEC2", "True"]
+    Properties:
+      VpcEndpointType: 'Interface'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2'
+      VpcId: !Ref VpcId
+      SubnetIds: !Split [",", !Ref SubnetIds]
+      SecurityGroupIds:
+      - !Ref VPCeSecurityGroup
+      # Tags:
+      # - Key: Name
+      #   Value: !Join ['', [!Ref NamePrefix, "vpce-ec2"]]
+
+  ELBEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    # Condition: !Equals [!Ref "CreateEndpointELB", "True"]
+    Properties:
+      VpcEndpointType: 'Interface'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.elasticloadbalancing'
+      VpcId: !Ref VpcId
+      SubnetIds: !Split [",", !Ref SubnetIds]
+      SecurityGroupIds:
+      - !Ref VPCeSecurityGroup
+      # Tags:
+      # - Key: Name
+      #   Value: !Join ['', [!Ref NamePrefix, "vpce-elasticloadbalancing"]]
+
+  STSEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    # Condition: !Equals [!Ref "CreateEndpointSTS", "True"]
+    Properties:
+      VpcEndpointType: 'Interface'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
+      VpcId: !Ref VpcId
+      SubnetIds: !Split [",", !Ref SubnetIds]
+      SecurityGroupIds:
+      - !Ref VPCeSecurityGroup
+      # Tags:
+      # - Key: Name
+      #   Value: !Join ['', [!Ref NamePrefix, "vpce-sts"]]
+
+  # IAMEndpoint:
+  #   Type: AWS::EC2::VPCEndpoint
+  #   # Condition: !Equals [!Ref "CreateEndpointIAM", "True"]
+  #   Properties:
+  #     VpcEndpointType: 'Interface'
+  #     ServiceName: !Sub 'com.amazonaws.${AWS::Region}.iam'
+  #     VpcId: !Ref VpcId
+  #     SubnetIds: !Split [",", !Ref SubnetIds]
+  #     SecurityGroupIds:
+  #     - !Ref VPCeSecurityGroup
+  #     # Tags:
+  #     # - Key: Name
+  #     #   Value: !Join ['', [!Ref NamePrefix, "vpce-iam"]]
+
+  KMSEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    # Condition: !Equals [!Ref "CreateEndpointKMS", "True"]
+    Properties:
+      VpcEndpointType: 'Interface'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.kms'
+      VpcId: !Ref VpcId
+      SubnetIds: !Split [",", !Ref SubnetIds]
+      SecurityGroupIds:
+      - !Ref VPCeSecurityGroup
+      # Tags:
+      # - Key: Name
+      #   Value: !Join ['', [!Ref NamePrefix, "vpce-kms"]]
