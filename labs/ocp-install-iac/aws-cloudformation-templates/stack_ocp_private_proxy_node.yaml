@@ -1,6 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Nested Stack for the EC2 Proxy.
+Description: Deploy Proxy Instance.
+
 Parameters:
+  NamePrefix:
+    AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
+    MaxLength: 16
+    MinLength: 1
+    ConstraintDescription: Cluster name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
+    Description: A short, representative cluster name to use for host names and other identifying names.
+    Type: String
+
+  TemplatesBaseURL:
+    Type: String
+    Description: Choose 2 Subnets to create Load balancer and ASG
+
   VpcId:
     Description: VPC ID to associate the Carrier Gateway.
     Type: String
@@ -14,18 +27,6 @@ Parameters:
     Description: CIDR block for VPC.
     Type: String
 
-  NamePrefix:
-    AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
-    MaxLength: 16
-    MinLength: 1
-    ConstraintDescription: Cluster name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
-    Description: A short, representative cluster name to use for host names and other identifying names.
-    Type: String
-
-  TemplatesBaseURL:
-    Type: String
-    Description: Base S3 URL to prepend to the CloudFormation Template URL.
-
   AmiId:
     Description: AMI ID to provision the EC2.
     Type: String
@@ -33,17 +34,39 @@ Parameters:
     ConstraintDescription: Subnet ID must be with valid name, starting with ami-.*.
 
   SubnetId:
-    Description: Subnet ID to provision the EC2.
+    Description: Base64 user data to provision the EC2.
     Type: String
-    AllowedPattern: ^(?:(?:subnet)(?:-[a-zA-Z0-9]+)?\b|(?:[0-9]{1,3}\.){3}[0-9]{1,3})$
-    ConstraintDescription: Subnet ID must be with valid name, starting with subnet-.*.
+
+  InstanceType:
+    Default: "m6i.large"
+    Description: Base64 user data to provision the EC2.
+    Type: String
+
+  KeyName:
+    Default: "openshift-dev"
+    Description: Base64 user data to provision the EC2.
+    Type: String
 
   UserData:
     Description: Base64 user data to provision the EC2.
     Type: String
 
+  IsPublic:
+    Description: Base64 user data to provision the EC2.
+    Type: String
+    Default: "False"
+    AllowedValues: ["True", "False"]
+
+  Ipv6AddressCount:
+    Description: Base64 user data to provision the EC2.
+    Type: String
+    Default: "0"
+
 Resources:
-  IAMRole:
+  #
+  # Proxy Deployment
+  #
+  ProxyIamRole:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "00_iam_role.yaml"]]
@@ -52,7 +75,7 @@ Resources:
         NamePrefix: !Ref NamePrefix
         NameSuffix: "proxy"
 
-  SecurityGroup:
+  ProxySecurityGroup:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_security_group.yaml"]]
@@ -73,15 +96,17 @@ Resources:
         AmiId: !Ref AmiId
         SubnetId: !Ref SubnetId
         UserData: !Ref UserData
-        IamRoleArn: !GetAtt 'IAMRole.Outputs.IamRoleArn'
-        KeyName: "openshift-dev"
-        InstanceType: "m5.large"
-        SecurityGroupId: !GetAtt 'SecurityGroup.Outputs.SecurityGroupId'
-        IsPublic: false
-        Ipv6AddressCount: 1
+        IamRoleArn: !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
+        KeyName: !Ref KeyName
+        InstanceType: !Ref InstanceType
+        SecurityGroupId: !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
+        IsPublic: !Ref IsPublic
+        Ipv6AddressCount: !Ref Ipv6AddressCount
 
 Outputs:
   ProxyInstanceId:
+    Description: Proxy Instance ID.
     Value: !GetAtt 'ProxyInstance.Outputs.InstanceId'
   ProxyPrivateIp:
+    Description: Proxy Private IP.
     Value: !GetAtt 'ProxyInstance.Outputs.PrivateIp'
