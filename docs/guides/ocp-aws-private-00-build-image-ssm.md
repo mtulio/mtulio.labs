@@ -12,7 +12,9 @@ com.amazonaws.us-east-1.ec2messages
 com.amazonaws.us-east-1.ssm	
 ```
 
-## Installing AWS SSM Agent
+## Installing AWS SSM Agent (server/jump node)
+
+### Install manually on Linux
 
 > https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-install-managed-linux.html
 
@@ -26,7 +28,30 @@ sudo systemctl enable --now amazon-ssm-agent
 
 - Check the instance registered in the System Manager console: https://us-east-1.console.aws.amazon.com/systems-manager/inventory?region=us-east-1
 
-## Installing session manager plugin
+### Create a container image for SSM Agent
+
+```sh
+# https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent.html#sysman-install-ssm-agent
+# https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-rhel-8-9.html
+# https://github.com/aws/amazon-ssm-agent
+VERSION=3.2.2086.0
+NAME=aws-ssm-agent
+cat <<EOF> $NAME.Containerfile
+FROM quay.io/fedora/fedora-minimal:39
+WORKDIR /home/core
+RUN rpm -i https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/$VERSION/linux_amd64/amazon-ssm-agent.rpm
+
+CMD ["/usr/bin/amazon-ssm-agent"]
+EOF
+
+podman build -t quay.io/mrbraga/$NAME:$VERSION -f $NAME.Containerfile /tmp
+podman push quay.io/mrbraga/$NAME:$VERSION
+
+podman tag quay.io/mrbraga/$NAME:$VERSION quay.io/mrbraga/$NAME:latest
+podman push quay.io/mrbraga/$NAME:latest
+```
+
+## Installing session manager plugin (client)
 
 ```sh
 # https://docs.aws.amazon.com/systems-manager/latest/userguide/plugin-version-history.html
