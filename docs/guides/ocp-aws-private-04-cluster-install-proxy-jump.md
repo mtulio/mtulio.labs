@@ -85,3 +85,5 @@ ssh $PROXY_SSH_OPTS core@$PROXY_SSH_ADDR "nohup ./openshift-install create clust
 ```
 
 Follow the installer logs waiting for complete.
+
+

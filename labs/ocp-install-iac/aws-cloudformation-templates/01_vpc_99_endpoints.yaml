@@ -151,9 +151,6 @@ Resources:
       SubnetIds: !Split [",", !Ref SubnetIds]
       SecurityGroupIds:
       - !Ref VPCeSecurityGroup
-      # Tags:
-      # - Key: Name
-      #   Value: !Join ['', [!Ref NamePrefix, "vpce-sts"]]
 
   # IAMEndpoint:
   #   Type: AWS::EC2::VPCEndpoint
@@ -182,3 +179,36 @@ Resources:
       # Tags:
       # - Key: Name
       #   Value: !Join ['', [!Ref NamePrefix, "vpce-kms"]]
+
+  SSMEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    # Condition: !Equals [!Ref "CreateEndpointSTS", "True"]
+    Properties:
+      VpcEndpointType: 'Interface'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      VpcId: !Ref VpcId
+      SubnetIds: !Split [",", !Ref SubnetIds]
+      SecurityGroupIds:
+      - !Ref VPCeSecurityGroup
+
+  SsmMessagesEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    # Condition: !Equals [!Ref "CreateEndpointSTS", "True"]
+    Properties:
+      VpcEndpointType: 'Interface'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssmmessages'
+      VpcId: !Ref VpcId
+      SubnetIds: !Split [",", !Ref SubnetIds]
+      SecurityGroupIds:
+      - !Ref VPCeSecurityGroup
+
+  Ec2MessagesEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    # Condition: !Equals [!Ref "CreateEndpointSTS", "True"]
+    Properties:
+      VpcEndpointType: 'Interface'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2messages'
+      VpcId: !Ref VpcId
+      SubnetIds: !Split [",", !Ref SubnetIds]
+      SecurityGroupIds:
+      - !Ref VPCeSecurityGroup
