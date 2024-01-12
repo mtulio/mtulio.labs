@@ -1,4 +1,4 @@
-## Deploy proxy server
+## Deploy jump node
 
 !!! warning "Experimental steps"
     The steps described on this page are experimental!
@@ -38,7 +38,7 @@ aws cloudformation create-change-set \
 --stack-name "${PROXY_STACK_NAME}" \
 --change-set-name "${PROXY_STACK_NAME}" \
 --change-set-type "CREATE" \
---template-body ${CFN_STACK_PATH}/stack_ocp_private_proxy_node.yaml \
+--template-body ${CFN_STACK_PATH}/stack_ocp_private-node_proxy.yaml \
 --include-nested-stacks \
 --capabilities CAPABILITY_IAM \
 --parameters \

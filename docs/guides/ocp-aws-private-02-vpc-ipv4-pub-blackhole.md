@@ -31,8 +31,6 @@ Steps:
 
 ### Create VPC
 
-- Deploy VPC and Proxy node:
-
 ```sh
 cat <<EOF
 RESOURCE_NAME_PREFIX=${RESOURCE_NAME_PREFIX}
@@ -40,13 +38,13 @@ TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
 # Create a variant to prevent any 'cache' of the template in CloudFormation
-PREFIX_VARIANT="${RESOURCE_NAME_PREFIX}-22"
+PREFIX_VARIANT="${RESOURCE_NAME_PREFIX}-23"
 export VPC_STACK_NAME="${PREFIX_VARIANT}-vpc"
 aws cloudformation create-change-set \
 --stack-name "${VPC_STACK_NAME}" \
 --change-set-name "${VPC_STACK_NAME}" \
 --change-set-type "CREATE" \
---template-body ${CFN_STACK_PATH}/stack_ocp_private_vpc_ipv4_public_blackhole.yaml \
+--template-body ${CFN_STACK_PATH}/stack_ocp_private-vpc_ipv4_public_blackhole.yaml \
 --include-nested-stacks \
 --capabilities CAPABILITY_IAM \
 --tags $TAGS \
@@ -59,6 +57,7 @@ aws cloudformation describe-change-set \
 --stack-name "${VPC_STACK_NAME}" \
 --change-set-name "${VPC_STACK_NAME}"
 
+sleep 30
 aws cloudformation execute-change-set \
     --change-set-name "${VPC_STACK_NAME}" \
     --stack-name "${VPC_STACK_NAME}"
@@ -75,6 +74,4 @@ export VPC_ID="$(aws cloudformation describe-stacks \
   --stack-name "${VPC_STACK_NAME}" \
   --query 'Stacks[].Outputs[?OutputKey==`VpcId`].OutputValue' \
   --output text)"
-
-
 ```
