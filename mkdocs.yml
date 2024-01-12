@@ -153,6 +153,7 @@ nav:
         - Create custom release: playbooks/openshift/dev-custom-release.md
         - Get Credentials with CI Registry: playbooks/openshift/install-credentials-with-ci.md
         - Extract openshift-tests utility: playbooks/openshift/dev-extract-openshift-tests.md
+        - Explore OpenShift cluster metrics with Grafana Dashboard from CI jobs: guides/ocp-dev-monit-grafana.md
 
       - OpenShift Tests:
         - OPCT - Running Kubernetes e2e in OCP: guides/opct-running-native-kube-e2e.md
