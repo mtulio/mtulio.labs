@@ -34,15 +34,17 @@ export SQUID_SH="$(envsubst < ${WORKDIR}/proxy-template/squid.sh.template | base
 export PROXY_SH="$(base64 -w0 < ${WORKDIR}/proxy-template/proxy.sh)"
 
 # generate ignition file
-envsubst < ${WORKDIR}/proxy-template/proxy.ign.template > /tmp/proxy.ign
-test -f /tmp/proxy.ign || echo "Failed to create /tmp/proxy.ign"
+envsubst < ${WORKDIR}/proxy-template/proxy.ign.template > ~/tmp/proxy.ign
+test -f /tmp/proxy.ign || echo "Failed to create ~/tmp/proxy.ign"
 
 # publish ignition to shared bucket
-export PROXY_URI="s3://${BUCKET_NAME}/proxy.ign"
-export PROXY_URL="https://${BUCKET_NAME}.s3.amazonaws.com/proxy.ign"
+#export PROXY_URI="s3://${BUCKET_NAME}/proxy.ign"
+#export PROXY_URL="https://${BUCKET_NAME}.s3.amazonaws.com/proxy.ign"
 
-aws s3 cp /tmp/proxy.ign $PROXY_URI
+#aws s3 cp ~/tmp/proxy.ign $PROXY_URI
 
 # Generate Proxy Instance user data
-export PROXY_USER_DATA=$(envsubst < ${WORKDIR}/proxy-template/userData.ign.template | base64 -w0)
+#export PROXY_USER_DATA=$(envsubst < ${WORKDIR}/proxy-template/userData.ign.template | base64 -w0)
+
+export PROXY_USER_DATA=$(base64 -w0 <(<~/tmp/proxy.ign))
 ```
