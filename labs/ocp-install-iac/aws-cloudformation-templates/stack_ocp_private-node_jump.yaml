@@ -10,6 +10,10 @@ Parameters:
     Description: A short, representative cluster name to use for host names and other identifying names.
     Type: String
 
+  NameSuffix:
+    Type: String
+    Default: "-jump"
+
   TemplatesBaseURL:
     Type: String
     Description: Choose 2 Subnets to create Load balancer and ASG
@@ -61,47 +65,56 @@ Resources:
   #
   # Proxy Deployment
   #
-  ProxyIamRole:
+  IamRole:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "00_iam_role.yaml"]]
       TimeoutInMinutes: 5
       Parameters:
         NamePrefix: !Ref NamePrefix
-        NameSuffix: "proxy"
+        NameSuffix: !Ref NameSuffix
+        ManagedPolicyArns: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 
-  ProxySecurityGroup:
-    Type: AWS::CloudFormation::Stack
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_security_group.yaml"]]
-      TimeoutInMinutes: 5
-      Parameters:
-        NamePrefix: !Ref NamePrefix
-        DescriptionSuffix: "OpenShift Cluster Proxy"
-        AllowedProxyCidr: !Ref VpcCidr
-        VpcId: !Ref VpcId
+      GroupDescription: !Join ['', ["Security Group for ", "jump node"]]
+      SecurityGroupIngress:
+      - IpProtocol: "tcp"
+        FromPort: 22
+        ToPort: 22
+        CidrIp: !Ref VpcCidr
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: !Ref VpcCidr
+      VpcId: !Ref VpcId
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref NamePrefix, !Ref NameSuffix]]
 
-  ProxyInstance:
+  Instance:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "04_ec2_instance.yaml"]]
       TimeoutInMinutes: 5
       Parameters:
         NamePrefix: !Ref NamePrefix
+        NameSuffix: !Ref NameSuffix
         AmiId: !Ref AmiId
         SubnetId: !Ref SubnetId
         UserData: !Ref UserData
-        IamRoleArn: !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
+        IamRoleArn: !GetAtt 'IamRole.Outputs.IamRoleArn'
         KeyName: !Ref KeyName
         InstanceType: !Ref InstanceType
-        SecurityGroupId: !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
+        SecurityGroupId: !Ref SecurityGroup
         IsPublic: !Ref IsPublic
-        Ipv6AddressCount: !Ref Ipv6AddressCount
+        # InstanceType: "t3.micro"
+        InstanceType: "t3.medium"
 
 Outputs:
-  ProxyInstanceId:
-    Description: Proxy Instance ID.
-    Value: !GetAtt 'ProxyInstance.Outputs.InstanceId'
-  ProxyPrivateIp:
-    Description: Proxy Private IP.
-    Value: !GetAtt 'ProxyInstance.Outputs.PrivateIp'
+  InstanceId:
+    Description: Instance ID.
+    Value: !GetAtt 'Instance.Outputs.InstanceId'
+  PrivateIp:
+    Description: Private IP.
+    Value: !GetAtt 'Instance.Outputs.PrivateIp'

@@ -47,6 +47,10 @@ Parameters:
     Default: "0"
     Description: Ignition config file location.
     Type: String
+  Monitoring:
+    Default: "True"
+    Description: Enable detailed EC2 monitoring.
+    Type: String
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -108,6 +112,7 @@ Resources:
       SubnetId: !Ref "SubnetId"
       Ipv6AddressCount: !Ref Ipv6AddressCount
       UserData: !Ref UserData
+      Monitoring: !Ref Monitoring
       Tags:
       - Key: Name
         Value: !Join ['', [!Ref NamePrefix, !Ref NameSuffix]]

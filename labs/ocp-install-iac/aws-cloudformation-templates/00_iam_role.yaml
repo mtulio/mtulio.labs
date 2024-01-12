@@ -11,6 +11,18 @@ Parameters:
     Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
     Type: String
     Default: ""
+  ManagedPolicyArns:
+    Type: String
+    Default: ""
+    Description: Comma sepparated list of Managed IAM Policy Arns.
+  CustomPolicyArns:
+    Type: String
+    Default: ""
+    Description: Comma sepparated list of Custom IAM Policy Arns.
+
+Conditions:
+  HasManagedPolicies: !Not [ !Equals [!Ref "ManagedPolicyArns", ""]]
+  HasCustomPolicies: !Not [ !Equals [!Ref "CustomPolicyArns", ""]]
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -38,20 +50,9 @@ Resources:
           Action:
           - "sts:AssumeRole"
       Path: "/"
-      Policies:
-      - PolicyName: !Join ["-", [!Ref NamePrefix, !Ref NameSuffix]]
-        PolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-          - Effect: "Allow"
-            Action: "ec2:Describe*"
-            Resource: "*"
-          - Effect: "Allow"
-            Action: "s3:Get*"
-            Resource: "*"
-          - Effect: "Allow"
-            Action: "s3:List*"
-            Resource: "*"
+      ManagedPolicyArns: !If [ HasManagedPolicies, !Split [",", !Ref ManagedPolicyArns], !Ref "AWS::NoValue"]
+      Policies: !If [ HasCustomPolicies, !Split [",", !Ref CustomPolicyArns], !Ref "AWS::NoValue"]
+
 Outputs:
   IamRoleArn:
     Description: The IAM Role ARN.

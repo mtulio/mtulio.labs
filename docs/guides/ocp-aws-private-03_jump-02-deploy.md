@@ -13,9 +13,9 @@
 - Export the proxy configuration according to the deployment:
 
 ```sh
-PROXY_SUBNET_ID="$(aws cloudformation describe-stacks \
+JUMP_SUBNET_ID="$(aws cloudformation describe-stacks \
   --stack-name "${VPC_STACK_NAME}" \
-  --query 'Stacks[].Outputs[?OutputKey==`PublicSubnetIds`].OutputValue' \
+  --query 'Stacks[].Outputs[?OutputKey==`PrivateSubnetIds`].OutputValue' \
   --output text | tr ',' '\n' | head -n1)"
 ```
 
@@ -28,77 +28,83 @@ CFN_STACK_PATH=$CFN_STACK_PATH
 CLUSTER_VPC_CIDR=$CLUSTER_VPC_CIDR
 TAGS=$TAGS
 CLUSTER_VPC_CIDR=$CLUSTER_VPC_CIDR
-PROXY_AMI_ID=$PROXY_AMI_ID
-PROXY_SUBNET_ID=$PROXY_SUBNET_ID
+JUMP_AMI_ID=$PROXY_AMI_ID
+JUMP_SUBNET_ID=$PROXY_SUBNET_ID
+JUMP_USER_DATA=$JUMP_USER_DATA
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-export PROXY_STACK_NAME="${PREFIX_VARIANT}-proxy"
+export JUMP_STACK_NAME="${PREFIX_VARIANT}-jump2"
 aws cloudformation create-change-set \
---stack-name "${PROXY_STACK_NAME}" \
---change-set-name "${PROXY_STACK_NAME}" \
+--stack-name "${JUMP_STACK_NAME}" \
+--change-set-name "${JUMP_STACK_NAME}" \
 --change-set-type "CREATE" \
---template-body ${CFN_STACK_PATH}/stack_ocp_private-node_proxy.yaml \
+--template-body ${CFN_STACK_PATH}/stack_ocp_private-node_jump.yaml \
 --include-nested-stacks \
 --capabilities CAPABILITY_IAM \
 --parameters \
   ParameterKey=VpcId,ParameterValue=${VPC_ID} \
   ParameterKey=VpcCidr,ParameterValue=${CLUSTER_VPC_CIDR} \
-  ParameterKey=NamePrefix,ParameterValue=${PREFIX_VARIANT}-proxy \
-  ParameterKey=AmiId,ParameterValue=${PROXY_AMI_ID} \
-  ParameterKey=UserData,ParameterValue=${PROXY_USER_DATA} \
-  ParameterKey=SubnetId,ParameterValue=${PROXY_SUBNET_ID} \
-  ParameterKey=IsPublic,ParameterValue="True" \
+  ParameterKey=NamePrefix,ParameterValue=${PREFIX_VARIANT} \
+  ParameterKey=AmiId,ParameterValue=${JUMP_AMI_ID} \
+  ParameterKey=UserData,ParameterValue=${JUMP_USER_DATA} \
+  ParameterKey=SubnetId,ParameterValue=${JUMP_SUBNET_ID} \
   ParameterKey=TemplatesBaseURL,ParameterValue="${TEMPLATE_BASE_URL}"
 
 
 aws cloudformation execute-change-set \
-    --change-set-name "${PROXY_STACK_NAME}" \
-    --stack-name "${PROXY_STACK_NAME}"
+    --change-set-name "${JUMP_STACK_NAME}" \
+    --stack-name "${JUMP_STACK_NAME}"
 ```
 
 - Export variables used in the deployment:
 
 ```sh
-PROXY_INSTANCE_ID="$(aws cloudformation describe-stacks \
-  --stack-name "${PROXY_STACK_NAME}" \
-  --query 'Stacks[].Outputs[?OutputKey==`ProxyInstanceId`].OutputValue' \
+JUMP_INSTANCE_ID="$(aws cloudformation describe-stacks \
+  --stack-name "${JUMP_STACK_NAME}" \
+  --query 'Stacks[].Outputs[?OutputKey==`InstanceId`].OutputValue' \
   --output text)"
-
-PROXY_PRIVATE_IP=$(aws ec2 describe-instances --instance-ids $PROXY_INSTANCE_ID --query 'Reservations[].Instances[].PrivateIpAddress' --output text)
-
-# Export public IP (choose one)
-
-## Export public IPv4 when using it
-PROXY_PUBLIC_IP=$(aws ec2 describe-instances \
-  --instance-ids $PROXY_INSTANCE_ID \
-  --query 'Reservations[].Instances[].PublicIpAddress' \
-  --output text)
-PROXY_SSH_ADDR="${PROXY_PUBLIC_IP}"
-PROXY_SSH_OPTS="-4"
-
-## Export public IPv6 when using it
-PROXY_PUBLIC_IP=$(aws ec2 describe-instances \
-  --instance-ids $PROXY_INSTANCE_ID \
-  --query 'Reservations[].Instances[].Ipv6Address' \
-  --output text)
-PROXY_SSH_ADDR="[${PROXY_PUBLIC_IP}]"
-PROXY_SSH_OPTS="-6"
-
-# Export Proxy Serivce URL to be set on install-config
-export PROXY_SERVICE_URL="http://${PROXY_NAME}:${PASSWORD}@${PROXY_PRIVATE_IP}:3128"
 ```
 
-- Review the public IP address used by the proxy
+## Tests
+
+- Check the public IP usde by the jump node
 
 ```sh
 # Test SSH and proxy access
 ssh $PROXY_SSH_OPTS core@"$PROXY_SSH_ADDR" "curl -s --proxy $PROXY_SERVICE_URL https://mtulio.dev/api/geo" | jq .
 ```
 
-- Copy dependencies to jump host (proxy)
+
+- Test the SSM session to the instance:
 
 ```sh
-scp $PROXY_SSH_OPTS  $(which openshift-install) core@"$PROXY_SSH_ADDR:~/"
-scp $PROXY_SSH_OPTS $(which oc) core@"$PROXY_SSH_ADDR:~/"
+aws ssm start-session --target ${JUMP_INSTANCE_ID} 
+```
+
+- Extract kubeconfig
+
+```sh
+scp $PROXY_SSH_OPTS core@$PROXY_SSH_ADDR:~/auth/kubeconfig ~/tmp/kubeconfig
+
+cat <<EOF |yq3 merge - ~/tmp/kubeconfig > ~/tmp/kubeconfig-tunnel
+clusters:
+- cluster:
+    server: https://localhost:6443
+EOF
+```
+
+- Test opening a tunnel to the internal API load balancer:
+
+```sh
+aws ssm start-session \
+--target ${JUMP_INSTANCE_ID} \
+--document-name AWS-StartPortForwardingSessionToRemoteHost \
+--parameters '{"portNumber":["6443"],"localPortNumber":["6443"],"host":["api.lab415v0.devcluster.openshift.com"]}'
+```
+
+- Check the KUBE API connectivity
+
+```sh
+oc --kubeconfig ~/tmp/kubeconfig-tunnel get nodes
 ```

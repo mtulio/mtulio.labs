@@ -87,6 +87,9 @@ PROXY_SSH_OPTS="-6"
 
 # Export Proxy Serivce URL to be set on install-config
 export PROXY_SERVICE_URL="http://${PROXY_NAME}:${PASSWORD}@${PROXY_PRIVATE_IP}:3128"
+
+export PROXY_SERVICE_NO_PROXY="*.vpce.amazonaws.com,127.0.0.1,169.254.169.254,localhost"
+
 ```
 
 - Review the public IP address used by the proxy

@@ -8,10 +8,10 @@
 - Create install-config.yaml
 
 ```sh
-export PULL_SECRET_FILE=/path/to/pull-secret
+#export PULL_SECRET_FILE=/path/to/pull-secret
 export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
 export BASE_DOMAIN=devcluster.openshift.com
-export CLUSTER_NAME="lab415"
+export CLUSTER_NAME="lab415v0"
 export CLUSTER_VPC_CIDR="10.0.0.0/16"
 export AWS_REGION=us-east-1
 export INSTALL_DIR="${HOME}/openshift-labs/${CLUSTER_NAME}"

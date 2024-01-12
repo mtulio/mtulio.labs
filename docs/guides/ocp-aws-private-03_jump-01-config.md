@@ -22,6 +22,7 @@ Jump node requires:
 ```sh
 curl -L -o /tmp/fcos.json https://builds.coreos.fedoraproject.org/streams/stable.json
 
+export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
 export JUMP_SSM_IMAGE=quay.io/mrbraga/aws-ssm-agent:latest
 export JUMP_NAME="${PREFIX_VARIANT}-jump"
 export JUMP_AMI_ID=$(jq -r .architectures.x86_64.images.aws.regions[\"${AWS_REGION}\"].image < /tmp/fcos.json)
@@ -30,14 +31,14 @@ export JUMP_AMI_ID=$(jq -r .architectures.x86_64.images.aws.regions[\"${AWS_REGI
 # https://docs.fedoraproject.org/en-US/fedora-coreos/running-containers/
 # https://docs.fedoraproject.org/en-US/fedora-coreos/proxy/
 
-cat <<EOF > jump-config.bu
+cat <<EOF > ~/tmp/jump-config.bu
 variant: fcos
 version: 1.0.0
 passwd:
   users:
     - name: core
       ssh_authorized_keys:
-        - ssh-rsa AAAAB3Nza...
+        - "$(<${SSH_PUB_KEY_FILE})"
 
 storage:
   files:
@@ -50,7 +51,8 @@ storage:
           http_proxy="${PROXY_SERVICE_URL}"
           HTTP_PROXY="${PROXY_SERVICE_URL}"
           HTTPS_PROXY="${PROXY_SERVICE_URL}"
-          no_proxy="*.vpce.amazonaws.com,127.0.0.1,169.254.*,localhost"
+          no_proxy="${PROXY_SERVICE_NO_PROXY}"
+          NO_PROXY="${PROXY_SERVICE_NO_PROXY}"
 
 systemd:
   units:
@@ -98,38 +100,8 @@ systemd:
 EOF
 
 
-
-fcct -input example-fcc-systemd.yaml -output example-ignition-systemd.json
-
+butane ~/tmp/jump-config.bu --output ~/tmp/jump-config.json
 
 
-
-
-
-export SSH_PUB_KEY=$(<"${SSH_PUB_KEY_FILE}")
-export PASSWORD="$(uuidgen | sha256sum | cut -b -32)"
-export HTPASSWD_CONTENTS="${PROXY_NAME}:$(openssl passwd -apr1 ${PASSWORD})"
-export HTPASSWD_CONTENTS="$(echo -e ${HTPASSWD_CONTENTS} | base64 -w0)"
-
-# define squid config
-export SQUID_CONFIG="$(base64 -w0 < ${WORKDIR}/proxy-template/squid.conf)"
-
-# define squid.sh
-export SQUID_SH="$(envsubst < ${WORKDIR}/proxy-template/squid.sh.template | base64 -w0)"
-
-# define proxy.sh
-export PROXY_SH="$(base64 -w0 < ${WORKDIR}/proxy-template/proxy.sh)"
-
-# generate ignition file
-envsubst < ${WORKDIR}/proxy-template/proxy.ign.template > /tmp/proxy.ign
-test -f /tmp/proxy.ign || echo "Failed to create /tmp/proxy.ign"
-
-# publish ignition to shared bucket
-export PROXY_URI="s3://${BUCKET_NAME}/proxy.ign"
-export PROXY_URL="https://${BUCKET_NAME}.s3.amazonaws.com/proxy.ign"
-
-aws s3 cp /tmp/proxy.ign $PROXY_URI
-
-# Generate Proxy Instance user data
-export PROXY_USER_DATA=$(envsubst < ${WORKDIR}/proxy-template/userData.ign.template | base64 -w0)
+export JUMP_USER_DATA=$(base64 -w0 <(<~/tmp/jump-config.json))
 ```
