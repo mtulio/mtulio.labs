@@ -39,8 +39,7 @@ Parameters:
 
   SubnetIds:
     Description: Base64 user data to provision the EC2.
-    Type: "List<String>"
-    #Default: ""
+    Type: "String"
 
   InstanceType:
     Default: "m6i.large"
@@ -77,7 +76,21 @@ Resources:
       Parameters:
         NamePrefix: !Ref NamePrefix
         NameSuffix: "proxy"
-        CustomPolicyArns: !Join ["-", [!Ref IamPolicy]]
+        #CustomPolicyArns: !Join ["-", [!Ref IamPolicy]]
+
+  # IamPolicy:
+  #   Type: 'AWS::IAM::Policy'
+  #   Properties:
+  #     PolicyName: GetObject
+  #     PolicyName: !Join ["-", [!Ref NamePrefix, "proxy-policy"]]
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #       - Effect: "Allow"
+  #         Action: "s3:Get*"
+  #         Resource: "*"
+  #     Roles:
+  #     - !Ref ProxyIamRole
 
   ProxySecurityGroup:
     Type: AWS::CloudFormation::Stack
@@ -100,7 +113,7 @@ Resources:
         AmiId: !Ref AmiId
         SubnetId: !Ref SubnetId
         UserData: !Ref UserData
-        IamRoleArn: !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
+        IamRoleArn: !Ref 'ProxyIamRole'
         KeyName: !Ref KeyName
         InstanceType: !Ref InstanceType
         SecurityGroupId: !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
@@ -127,7 +140,7 @@ Resources:
       VpcId: !Ref VpcId
       Tags:
       - Key: Name
-        Value: !Join ['', [!Ref NamePrefix, !Ref NameSuffix]]
+        Value: !Join ['', [!Ref NamePrefix, "sg-proxy-nlb"]]
   # 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -183,7 +196,8 @@ Resources:
         - !Ref LBSecurityGroup
       # SubnetMappings: 
       #   - SubnetMapping
-      Subnets: !Split [",", !Ref SubnetIds]
+      Subnets:
+      - !Ref SubnetIds
       Tags: 
         - Key: Name
           Value: !Join ['', [!Ref NamePrefix, "proxy-nlb"]]
@@ -216,8 +230,8 @@ Resources:
         #HibernationOptions: 
         #  HibernationOptions
         IamInstanceProfile: 
-          Arn: !Ref InstanceProfileArn
-        ImageId: !Ref ImageId
+          Arn: !GetAtt 'ProxyIamRole.Outputs.IamRoleName'
+        ImageId: !Ref AmiId
         #InstanceInitiatedShutdownBehavior: String
         #InstanceMarketOptions: 
         #  InstanceMarketOptions
@@ -294,7 +308,7 @@ Resources:
           HostnameType: ip-name
         # RamDiskId: String
         SecurityGroupIds: 
-          - !Ref SecurityGroup
+          - !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
         # SecurityGroups: 
         #   - String
         # TagSpecifications: 
@@ -368,38 +382,38 @@ Resources:
         - ClosestToNextInstanceHour
       VPCZoneIdentifier: !Split [",", !Ref SubnetIds]
 
-  #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalingpolicy.html
-  ScalingPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties:
-      PolicyName: String
-      PolicyType: StepScaling
-      #ResourceId: String
-      #ScalableDimension: String
-      #ScalingTargetId: String
-      #ServiceNamespace: String
-      StepScalingPolicyConfiguration: 
-        AdjustmentType: PercentChangeInCapacity
-        Cooldown: 60
-        MetricAggregationType: Average
-        #MinAdjustmentMagnitude: Integer
-        StepAdjustments: 
-          - MetricIntervalLowerBound: 50
-            MetricIntervalUpperBound: 65
-            ScalingAdjustment: 1
-          - MetricIntervalLowerBound: 66
-            MetricIntervalUpperBound: 80
-            ScalingAdjustment: 3
-      TargetTrackingScalingPolicyConfiguration: 
-        #CustomizedMetricSpecification: 
-        #  CustomizedMetricSpecification
-        DisableScaleIn: False
-        PredefinedMetricSpecification: 
-          PredefinedMetricType: ALBRequestCountPerTarget
-          #ResourceLabel: String
-        ScaleInCooldown: 60
-        ScaleOutCooldown: 120
-        TargetValue: 1000
+  # #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalingpolicy.html
+  # ScalingPolicy:
+  #   Type: AWS::ApplicationAutoScaling::ScalingPolicy
+  #   Properties:
+  #     PolicyName: "scale-in"
+  #     PolicyType: StepScaling
+  #     #ResourceId: String
+  #     #ScalableDimension: String
+  #     #ScalingTargetId: String
+  #     #ServiceNamespace: String
+  #     StepScalingPolicyConfiguration: 
+  #       AdjustmentType: PercentChangeInCapacity
+  #       Cooldown: 60
+  #       MetricAggregationType: Average
+  #       #MinAdjustmentMagnitude: Integer
+  #       StepAdjustments: 
+  #         - MetricIntervalLowerBound: 50
+  #           MetricIntervalUpperBound: 65
+  #           ScalingAdjustment: 1
+  #         - MetricIntervalLowerBound: 66
+  #           MetricIntervalUpperBound: 80
+  #           ScalingAdjustment: 3
+  #     TargetTrackingScalingPolicyConfiguration: 
+  #       #CustomizedMetricSpecification: 
+  #       #  CustomizedMetricSpecification
+  #       DisableScaleIn: False
+  #       PredefinedMetricSpecification: 
+  #         PredefinedMetricType: ALBRequestCountPerTarget
+  #         #ResourceLabel: String
+  #       ScaleInCooldown: 60
+  #       ScaleOutCooldown: 120
+  #       TargetValue: 1000
 
 Outputs:
   ProxyInstanceId:
