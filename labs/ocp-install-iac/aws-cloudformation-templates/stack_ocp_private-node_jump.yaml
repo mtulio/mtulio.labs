@@ -75,6 +75,14 @@ Resources:
         NameSuffix: !Ref NameSuffix
         ManagedPolicyArns: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Join ['-', [!Ref NamePrefix, "proxy"]]
+      Path: String
+      Roles: 
+        - String
+
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:

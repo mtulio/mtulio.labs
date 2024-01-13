@@ -52,7 +52,7 @@ PROXY_SUBNET_ID=$PROXY_SUBNET_ID
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-export PROXY_CLUSTER_STACK_NAME="${PREFIX_VARIANT}-proxy-cluster-00"
+export PROXY_CLUSTER_STACK_NAME="${PREFIX_VARIANT}-proxy-cluster-11"
 aws cloudformation create-change-set \
 --stack-name "${PROXY_CLUSTER_STACK_NAME}" \
 --change-set-name "${PROXY_CLUSTER_STACK_NAME}" \
@@ -67,7 +67,7 @@ aws cloudformation create-change-set \
   ParameterKey=AmiId,ParameterValue=${PROXY_AMI_ID} \
   ParameterKey=UserData,ParameterValue=${PROXY_USER_DATA} \
   ParameterKey=SubnetId,ParameterValue=${PROXY_SUBNET_ID} \
-  ParameterKey=SubnetIds,ParameterValue="${PROXY_LB_SUBNET_IDS}" \
+  ParameterKey=SubnetIds,ParameterValue=${PROXY_SUBNET_ID} \
   ParameterKey=TemplatesBaseURL,ParameterValue="${TEMPLATE_BASE_URL}"
 
 
