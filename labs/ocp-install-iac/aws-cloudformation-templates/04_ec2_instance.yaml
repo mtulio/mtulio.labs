@@ -124,6 +124,8 @@ Outputs:
   PrivateIp:
     Description: The instance private IP address.
     Value: !GetAtt "Instance.PrivateIp"
+  InstanceProfile:
+    Value: !Ref "InstanceProfile"
   # Ipv6Address:
   #   Description: The instance public IP address.
   #   Value: !GetAtt "Instance.PublicIp"
