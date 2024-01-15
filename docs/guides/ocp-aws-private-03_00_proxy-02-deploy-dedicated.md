@@ -33,7 +33,7 @@ PROXY_SUBNET_ID=$PROXY_SUBNET_ID
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-export PROXY_STACK_NAME="${PREFIX_VARIANT}-proxy"
+export PROXY_STACK_NAME="${PREFIX_VARIANT}-proxy-00"
 aws cloudformation create-change-set \
 --stack-name "${PROXY_STACK_NAME}" \
 --change-set-name "${PROXY_STACK_NAME}" \
@@ -51,9 +51,13 @@ aws cloudformation create-change-set \
   ParameterKey=IsPublic,ParameterValue="True" \
   ParameterKey=TemplatesBaseURL,ParameterValue="${TEMPLATE_BASE_URL}"
 
-
+sleep 30
 aws cloudformation execute-change-set \
     --change-set-name "${PROXY_STACK_NAME}" \
+    --stack-name "${PROXY_STACK_NAME}"
+
+aws cloudformation wait stack-create-complete \
+    --region ${AWS_REGION} \
     --stack-name "${PROXY_STACK_NAME}"
 ```
 
@@ -64,10 +68,20 @@ PROXY_INSTANCE_ID="$(aws cloudformation describe-stacks \
   --stack-name "${PROXY_STACK_NAME}" \
   --query 'Stacks[].Outputs[?OutputKey==`ProxyInstanceId`].OutputValue' \
   --output text)"
+```
 
-PROXY_PRIVATE_IP=$(aws ec2 describe-instances --instance-ids $PROXY_INSTANCE_ID --query 'Reservations[].Instances[].PrivateIpAddress' --output text)
+### Setup standalone proxy instance
 
-# Export public IP (choose one)
+Setup the standalone instance.
+
+```sh
+
+PROXY_PRIVATE_IP=$(aws ec2 describe-instances \
+  --instance-ids $PROXY_INSTANCE_ID \
+  --query 'Reservations[].Instances[].PrivateIpAddress' \
+  --output text)
+
+# NOTE Export public IP (choose one)
 
 ## Export public IPv4 when using it
 PROXY_PUBLIC_IP=$(aws ec2 describe-instances \
@@ -78,18 +92,16 @@ PROXY_SSH_ADDR="${PROXY_PUBLIC_IP}"
 PROXY_SSH_OPTS="-4"
 
 ## Export public IPv6 when using it
-PROXY_PUBLIC_IP=$(aws ec2 describe-instances \
-  --instance-ids $PROXY_INSTANCE_ID \
-  --query 'Reservations[].Instances[].Ipv6Address' \
-  --output text)
-PROXY_SSH_ADDR="[${PROXY_PUBLIC_IP}]"
-PROXY_SSH_OPTS="-6"
+# PROXY_PUBLIC_IP=$(aws ec2 describe-instances \
+#   --instance-ids $PROXY_INSTANCE_ID \
+#   --query 'Reservations[].Instances[].Ipv6Address' \
+#   --output text)
+# PROXY_SSH_ADDR="[${PROXY_PUBLIC_IP}]"
+# PROXY_SSH_OPTS="-6"
 
 # Export Proxy Serivce URL to be set on install-config
 export PROXY_SERVICE_URL="http://${PROXY_NAME}:${PASSWORD}@${PROXY_PRIVATE_IP}:3128"
-
 export PROXY_SERVICE_NO_PROXY="*.vpce.amazonaws.com,127.0.0.1,169.254.169.254,localhost"
-
 ```
 
 - Review the public IP address used by the proxy
@@ -105,9 +117,19 @@ PROXY_SERVICE_URL=$PROXY_SERVICE_URL
 EOF
 ```
 
-- Copy dependencies to jump host (proxy)
+### Optional: Create custom AMI
 
 ```sh
-scp $PROXY_SSH_OPTS  $(which openshift-install) core@"$PROXY_SSH_ADDR:~/"
-scp $PROXY_SSH_OPTS $(which oc) core@"$PROXY_SSH_ADDR:~/"
+PROXY_CUSTOM_AMI_ID=$(aws ec2 create-image --instance-id ${PROXY_INSTANCE_ID} \
+  --name  "Proxy AMI based on ${PROXY_STACK_NAME}" \
+  --description "Squid proxy service for OpenShift Clusters" | jq .ImageId)
+
+export creating=true;
+while $creating; do 
+  state=$(aws ec2 describe-images --image-ids $PROXY_CUSTOM_AMI_ID --query 'Images[].State' --output text);
+  if [[ $state == "pending" ]];
+  then
+    echo "watiing..."; sleep 30;
+  fi;
+done
 ```

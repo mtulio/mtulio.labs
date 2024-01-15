@@ -12,7 +12,7 @@ Parameters:
 
   NameSuffix:
     Type: String
-    Default: "-jump"
+    Default: "-bastion"
 
   TemplatesBaseURL:
     Type: String
@@ -78,15 +78,15 @@ Resources:
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: !Join ['-', [!Ref NamePrefix, "proxy"]]
-      Path: String
+      InstanceProfileName: !Join ['-', [!Ref NamePrefix, "bastian"]]
+      Path: /
       Roles: 
-        - String
+        - !GetAtt 'IamRole.Outputs.IamRoleArn'
 
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Join ['', ["Security Group for ", "jump node"]]
+      GroupDescription: !Join ['', ["Security Group for ", "bastion host"]]
       SecurityGroupIngress:
       - IpProtocol: "tcp"
         FromPort: 22
