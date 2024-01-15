@@ -1,6 +1,13 @@
+Description: |
+  Deploy Proxy Cluster with custom VPC PrivateLink Service.
+  Resources deployed:
+  - Network Load Balancer with listener 3389
+  - Target Group with proxy servers registred with InstanceId
+  - AutoScalingGroup launching new instances when high requests
+  Optional resources:
+  - Predictive scaling 
+  - Custom PrivateLink service
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Deploy Proxy Cluster with custom VPC PrivateLink Service.
-
 Parameters:
   NamePrefix:
     AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
@@ -34,15 +41,17 @@ Parameters:
     ConstraintDescription: Subnet ID must be with valid name, starting with ami-.*.
 
   SubnetId:
-    Description: Base64 user data to provision the EC2.
+    Description: Subnet Id.
     Type: String
+    Default: ""
 
   SubnetIds:
-    Description: Base64 user data to provision the EC2.
-    Type: "String"
+    Description: Subnet Ids.
+    Type: 'String'
+    Default: ""
 
   InstanceType:
-    Default: "m6i.large"
+    Default: "t3.small"
     Description: Base64 user data to provision the EC2.
     Type: String
 
@@ -78,6 +87,13 @@ Resources:
         NameSuffix: "proxy"
         #CustomPolicyArns: !Join ["-", [!Ref IamPolicy]]
 
+  InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+      - !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
+
   # IamPolicy:
   #   Type: 'AWS::IAM::Policy'
   #   Properties:
@@ -103,22 +119,22 @@ Resources:
         AllowedProxyCidr: !Ref VpcCidr
         VpcId: !Ref VpcId
 
-  ProxyInstance:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "04_ec2_instance.yaml"]]
-      TimeoutInMinutes: 5
-      Parameters:
-        NamePrefix: !Ref NamePrefix
-        AmiId: !Ref AmiId
-        SubnetId: !Ref SubnetId
-        UserData: !Ref UserData
-        IamRoleArn: !Ref 'ProxyIamRole'
-        KeyName: !Ref KeyName
-        InstanceType: !Ref InstanceType
-        SecurityGroupId: !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
-        IsPublic: !Ref IsPublic
-        Ipv6AddressCount: !Ref Ipv6AddressCount
+  # ProxyInstance:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "04_ec2_instance.yaml"]]
+  #     TimeoutInMinutes: 5
+  #     Parameters:
+  #       NamePrefix: !Ref NamePrefix
+  #       AmiId: !Ref AmiId
+  #       SubnetId: !Ref SubnetId
+  #       UserData: !Ref UserData
+  #       IamRoleArn: !Ref 'ProxyIamRole'
+  #       KeyName: !Ref KeyName
+  #       InstanceType: !Ref InstanceType
+  #       SecurityGroupId: !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
+  #       IsPublic: !Ref IsPublic
+  #       Ipv6AddressCount: !Ref Ipv6AddressCount
 
   #
   # Launch Template
@@ -188,34 +204,76 @@ Resources:
         #   Value: true
         - Key: load_balancing.cross_zone.enabled
           Value: true
-        - Key: deletion_protection.enabled
-          Value: true
+        # availability_zone_affinity | partial_availability_zone_affinity | any_availability_zone
+        - Key: dns_record.client_routing_policy
+          Value: partial_availability_zone_affinity
+        # - Key: deletion_protection.enabled
+        #   Value: true
       Name: !Join ["-", [!Ref NamePrefix, "nlb-proxy"]]
       Scheme: internal
-      SecurityGroups: 
+      SecurityGroups:
         - !Ref LBSecurityGroup
       # SubnetMappings: 
       #   - SubnetMapping
-      Subnets:
-      - !Ref SubnetIds
+      Subnets: !Split [",", !Ref SubnetId]
+      # - !Ref SubnetIds
       Tags: 
         - Key: Name
           Value: !Join ['', [!Ref NamePrefix, "proxy-nlb"]]
       Type: network
 
+  ListenerProxy:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      # AlpnPolicy: 
+      #   - String
+      # Certificates: 
+      #   - Certificate
+      DefaultActions: 
+        # - ForwardConfig: 
+        #     TargetGroups: 
+        #       - TargetGroupArn: !Ref TargetGroup
+        #         Weight: 100
+            # TargetGroupStickinessConfig: 
+            #   TargetGroupStickinessConfig
+        - Order: 1
+          # RedirectConfig: 
+          #   RedirectConfig
+          TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref LoadBalancer
+      # MutualAuthentication: 
+      #   MutualAuthentication
+      Port: 3128
+      Protocol: TCP
+      # SslPolicy: String
+
   # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-launchtemplate-launchtemplatedata.html
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateData: 
+      LaunchTemplateName: !Sub '${AWS::StackName}-template-proxy'
+      LaunchTemplateData:
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+            Groups:
+              - !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
+            DeleteOnTermination: true
+        # Placement:
+        #   Tenancy: dedicated
+        ImageId: !Ref AmiId
+        InstanceType: !Ref  InstanceType
+        KeyName: !Ref KeyName
+
         # BlockDeviceMappings: 
         #   - BlockDeviceMapping
-        CapacityReservationSpecification: 
-          CapacityReservationPreference: open
-        CpuOptions: 
-          #AmdSevSnp: String
-          CoreCount: 2
-          ThreadsPerCore: 2
+        # CapacityReservationSpecification: 
+        #   CapacityReservationPreference: open
+        # CpuOptions: 
+        #   #AmdSevSnp: String
+        #   CoreCount: 2
+        #   ThreadsPerCore: 2
         #CreditSpecification: 
         #  CreditSpecification
         #DisableApiStop: Boolean
@@ -229,92 +287,94 @@ Resources:
         #  EnclaveOptions
         #HibernationOptions: 
         #  HibernationOptions
-        IamInstanceProfile: 
-          Arn: !GetAtt 'ProxyIamRole.Outputs.IamRoleName'
-        ImageId: !Ref AmiId
+        # IamInstanceProfile: 
+        #   Arn: !GetAtt
+        #     - InstanceProfile
+        #     - Arn
+        # ImageId: !Ref AmiId
         #InstanceInitiatedShutdownBehavior: String
         #InstanceMarketOptions: 
         #  InstanceMarketOptions
-        InstanceRequirements: 
-            #AcceleratorCount: 
-            #  AcceleratorCount
-            #AcceleratorManufacturers: 
-            #  - String
-            #AcceleratorNames: 
-            #  - String
-            #AcceleratorTotalMemoryMiB: 
-            #  AcceleratorTotalMemoryMiB
-            #AcceleratorTypes: 
-            #  - String
-            AllowedInstanceTypes: 
-              - c*.large
-              - m5*.large
-              - m6*.large
-              - t3.*
-            #BareMetal: String
-            #BaselineEbsBandwidthMbps: 
-            #  BaselineEbsBandwidthMbps
-            #BurstablePerformance: String
-            #CpuManufacturers: 
-            #  - String
-            # ExcludedInstanceTypes: 
-            #   - String
-            #InstanceGenerations: 
-            #  - String
-            #LocalStorage: String
-            #LocalStorageTypes: 
-            #  - String
-            # MemoryGiBPerVCpu: 
-            #   Max: 8
-            #   Min: 1
-            #MemoryMiB: 
-            #  Max: 8
-            #  Min: 1
-            #NetworkBandwidthGbps: 
-            #  NetworkBandwidthGbps
-            #NetworkInterfaceCount: 
-            #  NetworkInterfaceCount
-            #OnDemandMaxPricePercentageOverLowestPrice: 999999
-            #RequireHibernateSupport: Boolean
-            SpotMaxPricePercentageOverLowestPrice: 50
-            #TotalLocalStorageGB: 
-            #  TotalLocalStorageGB
-            VCpuCount: 
-              Max: 4
-              Min: 1
-        #InstanceType: String
-        #KernelId: String
-        KeyName: !Ref KeyName
-        #LicenseSpecifications: 
-        #  - LicenseSpecification
-        MaintenanceOptions: 
-          AutoRecovery: default
-          RebootMigration: True
-        # MetadataOptions: 
-        #   HttpEndpoint: String
-        #   HttpProtocolIpv6: String
-        #   HttpPutResponseHopLimit: Integer
-        #   HttpTokens: String
-        #   InstanceMetadataTags: String
-        Monitoring: 
-          Enabled: True
-        # NetworkInterfaces: 
-        #   - NetworkInterface
-        # Placement: 
-        #   Placement
-        PrivateDnsNameOptions: 
-          # EnableResourceNameDnsAAAARecord: Boolean
-          EnableResourceNameDnsARecord: True
-          HostnameType: ip-name
-        # RamDiskId: String
-        SecurityGroupIds: 
-          - !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
-        # SecurityGroups: 
-        #   - String
-        # TagSpecifications: 
-        #   - TagSpecification
-        UserData: !Ref UserData
-      LaunchTemplateName: !Join ["-", [!Ref NamePrefix, "template-proxy"]]
+      #   InstanceRequirements: 
+      #       #AcceleratorCount: 
+      #       #  AcceleratorCount
+      #       #AcceleratorManufacturers: 
+      #       #  - String
+      #       #AcceleratorNames: 
+      #       #  - String
+      #       #AcceleratorTotalMemoryMiB: 
+      #       #  AcceleratorTotalMemoryMiB
+      #       #AcceleratorTypes: 
+      #       #  - String
+      #       AllowedInstanceTypes: 
+      #         - m5.large
+      #       #   - m5.large
+      #       #   - m6i*.large
+      #       #   - t3.*
+      #       #BareMetal: String
+      #       #BaselineEbsBandwidthMbps: 
+      #       #  BaselineEbsBandwidthMbps
+      #       #BurstablePerformance: String
+      #       #CpuManufacturers: 
+      #       #  - String
+      #       # ExcludedInstanceTypes: 
+      #       #   - '*g.*'
+      #       #InstanceGenerations: 
+      #       #  - String
+      #       #LocalStorage: String
+      #       #LocalStorageTypes: 
+      #       #  - String
+      #       # MemoryGiBPerVCpu: 
+      #       #   Max: 8
+      #       #   Min: 1
+      #       MemoryMiB: 
+      #         Max: 32
+      #         Min: 1
+      #       #NetworkBandwidthGbps: 
+      #       #  NetworkBandwidthGbps
+      #       #NetworkInterfaceCount: 
+      #       #  NetworkInterfaceCount
+      #       #OnDemandMaxPricePercentageOverLowestPrice: 999999
+      #       #RequireHibernateSupport: Boolean
+      #       # SpotMaxPricePercentageOverLowestPrice: 50
+      #       #TotalLocalStorageGB: 
+      #       #  TotalLocalStorageGB
+      #       VCpuCount: 
+      #         Max: 8
+      #         Min: 1
+      #   #InstanceType: String
+      #   #KernelId: String
+      #   KeyName: !Ref KeyName
+      #   #LicenseSpecifications: 
+      #   #  - LicenseSpecification
+      #   # MaintenanceOptions: 
+      #   #   AutoRecovery: default
+      #     # RebootMigration: True
+      #   # MetadataOptions: 
+      #   #   HttpEndpoint: String
+      #   #   HttpProtocolIpv6: String
+      #   #   HttpPutResponseHopLimit: Integer
+      #   #   HttpTokens: String
+      #   #   InstanceMetadataTags: String
+      #   Monitoring: 
+      #     Enabled: True
+      #   # NetworkInterfaces: 
+      #   #   - NetworkInterface
+      #   # Placement: 
+      #   #   Placement
+      #   # PrivateDnsNameOptions: 
+      #   #   # EnableResourceNameDnsAAAARecord: Boolean
+      #   #   EnableResourceNameDnsARecord: True
+      #   #   HostnameType: ip-name
+      #   # RamDiskId: String
+      #   SecurityGroupIds: 
+      #     - !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
+      #   # SecurityGroups: 
+      #   #   - String
+      #   # TagSpecifications: 
+      #   #   - TagSpecification
+      #   UserData: !Ref UserData
+      # LaunchTemplateName: !Join ["-", [!Ref NamePrefix, "template-proxy"]]
       # TagSpecifications: 
       #   - LaunchTemplateTagSpecification
       # VersionDescription: "String"
@@ -325,47 +385,49 @@ Resources:
       AutoScalingGroupName: !Join ["-", [!Ref NamePrefix, "proxy-asg"]]
       # AvailabilityZones: 
       #   - String
-      CapacityRebalance: True
+      # CapacityRebalance: True
       # Context: String
       # Cooldown: String
-      DefaultInstanceWarmup: Integer
+      #DefaultInstanceWarmup: Integer
       DesiredCapacity: 1
       DesiredCapacityType: units
-      HealthCheckGracePeriod: 5
-      HealthCheckType: EC2,ELB
+      #HealthCheckGracePeriod: 5
+      #HealthCheckType: ELB
       # InstanceId: !Ref InstanceId
-      InstanceId: !GetAtt 'ProxyInstance.Outputs.InstanceId'
-      InstanceMaintenancePolicy: 
-        #MaxHealthyPercentage: Integer
-        MinHealthyPercentage: 1
+      #InstanceId: !GetAtt 'ProxyInstance.Outputs.InstanceId'
+      # InstanceMaintenancePolicy: 
+      #   MaxHealthyPercentage: Integer
+      #   MinHealthyPercentage: 1
       #LaunchConfigurationName: String
       LaunchTemplate: 
-        LaunchTemplateName: !Join ["-", [!Ref NamePrefix, "template-proxy"]]
-        Version: "$Latest"
+        LaunchTemplateName: !Sub '${AWS::StackName}-template-proxy'
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
       # LifecycleHookSpecificationList: 
       #   - LifecycleHookSpecification
       # LoadBalancerNames: 
       #   - String
       # Recycle the instance weekly
 
-      MetricsCollection: 
-        - Granularity: 1Minute
+      # MetricsCollection: 
+      #   - Granularity: 1Minute
           # Metrics: 
           # - String
       MaxSize: 5
       MinSize: 1
       MaxInstanceLifetime: 604800
-      MixedInstancesPolicy: 
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-autoscaling-autoscalinggroup-instancesdistribution.html
-        InstancesDistribution: 
-          OnDemandAllocationStrategy: lowest-price
-          OnDemandBaseCapacity: 1
-          #OnDemandPercentageAboveBaseCapacity: Integer
-          SpotAllocationStrategy: price-capacity-optimized
-          #SpotInstancePools: Integer
-          #SpotMaxPrice: String
-        # LaunchTemplate: 
-        #   LaunchTemplate
+      # MixedInstancesPolicy: 
+      #   # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-autoscaling-autoscalinggroup-instancesdistribution.html
+      #   InstancesDistribution: 
+      #     OnDemandAllocationStrategy: lowest-price
+      #     OnDemandBaseCapacity: 1
+      #     #OnDemandPercentageAboveBaseCapacity: Integer
+      #     SpotAllocationStrategy: price-capacity-optimized
+      #     #SpotInstancePools: Integer
+      #     #SpotMaxPrice: String
+      #   LaunchTemplate:
+      #     LaunchTemplateSpecification:
+      #       LaunchTemplateId: !Ref LaunchTemplate
+      #       Version: !GetAtt LaunchTemplate.LatestVersionNumber
       #NewInstancesProtectedFromScaleIn: Boolean
       #NotificationConfigurations: 
       #  - NotificationConfiguration
@@ -374,13 +436,14 @@ Resources:
       Tags: 
       - Key: Name
         Value: !Join ['', [!Ref NamePrefix, "proxy-asg"]]
+        PropagateAtLaunch: true
       TargetGroupARNs: 
         - !Ref TargetGroup
       TerminationPolicies: 
         - OldestLaunchTemplate
         - OldestInstance
         - ClosestToNextInstanceHour
-      VPCZoneIdentifier: !Split [",", !Ref SubnetIds]
+      VPCZoneIdentifier: !Split [",", !Ref SubnetId]
 
   # #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalingpolicy.html
   # ScalingPolicy:
@@ -416,9 +479,15 @@ Resources:
   #       TargetValue: 1000
 
 Outputs:
-  ProxyInstanceId:
-    Description: Proxy Instance ID.
-    Value: !GetAtt 'ProxyInstance.Outputs.InstanceId'
-  ProxyPrivateIp:
-    Description: Proxy Private IP.
-    Value: !GetAtt 'ProxyInstance.Outputs.PrivateIp'
+  # ProxyInstanceId:
+  #   Description: Proxy Instance ID.
+  #   Value: !GetAtt 'ProxyInstance.Outputs.InstanceId'
+  # ProxyPrivateIp:
+  #   Description: Proxy Private IP.
+  #   Value: !GetAtt 'ProxyInstance.Outputs.PrivateIp'
+  LoadBalancerArn:
+    Description: Load Balancer.
+    Value: !Ref LoadBalancer
+  LoadBalancerDNS:
+    Description: Load Balancer DNS.
+    Value: !GetAtt LoadBalancer.DNSName

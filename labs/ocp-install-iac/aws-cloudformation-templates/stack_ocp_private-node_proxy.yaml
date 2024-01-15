@@ -66,18 +66,6 @@ Resources:
   #
   # Proxy Deployment
   #
-  IamPolicy:
-    Type: 'AWS::IAM::Policy'
-    Properties:
-      PolicyName: GetObject
-      PolicyName: !Join ["-", [!Ref NamePrefix, !Ref NameSuffix]]
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-        - Effect: "Allow"
-          Action: "s3:Get*"
-          Resource: "*"
-
   ProxyIamRole:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -86,7 +74,28 @@ Resources:
       Parameters:
         NamePrefix: !Ref NamePrefix
         NameSuffix: "proxy"
-        CustomPolicyArns: !Join ["-", [!Ref IamPolicy]]
+        #CustomPolicyArns: !Join ["-", [!Ref IamPolicy]]
+
+  IamPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: GetObject
+      PolicyName: !Join ["-", [!Ref NamePrefix, "proxy"]]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Action: "s3:Get*"
+          Resource: "*"
+      Roles:
+      - !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
+
+  InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+      - !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
 
   ProxySecurityGroup:
     Type: AWS::CloudFormation::Stack

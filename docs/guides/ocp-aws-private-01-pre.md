@@ -62,6 +62,11 @@ The tools/binaries must be installed in your PATH:
 
 > There are two valid flags to reference CloudFormation templates: --template-body or --template-url (only S3 URL is allowed)
 
+!!! warning "Restricted S3 Bucket"
+    Nested AWS CloudFormation templates can be stored in external HTTP URL using only S3 address, however AWS does not publically share the policy `"10.0.0.0/8` is enough to allow access from internal services, but in internal tests it works as
+    expected.
+
+
 ```sh
 BUCKET_NAME="installer-upi-templates"
 TEMPLATE_BASE_URL="https://${BUCKET_NAME}.s3.amazonaws.com"
@@ -70,7 +75,7 @@ aws s3api create-bucket --bucket $BUCKET_NAME --region us-east-1
 aws s3api put-public-access-block \
     --bucket ${BUCKET_NAME} \
     --public-access-block-configuration \
-    BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false
+    BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=true
 aws s3api put-bucket-policy \
     --bucket ${BUCKET_NAME} \
     --policy "{\"Version\": \"2012-10-17\",
@@ -79,7 +84,12 @@ aws s3api put-bucket-policy \
       \"Effect\": \"Allow\",
       \"Principal\": \"*\",
       \"Action\": \"s3:GetObject\",
-      \"Resource\": \"arn:aws:s3:::${BUCKET_NAME}/*\"
+      \"Resource\": \"arn:aws:s3:::${BUCKET_NAME}/*\",
+      \"Condition\": {
+        \"IpAddress\": {
+          \"aws:SourceIp\": \"10.0.0.0/8\"
+        }
+      }
     }
   ]
 }"

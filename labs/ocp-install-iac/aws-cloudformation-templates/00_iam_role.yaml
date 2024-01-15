@@ -57,6 +57,6 @@ Outputs:
   IamRoleArn:
     Description: The IAM Role ARN.
     Value: !Ref IamRole
-  IamRoleName:
-    Description: The IAM Role ARN.
-    Value: !GetAtt 'IamRole.Name'
+  # IamRoleName:
+  #   Description: The IAM Role ARN.
+  #   Value: !GetAtt 'IamRole.Name'

@@ -1,4 +1,4 @@
-## Deploy jump node
+## Deploy bastion host
 
 !!! warning "Experimental steps"
     The steps described on this page are experimental!
@@ -13,9 +13,14 @@
 - Export the proxy configuration according to the deployment:
 
 ```sh
-JUMP_SUBNET_ID="$(aws cloudformation describe-stacks \
+BASTION_SUBNET_ID="$(aws cloudformation describe-stacks \
   --stack-name "${VPC_STACK_NAME}" \
   --query 'Stacks[].Outputs[?OutputKey==`PrivateSubnetIds`].OutputValue' \
+  --output text | tr ',' '\n' | head -n1)"
+
+BASTION_SUBNET_ID="$(aws cloudformation describe-stacks \
+  --stack-name "${VPC_STACK_NAME}" \
+  --query 'Stacks[].Outputs[?OutputKey==`PublicSubnetIds`].OutputValue' \
   --output text | tr ',' '\n' | head -n1)"
 ```
 
@@ -28,83 +33,69 @@ CFN_STACK_PATH=$CFN_STACK_PATH
 CLUSTER_VPC_CIDR=$CLUSTER_VPC_CIDR
 TAGS=$TAGS
 CLUSTER_VPC_CIDR=$CLUSTER_VPC_CIDR
-JUMP_AMI_ID=$PROXY_AMI_ID
-JUMP_SUBNET_ID=$PROXY_SUBNET_ID
-JUMP_USER_DATA=$JUMP_USER_DATA
+BASTION_AMI_ID=$PROXY_AMI_ID
+BASTION_SUBNET_ID=$PROXY_SUBNET_ID
+BASTION_USER_DATA=$BASTION_USER_DATA
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-export JUMP_STACK_NAME="${PREFIX_VARIANT}-jump2"
+export BASTION_STACK_NAME="${PREFIX_VARIANT}-bastion-00"
 aws cloudformation create-change-set \
---stack-name "${JUMP_STACK_NAME}" \
---change-set-name "${JUMP_STACK_NAME}" \
+--stack-name "${BASTION_STACK_NAME}" \
+--change-set-name "${BASTION_STACK_NAME}" \
 --change-set-type "CREATE" \
---template-body ${CFN_STACK_PATH}/stack_ocp_private-node_jump.yaml \
+--template-body ${CFN_STACK_PATH}/stack_ocp_private-node_bastion.yaml \
 --include-nested-stacks \
---capabilities CAPABILITY_IAM \
+--capabilities CAPABILITY_NAMED_IAM \
 --parameters \
   ParameterKey=VpcId,ParameterValue=${VPC_ID} \
   ParameterKey=VpcCidr,ParameterValue=${CLUSTER_VPC_CIDR} \
   ParameterKey=NamePrefix,ParameterValue=${PREFIX_VARIANT} \
-  ParameterKey=AmiId,ParameterValue=${JUMP_AMI_ID} \
-  ParameterKey=UserData,ParameterValue=${JUMP_USER_DATA} \
-  ParameterKey=SubnetId,ParameterValue=${JUMP_SUBNET_ID} \
+  ParameterKey=AmiId,ParameterValue=${BASTION_AMI_ID} \
+  ParameterKey=UserData,ParameterValue=${BASTION_USER_DATA} \
+  ParameterKey=SubnetId,ParameterValue=${BASTION_SUBNET_ID} \
   ParameterKey=TemplatesBaseURL,ParameterValue="${TEMPLATE_BASE_URL}"
 
-
+sleep 30
 aws cloudformation execute-change-set \
-    --change-set-name "${JUMP_STACK_NAME}" \
-    --stack-name "${JUMP_STACK_NAME}"
+    --change-set-name "${BASTION_STACK_NAME}" \
+    --stack-name "${BASTION_STACK_NAME}"
 ```
 
 - Export variables used in the deployment:
 
 ```sh
-JUMP_INSTANCE_ID="$(aws cloudformation describe-stacks \
-  --stack-name "${JUMP_STACK_NAME}" \
+BASTION_INSTANCE_ID="$(aws cloudformation describe-stacks \
+  --stack-name "${BASTION_STACK_NAME}" \
   --query 'Stacks[].Outputs[?OutputKey==`InstanceId`].OutputValue' \
+  --output text)"
+
+BASTION_PRIVATE_IP="$(aws cloudformation describe-stacks \
+  --stack-name "${BASTION_STACK_NAME}" \
+  --query 'Stacks[].Outputs[?OutputKey==`PrivateIp`].OutputValue' \
   --output text)"
 ```
 
 ## Tests
 
-- Check the public IP usde by the jump node
-
-```sh
-# Test SSH and proxy access
-ssh $PROXY_SSH_OPTS core@"$PROXY_SSH_ADDR" "curl -s --proxy $PROXY_SERVICE_URL https://mtulio.dev/api/geo" | jq .
-```
-
-
 - Test the SSM session to the instance:
 
 ```sh
-aws ssm start-session --target ${JUMP_INSTANCE_ID} 
-```
-
-- Extract kubeconfig
-
-```sh
-scp $PROXY_SSH_OPTS core@$PROXY_SSH_ADDR:~/auth/kubeconfig ~/tmp/kubeconfig
-
-cat <<EOF |yq3 merge - ~/tmp/kubeconfig > ~/tmp/kubeconfig-tunnel
-clusters:
-- cluster:
-    server: https://localhost:6443
-EOF
+aws ssm start-session --target ${BASTION_INSTANCE_ID} 
 ```
 
 - Test opening a tunnel to the internal API load balancer:
 
 ```sh
 aws ssm start-session \
---target ${JUMP_INSTANCE_ID} \
+--target ${BASTION_INSTANCE_ID} \
 --document-name AWS-StartPortForwardingSessionToRemoteHost \
---parameters '{"portNumber":["6443"],"localPortNumber":["6443"],"host":["api.lab415v0.devcluster.openshift.com"]}'
+--parameters "{\"portNumber\":[\"22\"],\"localPortNumber\":[\"2222\"],\"host\":[\"$BASTION_PRIVATE_IP\"]}"
 ```
 
-- Check the KUBE API connectivity
+- Check the public IP usde by the bastion node to access the internet
 
 ```sh
-oc --kubeconfig ~/tmp/kubeconfig-tunnel get nodes
+# Test SSH and proxy access
+ssh -p 2222 core@localhost "curl -s --proxy $PROXY_SERVICE_URL https://mtulio.dev/api/geo" | jq .
 ```
