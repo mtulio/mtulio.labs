@@ -382,7 +382,7 @@ Resources:
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      AutoScalingGroupName: !Join ["-", [!Ref NamePrefix, "proxy-asg"]]
+      AutoScalingGroupName: !Join ["-", [!Ref NamePrefix, "asg"]]
       # AvailabilityZones: 
       #   - String
       # CapacityRebalance: True

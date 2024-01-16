@@ -11,7 +11,7 @@
 #export PULL_SECRET_FILE=/path/to/pull-secret
 export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
 export BASE_DOMAIN=devcluster.openshift.com
-export CLUSTER_NAME="lab415v3"
+export CLUSTER_NAME="lab415v6"
 export CLUSTER_VPC_CIDR="10.0.0.0/16"
 export AWS_REGION=us-east-1
 export INSTALL_DIR="${HOME}/openshift-labs/${CLUSTER_NAME}"
@@ -32,7 +32,7 @@ aws ec2 describe-vpc-endpoints \
 
 {
   echo "    serviceEndpoints:" > ${INSTALL_DIR}/config-vpce.txt
-  echo -ne "localhost,127.0.0.1,169.254.169.254,$CLUSTER_VPC_CIDR,s3.$REGION.amazonaws.com" > ${INSTALL_DIR}/config-noproxy.txt
+  echo -ne "169.254.169.254,$CLUSTER_VPC_CIDR" > ${INSTALL_DIR}/config-noproxy.txt
   while read line; do
   service_name=$(echo $line | awk -F'.' '{print$2}');
   service_url="https://$line";
@@ -43,7 +43,7 @@ aws ec2 describe-vpc-endpoints \
   #echo -e "    - name: ${service_name}\n      url: ${service_url}" >> ${INSTALL_DIR}/config-vpce.txt
   echo -e "    - name: ${service_name}\n      url: ${service_url_region}" >> ${INSTALL_DIR}/config-vpce.txt
   #echo -ne ",$line" >> ${INSTALL_DIR}/config-noproxy.txt
-  echo -ne ",$service_name.${AWS_REGION}.amazonaws.com" >> ${INSTALL_DIR}/config-noproxy.txt
+  #echo -ne ",$service_name.${AWS_REGION}.amazonaws.com" >> ${INSTALL_DIR}/config-noproxy.txt
   done <${INSTALL_DIR}/tmp-aws-vpce-dns.txt
 }
 
@@ -69,7 +69,7 @@ sshKey: |
 
 proxy:
   httpsProxy: ${PROXY_SERVICE_URL}
-  #httpProxy: ${PROXY_SERVICE_URL}
+  httpProxy: ${PROXY_SERVICE_URL}
   noProxy: $(<${INSTALL_DIR}/config-noproxy.txt)
 EOF
 ```
@@ -124,7 +124,9 @@ ssh -p 2222 core@localhost "nohup ./openshift-install create cluster --log-level
 
 Follow the installer logs waiting for complete.
 
-## Running installer on bastion host
+## Running installer on client proxied to bastion host (LIMITED WORKING)
+
+> NOTE: those steps works only to port forward API port, not to install a cluster.
 
 - Extract kubeconfig
 
@@ -144,3 +146,66 @@ EOF
 oc --kubeconfig ~/tmp/kubeconfig-tunnel get nodes
 ```
 
+## Conclusion
+
+Using [regional endpoints][regional-e], you have the benefit of using the
+endpoint from the region but not privately, you must have access thru the
+internet. So the config will end up something like this:
+
+```sh
+$ cat ${INSTALL_DIR}/install-config.yaml
+apiVersion: v1
+publish: Internal
+baseDomain: devcluster.openshift.com
+metadata:
+  name: "lab415v6"
+networking:
+  machineNetwork:
+  - cidr: 10.0.0.0/16
+platform:
+  aws:
+    region: us-east-1
+    serviceEndpoints:
+    - name: ec2
+      url: https://ec2.us-east-1.amazonaws.com
+    - name: elasticloadbalancing
+      url: https://elasticloadbalancing.us-east-1.amazonaws.com
+    subnets:
+    - subnet-029068ff5c67a8737
+    - subnet-0d45a386afab45917
+
+pullSecret: '...
+sshKey: |
+  ....
+
+proxy:
+  httpsProxy: http://lab-ci-27-proxy:x@lab-ci-28-proxy-nlb-proxy-.....elb.us-east-1.amazonaws.com:3128
+  httpProxy: http://lab-ci-27-proxy:x@lab-ci-28-proxy-nlb-proxy-....elb.us-east-1.amazonaws.com:3128
+  noProxy: 169.254.169.254,10.0.0.0/16
+
+$ ./oc  --kubeconfig auth/kubeconfig  get proxy -o yaml
+apiVersion: v1
+items:
+- apiVersion: config.openshift.io/v1
+  kind: Proxy
+  metadata:
+    creationTimestamp: "2024-01-16T00:15:54Z"
+    generation: 1
+    name: cluster
+    resourceVersion: "533"
+    uid: 202fc628-8b72-4a73-9578-99724b492fb5
+  spec:
+    httpProxy: http://lab-ci-27-proxy:x@lab-ci-28-proxy-nlb-proxy-....elb.us-east-1.amazonaws.com:3128
+    httpsProxy: http://lab-ci-27-proxy:x@lab-ci-28-proxy-nlb-proxy-.....elb.us-east-1.amazonaws.com:3128
+    noProxy: 169.254.169.254,10.0.0.0/16
+    trustedCA:
+      name: ""
+  status:
+    httpProxy: http://lab-ci-27-proxy:x@lab-ci-28-proxy-nlb-proxy-....elb.us-east-1.amazonaws.com:3128
+    httpsProxy: http://lab-ci-27-proxy:x@lab-ci-28-proxy-nlb-proxy-....elb.us-east-1.amazonaws.com:3128
+    noProxy: .cluster.local,.ec2.internal,.svc,10.0.0.0/16,10.128.0.0/14,127.0.0.1,169.254.169.254,172.30.0.0/16,api-int.lab415v6.devcluster.openshift.com,localhost
+kind: List
+```
+
+
+[regional-e]: https://docs.aws.amazon.com/general/latest/gr/rande.html

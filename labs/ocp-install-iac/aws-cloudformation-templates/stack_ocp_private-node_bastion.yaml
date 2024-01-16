@@ -91,10 +91,10 @@ Resources:
       - IpProtocol: "tcp"
         FromPort: 22
         ToPort: 22
-        CidrIp: !Ref VpcCidr
+        CidrIp: "0.0.0.0/0"
       SecurityGroupEgress:
       - IpProtocol: "-1"
-        CidrIp: !Ref VpcCidr
+        CidrIp: "0.0.0.0/0"
       VpcId: !Ref VpcId
       Tags:
       - Key: Name
