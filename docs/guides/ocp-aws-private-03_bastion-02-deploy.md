@@ -18,6 +18,7 @@ BASTION_SUBNET_ID="$(aws cloudformation describe-stacks \
   --query 'Stacks[].Outputs[?OutputKey==`PrivateSubnetIds`].OutputValue' \
   --output text | tr ',' '\n' | head -n1)"
 
+# Temp/must be private
 BASTION_SUBNET_ID="$(aws cloudformation describe-stacks \
   --stack-name "${VPC_STACK_NAME}" \
   --query 'Stacks[].Outputs[?OutputKey==`PublicSubnetIds`].OutputValue' \
@@ -39,7 +40,7 @@ BASTION_USER_DATA=$BASTION_USER_DATA
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-export BASTION_STACK_NAME="${PREFIX_VARIANT}-bastion-00"
+export BASTION_STACK_NAME="${PREFIX_VARIANT}-bastion-04"
 aws cloudformation create-change-set \
 --stack-name "${BASTION_STACK_NAME}" \
 --change-set-name "${BASTION_STACK_NAME}" \
@@ -50,7 +51,7 @@ aws cloudformation create-change-set \
 --parameters \
   ParameterKey=VpcId,ParameterValue=${VPC_ID} \
   ParameterKey=VpcCidr,ParameterValue=${CLUSTER_VPC_CIDR} \
-  ParameterKey=NamePrefix,ParameterValue=${PREFIX_VARIANT} \
+  ParameterKey=NamePrefix,ParameterValue=${PREFIX_VARIANT}04 \
   ParameterKey=AmiId,ParameterValue=${BASTION_AMI_ID} \
   ParameterKey=UserData,ParameterValue=${BASTION_USER_DATA} \
   ParameterKey=SubnetId,ParameterValue=${BASTION_SUBNET_ID} \

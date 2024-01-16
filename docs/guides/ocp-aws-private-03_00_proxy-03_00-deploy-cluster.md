@@ -78,5 +78,10 @@ export PROXY_SERVICE_ENDPOINT="$(aws cloudformation describe-stacks \
 # Export Proxy Serivce URL to be set on install-config
 export PROXY_SERVICE_URL="http://${PROXY_NAME}:${PASSWORD}@${PROXY_SERVICE_ENDPOINT}:3128"
 
-export PROXY_SERVICE_NO_PROXY="*.vpce.amazonaws.com,127.0.0.1,169.254.169.254,localhost"
+export PROXY_SERVICE_NO_PROXY=".vpce.amazonaws.com,127.0.0.1,169.254.169.254,localhost"
+
+cat <<EOF
+PROXY_SERVICE_URL=$PROXY_SERVICE_URL
+PROXY_SERVICE_NO_PROXY=$PROXY_SERVICE_NO_PROXY
+EOF
 ```
