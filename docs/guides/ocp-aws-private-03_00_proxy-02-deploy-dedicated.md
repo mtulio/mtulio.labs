@@ -33,7 +33,7 @@ PROXY_SUBNET_ID=$PROXY_SUBNET_ID
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-export PROXY_STACK_NAME="${PREFIX_VARIANT}-proxy-00"
+export PROXY_STACK_NAME="${PREFIX_VARIANT}-proxy-09"
 aws cloudformation create-change-set \
 --stack-name "${PROXY_STACK_NAME}" \
 --change-set-name "${PROXY_STACK_NAME}" \
@@ -44,14 +44,14 @@ aws cloudformation create-change-set \
 --parameters \
   ParameterKey=VpcId,ParameterValue=${VPC_ID} \
   ParameterKey=VpcCidr,ParameterValue=${CLUSTER_VPC_CIDR} \
-  ParameterKey=NamePrefix,ParameterValue=${PREFIX_VARIANT}-proxy \
+  ParameterKey=NamePrefix,ParameterValue=${PROXY_STACK_NAME} \
   ParameterKey=AmiId,ParameterValue=${PROXY_AMI_ID} \
   ParameterKey=UserData,ParameterValue=${PROXY_USER_DATA} \
   ParameterKey=SubnetId,ParameterValue=${PROXY_SUBNET_ID} \
   ParameterKey=IsPublic,ParameterValue="True" \
   ParameterKey=TemplatesBaseURL,ParameterValue="${TEMPLATE_BASE_URL}"
 
-sleep 30
+sleep 20
 aws cloudformation execute-change-set \
     --change-set-name "${PROXY_STACK_NAME}" \
     --stack-name "${PROXY_STACK_NAME}"
@@ -70,12 +70,12 @@ PROXY_INSTANCE_ID="$(aws cloudformation describe-stacks \
   --output text)"
 ```
 
-### Setup standalone proxy instance
+### Setup standalone proxy instance (skip if using cluster)
 
 Setup the standalone instance.
 
 ```sh
-
+# Used mount the Proxy URL used by clients
 PROXY_PRIVATE_IP=$(aws ec2 describe-instances \
   --instance-ids $PROXY_INSTANCE_ID \
   --query 'Reservations[].Instances[].PrivateIpAddress' \
@@ -100,8 +100,9 @@ PROXY_SSH_OPTS="-4"
 # PROXY_SSH_OPTS="-6"
 
 # Export Proxy Serivce URL to be set on install-config
-export PROXY_SERVICE_URL="http://${PROXY_NAME}:${PASSWORD}@${PROXY_PRIVATE_IP}:3128"
-export PROXY_SERVICE_NO_PROXY="*.vpce.amazonaws.com,127.0.0.1,169.254.169.254,localhost"
+export PROXY_SERVICE_URL="http://${PROXY_USER_NAME}:${PROXY_PASSWORD}@${PROXY_PRIVATE_IP}:3128"
+export PROXY_SERVICE_URL_TLS="https://${PROXY_USER_NAME}:${PROXY_PASSWORD}@${PROXY_PRIVATE_IP}:3130"
+export PROXY_SERVICE_NO_PROXY="169.254.169.254,.vpce.amazonaws.com"
 ```
 
 - Review the public IP address used by the proxy
@@ -110,9 +111,12 @@ export PROXY_SERVICE_NO_PROXY="*.vpce.amazonaws.com,127.0.0.1,169.254.169.254,lo
 # Test SSH and proxy access
 ssh $PROXY_SSH_OPTS core@"$PROXY_SSH_ADDR" "curl -s --proxy $PROXY_SERVICE_URL https://mtulio.dev/api/geo" | jq .
 
+ssh $PROXY_SSH_OPTS core@"$PROXY_SSH_ADDR" "curl --proxy-cacert /etc/squid/ca-chain.pem --proxy $PROXY_SERVICE_URL_TLS https://mtulio.dev/api/geo" | jq .
+
 cat <<EOF
 PROXY_PUBLIC_IP=$PROXY_PUBLIC_IP
 PROXY_PRIVATE_IP=$PROXY_PRIVATE_IP
+PROXY_SERVICE_URL_TLS=$PROXY_SERVICE_URL_TLS
 PROXY_SERVICE_URL=$PROXY_SERVICE_URL
 EOF
 ```
@@ -120,16 +124,19 @@ EOF
 ### Optional: Create custom AMI
 
 ```sh
-PROXY_CUSTOM_AMI_ID=$(aws ec2 create-image --instance-id ${PROXY_INSTANCE_ID} \
+export PROXY_CUSTOM_AMI_ID=$(aws ec2 create-image --instance-id ${PROXY_INSTANCE_ID} \
   --name  "Proxy AMI based on ${PROXY_STACK_NAME}" \
-  --description "Squid proxy service for OpenShift Clusters" | jq .ImageId)
+  --description "Squid proxy service for OpenShift Clusters" \
+  --query 'ImageId' --output text)
 
 export creating=true;
 while $creating; do 
   state=$(aws ec2 describe-images --image-ids $PROXY_CUSTOM_AMI_ID --query 'Images[].State' --output text);
-  if [[ $state == "pending" ]];
+  if [[ "$state" == "pending" ]];
   then
-    echo "watiing..."; sleep 30;
+    echo "$(date)> $state/watiing..."; sleep 30; continue
   fi;
+  echo "$(date)> $state/done"
+  creating=false
 done
 ```

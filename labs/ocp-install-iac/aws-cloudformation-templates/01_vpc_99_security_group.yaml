@@ -54,6 +54,10 @@ Resources:
         ToPort: 3128
         FromPort: 3128
         CidrIp: !Ref AllowedProxyCidr
+      - IpProtocol: tcp
+        ToPort: 3130
+        FromPort: 3130
+        CidrIp: !Ref AllowedProxyCidr
       VpcId: !Ref VpcId
       Tags:
       - Key: Name

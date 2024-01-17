@@ -40,10 +40,18 @@ Reference:
 Export the environment variables:
 
 ```sh
+#
+# Global env vars
+#
 export RESOURCE_NAME_PREFIX="lab-ci"
+export WORKDIR="$HOME/openshift-labs/${RESOURCE_NAME_PREFIX}"
+mkdir -p ${WORKDIR}
+
 export CLUSTER_VPC_CIDR=10.0.0.0/16
 export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
 export AWS_REGION=us-east-1
+
+export DNS_BASE_DOMAIN="devcluster.openshift.com"
 ```
 
 ### Tools
@@ -68,9 +76,17 @@ The tools/binaries must be installed in your PATH:
 
 
 ```sh
-BUCKET_NAME="installer-upi-templates"
-TEMPLATE_BASE_URL="https://${BUCKET_NAME}.s3.amazonaws.com"
+# from @mtulio/mtulio.labs project
+export SOURCE_DIR=./labs/ocp-install-iac
+export CFN_TEMPLATE_PATH=${SOURCE_DIR}/aws-cloudformation-templates
+export CFN_STACK_PATH=file://${CFN_TEMPLATE_PATH}
 
+export BUCKET_NAME="installer-upi-templates"
+export TEMPLATE_BASE_URL="https://${BUCKET_NAME}.s3.amazonaws.com"
+
+#
+# UPI Bucket
+#
 aws s3api create-bucket --bucket $BUCKET_NAME --region us-east-1
 aws s3api put-public-access-block \
     --bucket ${BUCKET_NAME} \
@@ -95,7 +111,7 @@ aws s3api put-bucket-policy \
 }"
 
 function update_templates() {
-  local base_path="${1:-labs/ocp-install-iac/aws-cloudformation-templates}"
+  local base_path="${1:-${SOURCE_DIR}/aws-cloudformation-templates}"
   for TEMPLATE in ${TEMPLATES[*]}; do
       
       if [[ ! -f "$base_path/$TEMPLATE" ]]; then
@@ -106,10 +122,7 @@ function update_templates() {
   done
 }
 
-export WORKDIR=./labs/ocp-install-iac
-export CFN_TEMPLATE_PATH=${WORKDIR}/aws-cloudformation-templates
-export CFN_STACK_PATH=file://${CFN_TEMPLATE_PATH}
-
+# Upload templates to bucket
 export TEMPLATES=()
 TEMPLATES+=("01_vpc_00_standalone.yaml")
 TEMPLATES+=("01_vpc_01_route_table.yaml")

@@ -11,7 +11,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   NamePrefix:
     AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
-    MaxLength: 16
+    MaxLength: 26
     MinLength: 1
     ConstraintDescription: Cluster name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
     Description: A short, representative cluster name to use for host names and other identifying names.
@@ -60,18 +60,13 @@ Parameters:
     Description: Base64 user data to provision the EC2.
     Type: String
 
-  UserData:
-    Description: Base64 user data to provision the EC2.
+  DnsHostedZoneId:
+    Description: DNS Hosted Zone ID to create the DNS Record.
     Type: String
+    Default: "0"
 
-  IsPublic:
-    Description: Base64 user data to provision the EC2.
-    Type: String
-    Default: "False"
-    AllowedValues: ["True", "False"]
-
-  Ipv6AddressCount:
-    Description: Base64 user data to provision the EC2.
+  DnsRecordName:
+    Description: DNS Record Name to create CNAME for Load Balancer DNS.
     Type: String
     Default: "0"
 
@@ -84,7 +79,7 @@ Resources:
       TimeoutInMinutes: 5
       Parameters:
         NamePrefix: !Ref NamePrefix
-        NameSuffix: "proxy"
+        #NameSuffix: "proxy"
         #CustomPolicyArns: !Join ["-", [!Ref IamPolicy]]
 
   InstanceProfile:
@@ -109,55 +104,60 @@ Resources:
   #     - !Ref ProxyIamRole
 
   ProxySecurityGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_security_group.yaml"]]
-      TimeoutInMinutes: 5
-      Parameters:
-        NamePrefix: !Ref NamePrefix
-        DescriptionSuffix: "OpenShift Cluster Proxy"
-        AllowedProxyCidr: !Ref VpcCidr
-        VpcId: !Ref VpcId
-
-  # ProxyInstance:
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties:
-  #     TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "04_ec2_instance.yaml"]]
-  #     TimeoutInMinutes: 5
-  #     Parameters:
-  #       NamePrefix: !Ref NamePrefix
-  #       AmiId: !Ref AmiId
-  #       SubnetId: !Ref SubnetId
-  #       UserData: !Ref UserData
-  #       IamRoleArn: !Ref 'ProxyIamRole'
-  #       KeyName: !Ref KeyName
-  #       InstanceType: !Ref InstanceType
-  #       SecurityGroupId: !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
-  #       IsPublic: !Ref IsPublic
-  #       Ipv6AddressCount: !Ref Ipv6AddressCount
-
+      GroupDescription: !Join ['', ["Security Group for ", "proxy host"]]
+      SecurityGroupIngress:
+      - IpProtocol: "tcp"
+        FromPort: 22
+        ToPort: 22
+        CidrIp: "0.0.0.0/0"
+      - IpProtocol: "tcp"
+        FromPort: 3128
+        ToPort: 3128
+        CidrIp: !Ref VpcCidr
+      - IpProtocol: "tcp"
+        FromPort: 3130
+        ToPort: 3130
+        CidrIp: !Ref VpcCidr
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: "0.0.0.0/0"
+      VpcId: !Ref VpcId
+      Tags:
+      - Key: Name
+        Value: !Join ['-', [!Ref NamePrefix, "sg"]]
   #
   # Launch Template
   #
   LBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Join ['', ["Security Group for ", "sg-proxy-nlb"]]
+      GroupDescription: !Join ['', ["Security Group for ", "nlb-sg"]]
       SecurityGroupIngress:
       - IpProtocol: "tcp"
         FromPort: 3128
         ToPort: 3128
+        CidrIp: !Ref VpcCidr
+      - IpProtocol: "tcp"
+        FromPort: 3130
+        ToPort: 3130
         CidrIp: !Ref VpcCidr
       SecurityGroupEgress:
       - IpProtocol: "tcp"
         FromPort: 3128
         ToPort: 3128
         CidrIp: !Ref VpcCidr
+      - IpProtocol: "tcp"
+        FromPort: 3130
+        ToPort: 3130
+        CidrIp: !Ref VpcCidr
       VpcId: !Ref VpcId
       Tags:
       - Key: Name
-        Value: !Join ['', [!Ref NamePrefix, "sg-proxy-nlb"]]
-  # 
+        Value: !Join ['-', [!Ref NamePrefix, "nlb-sg"]]
+
+  # HTTP
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -171,8 +171,45 @@ Resources:
       IpAddressType: ipv4
       # Matcher: 
       #   Matcher
-      Name: !Join ["-", [!Ref NamePrefix, "tg-proxy"]]
+      Name: !Join ["-", [!Ref NamePrefix, "tg"]]
       Port: 3128
+      Protocol: TCP
+      # ProtocolVersion: String
+      # Tags: 
+      #   - Tag
+      TargetGroupAttributes: 
+        - Key: deregistration_delay.timeout_seconds
+          Value: 60
+        # - Key: load_balancing.cross_zone.enabled
+        #   Value: true
+        - Key: target_group_health.unhealthy_state_routing.minimum_healthy_targets.count
+          Value: 1
+        - Key: deregistration_delay.connection_termination.enabled
+          Value: true
+        # - Key: preserve_client_ip.enabled
+        #   Value: true
+        - Key: target_health_state.unhealthy.connection_termination.enabled
+          Value: true
+      Targets: []
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VpcId
+
+  TargetGroupTLS:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      # HealthCheckEnabled: Boolean
+      HealthCheckIntervalSeconds: 5
+      # HealthCheckPath: String
+      HealthCheckPort: 3130
+      HealthCheckProtocol: TCP
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
+      IpAddressType: ipv4
+      # Matcher: 
+      #   Matcher
+      Name: !Join ["-", [!Ref NamePrefix, "tls"]]
+      Port: 3130
       Protocol: TCP
       # ProtocolVersion: String
       # Tags: 
@@ -209,7 +246,7 @@ Resources:
           Value: partial_availability_zone_affinity
         # - Key: deletion_protection.enabled
         #   Value: true
-      Name: !Join ["-", [!Ref NamePrefix, "nlb-proxy"]]
+      Name: !Join ["-", [!Ref NamePrefix, "nlb"]]
       Scheme: internal
       SecurityGroups:
         - !Ref LBSecurityGroup
@@ -219,7 +256,7 @@ Resources:
       # - !Ref SubnetIds
       Tags: 
         - Key: Name
-          Value: !Join ['', [!Ref NamePrefix, "proxy-nlb"]]
+          Value: !Join ['-', [!Ref NamePrefix, "nlb"]]
       Type: network
 
   ListenerProxy:
@@ -248,197 +285,52 @@ Resources:
       Protocol: TCP
       # SslPolicy: String
 
+  ListenerProxyTLS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions: 
+        - Order: 1
+          TargetGroupArn: !Ref TargetGroupTLS
+          Type: forward
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 3130
+      Protocol: TCP
+
   # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-launchtemplate-launchtemplatedata.html
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: !Sub '${AWS::StackName}-template-proxy'
+      LaunchTemplateName: !Join ['-', [!Ref NamePrefix, "template"]]
       LaunchTemplateData:
         NetworkInterfaces:
           - DeviceIndex: 0
             AssociatePublicIpAddress: true
             Groups:
-              - !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
+              - !Ref ProxySecurityGroup
             DeleteOnTermination: true
-        # Placement:
-        #   Tenancy: dedicated
         ImageId: !Ref AmiId
         InstanceType: !Ref  InstanceType
         KeyName: !Ref KeyName
-
-        # BlockDeviceMappings: 
-        #   - BlockDeviceMapping
-        # CapacityReservationSpecification: 
-        #   CapacityReservationPreference: open
-        # CpuOptions: 
-        #   #AmdSevSnp: String
-        #   CoreCount: 2
-        #   ThreadsPerCore: 2
-        #CreditSpecification: 
-        #  CreditSpecification
-        #DisableApiStop: Boolean
-        #DisableApiTermination: Boolean
-        #EbsOptimized: Boolean
-        #ElasticGpuSpecifications: 
-        #  - ElasticGpuSpecification
-        #ElasticInferenceAccelerators: 
-        #  - LaunchTemplateElasticInferenceAccelerator
-        #EnclaveOptions: 
-        #  EnclaveOptions
-        #HibernationOptions: 
-        #  HibernationOptions
-        # IamInstanceProfile: 
-        #   Arn: !GetAtt
-        #     - InstanceProfile
-        #     - Arn
-        # ImageId: !Ref AmiId
-        #InstanceInitiatedShutdownBehavior: String
-        #InstanceMarketOptions: 
-        #  InstanceMarketOptions
-      #   InstanceRequirements: 
-      #       #AcceleratorCount: 
-      #       #  AcceleratorCount
-      #       #AcceleratorManufacturers: 
-      #       #  - String
-      #       #AcceleratorNames: 
-      #       #  - String
-      #       #AcceleratorTotalMemoryMiB: 
-      #       #  AcceleratorTotalMemoryMiB
-      #       #AcceleratorTypes: 
-      #       #  - String
-      #       AllowedInstanceTypes: 
-      #         - m5.large
-      #       #   - m5.large
-      #       #   - m6i*.large
-      #       #   - t3.*
-      #       #BareMetal: String
-      #       #BaselineEbsBandwidthMbps: 
-      #       #  BaselineEbsBandwidthMbps
-      #       #BurstablePerformance: String
-      #       #CpuManufacturers: 
-      #       #  - String
-      #       # ExcludedInstanceTypes: 
-      #       #   - '*g.*'
-      #       #InstanceGenerations: 
-      #       #  - String
-      #       #LocalStorage: String
-      #       #LocalStorageTypes: 
-      #       #  - String
-      #       # MemoryGiBPerVCpu: 
-      #       #   Max: 8
-      #       #   Min: 1
-      #       MemoryMiB: 
-      #         Max: 32
-      #         Min: 1
-      #       #NetworkBandwidthGbps: 
-      #       #  NetworkBandwidthGbps
-      #       #NetworkInterfaceCount: 
-      #       #  NetworkInterfaceCount
-      #       #OnDemandMaxPricePercentageOverLowestPrice: 999999
-      #       #RequireHibernateSupport: Boolean
-      #       # SpotMaxPricePercentageOverLowestPrice: 50
-      #       #TotalLocalStorageGB: 
-      #       #  TotalLocalStorageGB
-      #       VCpuCount: 
-      #         Max: 8
-      #         Min: 1
-      #   #InstanceType: String
-      #   #KernelId: String
-      #   KeyName: !Ref KeyName
-      #   #LicenseSpecifications: 
-      #   #  - LicenseSpecification
-      #   # MaintenanceOptions: 
-      #   #   AutoRecovery: default
-      #     # RebootMigration: True
-      #   # MetadataOptions: 
-      #   #   HttpEndpoint: String
-      #   #   HttpProtocolIpv6: String
-      #   #   HttpPutResponseHopLimit: Integer
-      #   #   HttpTokens: String
-      #   #   InstanceMetadataTags: String
-      #   Monitoring: 
-      #     Enabled: True
-      #   # NetworkInterfaces: 
-      #   #   - NetworkInterface
-      #   # Placement: 
-      #   #   Placement
-      #   # PrivateDnsNameOptions: 
-      #   #   # EnableResourceNameDnsAAAARecord: Boolean
-      #   #   EnableResourceNameDnsARecord: True
-      #   #   HostnameType: ip-name
-      #   # RamDiskId: String
-      #   SecurityGroupIds: 
-      #     - !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
-      #   # SecurityGroups: 
-      #   #   - String
-      #   # TagSpecifications: 
-      #   #   - TagSpecification
-      #   UserData: !Ref UserData
-      # LaunchTemplateName: !Join ["-", [!Ref NamePrefix, "template-proxy"]]
-      # TagSpecifications: 
-      #   - LaunchTemplateTagSpecification
-      # VersionDescription: "String"
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AutoScalingGroupName: !Join ["-", [!Ref NamePrefix, "asg"]]
-      # AvailabilityZones: 
-      #   - String
-      # CapacityRebalance: True
-      # Context: String
-      # Cooldown: String
-      #DefaultInstanceWarmup: Integer
       DesiredCapacity: 1
       DesiredCapacityType: units
-      #HealthCheckGracePeriod: 5
-      #HealthCheckType: ELB
-      # InstanceId: !Ref InstanceId
-      #InstanceId: !GetAtt 'ProxyInstance.Outputs.InstanceId'
-      # InstanceMaintenancePolicy: 
-      #   MaxHealthyPercentage: Integer
-      #   MinHealthyPercentage: 1
-      #LaunchConfigurationName: String
       LaunchTemplate: 
-        LaunchTemplateName: !Sub '${AWS::StackName}-template-proxy'
+        LaunchTemplateName: !Join ['-', [!Ref NamePrefix, "template"]]
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      # LifecycleHookSpecificationList: 
-      #   - LifecycleHookSpecification
-      # LoadBalancerNames: 
-      #   - String
-      # Recycle the instance weekly
-
-      # MetricsCollection: 
-      #   - Granularity: 1Minute
-          # Metrics: 
-          # - String
       MaxSize: 5
       MinSize: 1
       MaxInstanceLifetime: 604800
-      # MixedInstancesPolicy: 
-      #   # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-autoscaling-autoscalinggroup-instancesdistribution.html
-      #   InstancesDistribution: 
-      #     OnDemandAllocationStrategy: lowest-price
-      #     OnDemandBaseCapacity: 1
-      #     #OnDemandPercentageAboveBaseCapacity: Integer
-      #     SpotAllocationStrategy: price-capacity-optimized
-      #     #SpotInstancePools: Integer
-      #     #SpotMaxPrice: String
-      #   LaunchTemplate:
-      #     LaunchTemplateSpecification:
-      #       LaunchTemplateId: !Ref LaunchTemplate
-      #       Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      #NewInstancesProtectedFromScaleIn: Boolean
-      #NotificationConfigurations: 
-      #  - NotificationConfiguration
-      #PlacementGroup: String
-      #ServiceLinkedRoleARN: String
       Tags: 
       - Key: Name
-        Value: !Join ['', [!Ref NamePrefix, "proxy-asg"]]
+        Value: !Join ['-', [!Ref NamePrefix, "asg"]]
         PropagateAtLaunch: true
       TargetGroupARNs: 
         - !Ref TargetGroup
+        - !Ref TargetGroupTLS
       TerminationPolicies: 
         - OldestLaunchTemplate
         - OldestInstance
@@ -477,6 +369,16 @@ Resources:
   #       ScaleInCooldown: 60
   #       ScaleOutCooldown: 120
   #       TargetValue: 1000
+
+  ProxyDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId : !Ref DnsHostedZoneId
+      Name: !Ref DnsRecordName
+      ResourceRecords:
+      - !GetAtt LoadBalancer.DNSName
+      TTL: 900
+      Type: CNAME
 
 Outputs:
   # ProxyInstanceId:

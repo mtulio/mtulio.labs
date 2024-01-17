@@ -40,7 +40,7 @@ BASTION_USER_DATA=$BASTION_USER_DATA
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-export BASTION_STACK_NAME="${PREFIX_VARIANT}-bastion-04"
+export BASTION_STACK_NAME="${PREFIX_VARIANT}-bastion-09"
 aws cloudformation create-change-set \
 --stack-name "${BASTION_STACK_NAME}" \
 --change-set-name "${BASTION_STACK_NAME}" \
@@ -51,13 +51,13 @@ aws cloudformation create-change-set \
 --parameters \
   ParameterKey=VpcId,ParameterValue=${VPC_ID} \
   ParameterKey=VpcCidr,ParameterValue=${CLUSTER_VPC_CIDR} \
-  ParameterKey=NamePrefix,ParameterValue=${PREFIX_VARIANT}04 \
+  ParameterKey=NamePrefix,ParameterValue=${PREFIX_VARIANT}05 \
   ParameterKey=AmiId,ParameterValue=${BASTION_AMI_ID} \
   ParameterKey=UserData,ParameterValue=${BASTION_USER_DATA} \
   ParameterKey=SubnetId,ParameterValue=${BASTION_SUBNET_ID} \
   ParameterKey=TemplatesBaseURL,ParameterValue="${TEMPLATE_BASE_URL}"
 
-sleep 30
+sleep 20
 aws cloudformation execute-change-set \
     --change-set-name "${BASTION_STACK_NAME}" \
     --stack-name "${BASTION_STACK_NAME}"

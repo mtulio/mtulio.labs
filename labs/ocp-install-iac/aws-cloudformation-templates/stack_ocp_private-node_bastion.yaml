@@ -72,7 +72,7 @@ Resources:
       TimeoutInMinutes: 5
       Parameters:
         NamePrefix: !Ref NamePrefix
-        NameSuffix: !Ref NameSuffix
+        #NameSuffix: !Ref NameSuffix
         ManagedPolicyArns: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 
   InstanceProfile:

@@ -68,8 +68,8 @@ sshKey: |
   $(<${SSH_PUB_KEY_FILE})
 
 proxy:
-  httpsProxy: ${PROXY_SERVICE_URL}
   httpProxy: ${PROXY_SERVICE_URL}
+  httpsProxy: ${PROXY_SERVICE_URL}
   noProxy: $(<${INSTALL_DIR}/config-noproxy.txt)
 EOF
 ```

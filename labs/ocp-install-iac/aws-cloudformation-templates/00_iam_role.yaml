@@ -7,10 +7,6 @@ Parameters:
     Type: String
     AllowedPattern: ".+"
     ConstraintDescription: ClusterName parameter must be specified.
-  NameSuffix:
-    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
-    Type: String
-    Default: ""
   ManagedPolicyArns:
     Type: String
     Default: ""
@@ -31,7 +27,6 @@ Metadata:
         default: ""
       Parameters:
       - NamePrefix
-   
     ParameterLabels:
       NamePrefix:
         default: "Prefix for Resource Name"

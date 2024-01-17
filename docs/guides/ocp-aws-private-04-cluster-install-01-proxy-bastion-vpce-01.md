@@ -11,7 +11,7 @@
 #export PULL_SECRET_FILE=/path/to/pull-secret
 export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
 export BASE_DOMAIN=devcluster.openshift.com
-export CLUSTER_NAME="lab415v7"
+export CLUSTER_NAME="lab415v14"
 export CLUSTER_VPC_CIDR="10.0.0.0/16"
 export AWS_REGION=us-east-1
 export INSTALL_DIR="${HOME}/openshift-labs/${CLUSTER_NAME}"
@@ -66,10 +66,31 @@ sshKey: |
   $(<${SSH_PUB_KEY_FILE})
 
 proxy:
-  httpsProxy: ${PROXY_SERVICE_URL}
+  httpsProxy: ${PROXY_SERVICE_URL_TLS}
   httpProxy: ${PROXY_SERVICE_URL}
   noProxy: $(<${INSTALL_DIR}/config-noproxy.txt)
+additionalTrustBundle: |
+$(cat ${INTERMEDIATE}/certs/ca-chain.cert.pem | awk '{print "  "$0}')
 EOF
+```
+
+### Create tunnels with bastion host (optional)
+
+Choose one:
+
+- Using SSH tunneling to proxy node (when running in the same VPC, and proxy is reached publically):
+
+```sh
+ssh -L 127.0.0.1:2222:$BASTION_PRIVATE_IP:22 core@$PROXY_PUBLIC_IP
+```
+
+- Using SSM tunneling to bastion node (private subnet):
+
+```sh
+aws ssm start-session \
+  --target ${BASTION_INSTANCE_ID} \
+  --document-name AWS-StartPortForwardingSessionToRemoteHost \
+  --parameters "{\"portNumber\":[\"22\"],\"localPortNumber\":[\"2222\"],\"host\":[\"$BASTION_PRIVATE_IP\"]}"
 ```
 
 ### Create cluster using bastion host
@@ -86,6 +107,7 @@ ssh $SSH_OPTS -p 2222 core@localhost "mkdir ~/.aws; cat <<EOF>~/.aws/credentials
 [default]
 aws_access_key_id=$(grep -A2 '\[default\]' ~/.aws/credentials |grep ^aws_access_key_id | awk -F'=' '{print$2}')
 aws_secret_access_key=$(grep -A2 '\[default\]' ~/.aws/credentials |grep ^aws_secret_access_key | awk -F'=' '{print$2}')
+#sts_regional_endpoints = regional
 EOF"
 
 # copy the pull-secret if you want to extract the installer binary from the bastion
@@ -281,3 +303,10 @@ Scenario:
 https://dev.to/suntong/using-squid-to-proxy-ssl-sites-nj3
 
 https://elatov.github.io/2019/01/using-squid-to-proxy-ssl-sites/#import-certificate-ca-into-the-browser-for-squid
+
+
+
+## Mew test
+
+
+- Ensure HTTPS is exported to the OS and 
