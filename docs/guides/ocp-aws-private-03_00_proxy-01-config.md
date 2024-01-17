@@ -16,12 +16,12 @@
 curl -L -o /tmp/fcos.json https://builds.coreos.fedoraproject.org/streams/stable.json
 
 export PROXY_IMAGE=quay.io/mrbraga/squid:6.6
-export PROXY_NAME="${PREFIX_VARIANT}-proxy"
+export PROXY_USER_NAME="${PREFIX_VARIANT}-proxy"
 export PROXY_AMI_ID=$(jq -r .architectures.x86_64.images.aws.regions[\"${AWS_REGION}\"].image < /tmp/fcos.json)
 
 export SSH_PUB_KEY=$(<"${SSH_PUB_KEY_FILE}")
-export PASSWORD="$(uuidgen | sha256sum | cut -b -32)"
-export HTPASSWD_CONTENTS="${PROXY_NAME}:$(openssl passwd -apr1 ${PASSWORD})"
+export PROXY_PASSWORD="$(uuidgen | sha256sum | cut -b -32)"
+export HTPASSWD_CONTENTS="${PROXY_USER_NAME}:$(openssl passwd -apr1 ${PROXY_PASSWORD})"
 export HTPASSWD_CONTENTS="$(echo -e ${HTPASSWD_CONTENTS} | base64 -w0)"
 
 # define squid config

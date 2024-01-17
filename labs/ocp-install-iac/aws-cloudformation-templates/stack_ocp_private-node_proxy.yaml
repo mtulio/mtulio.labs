@@ -4,7 +4,7 @@ Description: Deploy Proxy Instance.
 Parameters:
   NamePrefix:
     AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
-    MaxLength: 16
+    MaxLength: 24
     MinLength: 1
     ConstraintDescription: Cluster name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
     Description: A short, representative cluster name to use for host names and other identifying names.
@@ -73,7 +73,7 @@ Resources:
       TimeoutInMinutes: 5
       Parameters:
         NamePrefix: !Ref NamePrefix
-        NameSuffix: "proxy"
+        #NameSuffix: "proxy"
         #CustomPolicyArns: !Join ["-", [!Ref IamPolicy]]
 
   IamPolicy:
@@ -97,16 +97,30 @@ Resources:
       Roles:
       - !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
 
-  ProxySecurityGroup:
-    Type: AWS::CloudFormation::Stack
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_security_group.yaml"]]
-      TimeoutInMinutes: 5
-      Parameters:
-        NamePrefix: !Ref NamePrefix
-        DescriptionSuffix: "OpenShift Cluster Proxy"
-        AllowedProxyCidr: !Ref VpcCidr
-        VpcId: !Ref VpcId
+      GroupDescription: !Join ['', ["Security Group for ", "proxy host"]]
+      SecurityGroupIngress:
+      - IpProtocol: "tcp"
+        FromPort: 22
+        ToPort: 22
+        CidrIp: "0.0.0.0/0"
+      - IpProtocol: "tcp"
+        FromPort: 3128
+        ToPort: 3128
+        CidrIp: !Ref VpcCidr
+      - IpProtocol: "tcp"
+        FromPort: 3130
+        ToPort: 3130
+        CidrIp: !Ref VpcCidr
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: "0.0.0.0/0"
+      VpcId: !Ref VpcId
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref NamePrefix, "-proxy-sg"]]
 
   ProxyInstance:
     Type: AWS::CloudFormation::Stack
@@ -121,7 +135,7 @@ Resources:
         IamRoleArn: !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
         KeyName: !Ref KeyName
         InstanceType: !Ref InstanceType
-        SecurityGroupId: !GetAtt 'ProxySecurityGroup.Outputs.SecurityGroupId'
+        SecurityGroupId: !Ref SecurityGroup
         IsPublic: !Ref IsPublic
         Ipv6AddressCount: !Ref Ipv6AddressCount
 

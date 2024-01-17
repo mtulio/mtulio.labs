@@ -16,6 +16,11 @@ Now just open the http://localhost:9000
 
 Now the remote server could access you local app on remote address localhost:9000
 
+## Port forwarding
+
+- Expose local port 2222, forwarding to `10.0.0.179:22` using the remote server  `54.82.45.10`:
+
+`ssh -L 127.0.0.1:2222:10.0.0.179:22 core@54.82.45.109`
 
 # References:
 
