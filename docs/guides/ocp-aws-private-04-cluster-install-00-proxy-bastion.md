@@ -11,7 +11,7 @@
 #export PULL_SECRET_FILE=/path/to/pull-secret
 export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
 export BASE_DOMAIN=devcluster.openshift.com
-export CLUSTER_NAME="lab415v6"
+export CLUSTER_NAME="lab415v8"
 export CLUSTER_VPC_CIDR="10.0.0.0/16"
 export AWS_REGION=us-east-1
 export INSTALL_DIR="${HOME}/openshift-labs/${CLUSTER_NAME}"

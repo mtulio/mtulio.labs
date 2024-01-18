@@ -1,4 +1,13 @@
-# OCP on AWS private VPC
+# Installing OpenShift on Private VPCs | Solutions
+
+This page references tutorials/solutions with handful steps to
+install OpenShift clusters on restricted/private networks on AWS.
+
+> TODO
+
+## Solutions with Proxy in VPC
+
+Solution 1) Install OpenShift in existing VPC on AWS with Proxy
 
 Options:
 
@@ -10,7 +19,7 @@ Options:
 
 Solutions/Architectures/Deployments:
 
-1) Deploy OpenShift in single stack IPv4 VPC with dedicated proxy in public subnets
+S1) Deploy OpenShift in single stack IPv4 VPC with dedicated proxy in public subnets
 
 - [ocp-aws-private-01-pre.md](./ocp-aws-private-01-pre.md)
 - [ocp-aws-private-02-deploy-vpc-ipv4.md](./ocp-aws-private-02-vpc-ipv4-pub-blackhole.md)
@@ -19,7 +28,7 @@ Solutions/Architectures/Deployments:
 - [Deploy private OpenShift cluster with dedicated proxy in VPC](./ocp-aws-private-04-cluster-install-proxy-jump.md)
 
 
-2) Deploy OpenShift in single stack IPv4 VPC with shared proxy server IPv4
+S2) Deploy OpenShift in single stack IPv4 VPC with shared proxy server IPv4
 
 Step 1) Deploy shared proxy service
 
