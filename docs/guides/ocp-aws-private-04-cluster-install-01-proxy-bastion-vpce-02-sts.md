@@ -137,8 +137,8 @@ ${HOME}/oc adm release extract \
     --to=${PWD}/cco-credrequests \
     ${RELEASE_IMAGE}
 
-${HOME}/ccoctl-patch aws create-all \
-  --name=lab415v15v0 \
+${HOME}/ccoctl aws create-all \
+  --name=lab415v15pub0 \
   --region=us-east-1 \
   --credentials-requests-dir=${PWD}/cco-credrequests \
   --output-dir=$PWD/cco-output \
