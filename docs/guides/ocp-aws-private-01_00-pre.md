@@ -124,6 +124,7 @@ function update_templates() {
 
 # Upload templates to bucket
 export TEMPLATES=()
+TEMPLATES+=("00_iam_role.yaml")
 TEMPLATES+=("01_vpc_00_standalone.yaml")
 TEMPLATES+=("01_vpc_01_route_table.yaml")
 TEMPLATES+=("01_vpc_01_cidr_block_ipv6.yaml")
@@ -131,10 +132,10 @@ TEMPLATES+=("01_vpc_99_subnet.yaml")
 TEMPLATES+=("01_vpc_03_route_entry.yaml")
 TEMPLATES+=("01_vpc_01_route_table.yaml")
 TEMPLATES+=("01_vpc_01_internet_gateway.yaml")
-TEMPLATES+=("00_iam_role.yaml")
 TEMPLATES+=("01_vpc_99_security_group.yaml")
-TEMPLATES+=("04_ec2_instance.yaml")
 TEMPLATES+=("01_vpc_01_egress_internet_gateway.yaml")
 TEMPLATES+=("01_vpc_99_endpoints.yaml")
+TEMPLATES+=("04_ec2_instance.yaml")
+TEMPLATES+=("99_service_proxy_ha.yaml")
 update_templates
 ```

@@ -10,24 +10,11 @@
 
 ## Deploy VPC single stack IPv4 with blackhole private subnets
 
-| Publish | Install type | 
-| -- | -- |
-| Internal | BYO VPC/Restricted/Proxy |
-
 Items:
 
-- Publish=Internal
-- Public subnets with dual-stack
+- Public subnets with single-stack IPv4
 - Private subnets single-stack IPv4 with black hole default route
-- IPv4 public IP assignment blocked in public subnets
-- IPv6 IP assignment enabled by default in the public subnet
-
-Results:
-
-- ??
-
-Steps:
-
+- IPv4 public IP assignment enabled in public subnets
 
 ### Create VPC
 
@@ -38,7 +25,7 @@ TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
 # Create a variant to prevent any 'cache' of the template in CloudFormation
-PREFIX_VARIANT="${RESOURCE_NAME_PREFIX}-31"
+PREFIX_VARIANT="${RESOURCE_NAME_PREFIX}-32"
 export VPC_STACK_NAME="${PREFIX_VARIANT}-vpc"
 aws cloudformation create-change-set \
 --stack-name "${VPC_STACK_NAME}" \
