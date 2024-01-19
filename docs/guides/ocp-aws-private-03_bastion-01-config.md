@@ -69,7 +69,6 @@ storage:
     - path: /etc/aws.env
       mode: 0644
       contents:
-        compression: gzip
         inline: |
           AWS_ENDPOINT_URL_SSM=${BASTION_AWS_ENDPOINT_SSM}
           AWS_ENDPOINT_URL_EC2MESSAGES=${BASTION_AWS_ENDPOINT_EC2MESSAGES}
