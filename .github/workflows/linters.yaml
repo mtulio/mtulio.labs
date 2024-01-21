@@ -1,0 +1,60 @@
+name: linters
+on: [push]
+jobs:
+
+  # https://github.com/marketplace/actions/shell-linter
+  linter-ShellCheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+      # - name: Create and populate .env file
+      #   run: |
+      #     cp ./.env-sample ./.env
+      #   shell: bash
+      # - name: Run Shellcheck main
+      #   uses: azohra/shell-linter@latest
+      #   with:
+      #     path: "ocp-cluster-orchestrator"
+      - name: Run Shellcheck on ocp-replace-k8s-apiserver-nlb
+        uses: azohra/shell-linter@latest
+        with:
+          path: './labs/ocp-replace-k8s-apiserver-nlb'
+
+  # https://github.com/marketplace/actions/yaml-lint
+  # linter-yaml:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: yaml-lint-config
+  #       uses: ibiqlik/action-yamllint@v3
+  #       with:
+  #         file_or_dir: config.yaml
+  #         config_file: .github/workflows/yaml-linter-config.yml
+  #     - name: yaml-lint-ci
+  #       uses: ibiqlik/action-yamllint@v3
+  #       with:
+  #         file_or_dir: .github/workflows/*.yaml
+  #         config_file: .github/workflows/yaml-linter-config.yml
+
+  # https://github.com/marketplace/actions/cfn-lint-action
+  linter-CloudFormation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Cloud Formation Linter with Latest Version
+        uses: scottbrenner/cfn-lint-action@v2
+
+      - name: Print the Cloud Formation Linter Version & run Linter.
+        run: |
+          cfn-lint --version
+          TEMPLATE_LIST=()
+          TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_EC2_CreateAmi.yaml")
+          
+          # Running
+          for TPL in ${TEMPLATE_LIST[*]}; do
+            echo "Running CloudFormation link to file ${TPL}"
+            cfn-lint -t ${TPL}
+          done
