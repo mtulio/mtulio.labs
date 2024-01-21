@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template for create IAM Role
+
+Parameters:
+  NamePrefix:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    AllowedPattern: ".+"
+    ConstraintDescription: ClusterName parameter must be specified.
+  NameSuffix:
+    Default: "-sg"
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+  DescriptionSuffix:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    Default: ""
+  AllowedProxyCidr:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    Default: ""
+  VpcId:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    Default: ""
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: ""
+      Parameters:
+      - NamePrefix
+   
+    ParameterLabels:
+      NamePrefix:
+        default: "Prefix for Resource Name"
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join ['', ["Security Group for ", !Ref DescriptionSuffix]]
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIpv6: "::/0"
+      - IpProtocol: tcp
+        ToPort: 3128
+        FromPort: 3128
+        CidrIp: !Ref AllowedProxyCidr
+      - IpProtocol: tcp
+        ToPort: 3130
+        FromPort: 3130
+        CidrIp: !Ref AllowedProxyCidr
+      VpcId: !Ref VpcId
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref NamePrefix, !Ref NameSuffix]]
+
+Outputs:
+  SecurityGroupId:
+    Description: The Security Group Id.
+    Value: !Ref SecurityGroup

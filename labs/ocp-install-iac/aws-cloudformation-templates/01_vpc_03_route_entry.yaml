@@ -10,8 +10,18 @@ Parameters:
   DestinationCidrBlock:
     Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
     Type: String
-    AllowedPattern: ".+"
-    ConstraintDescription: ClusterName parameter must be specified.
+    Default: ""
+    # AllowedPattern: ".+"
+    # ConstraintDescription: ClusterName parameter must be specified.
+    #AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
+    #ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
+    # Default: 172.16.0.0/16
+  DestinationCidrBlockIpv6:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    Default: ""
+    # AllowedPattern: ".+"
+    # ConstraintDescription: ClusterName parameter must be specified.
     #AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
     #ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
     # Default: 172.16.0.0/16
@@ -30,11 +40,19 @@ Parameters:
     Type: String
     ConstraintDescription: ClusterName parameter must be specified.
     Default: ""
+  EgressOnlyInternetGatewayId:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    ConstraintDescription: ClusterName parameter must be specified.
+    Default: ""
 
 Conditions:
-  GatewayTypeTransitGW: !Not [!Equals [!Ref TransitGatewayId, ""]] 
-  GatewayTypeInternetGW: !Not [!Equals [!Ref InternetGatewayId, ""]] 
-  GatewayTypeNatGW: !Not [!Equals [!Ref NatGatewayId, ""]] 
+  GatewayTypeTransitGW: !Not [!Equals [!Ref TransitGatewayId, ""]]
+  GatewayTypeInternetGW: !Not [!Equals [!Ref InternetGatewayId, ""]]
+  GatewayTypeNatGW: !Not [!Equals [!Ref NatGatewayId, ""]]
+  GatewayTypeEgressOnly: !Not [!Equals [!Ref EgressOnlyInternetGatewayId, ""]]
+  Ipv4Route: !Not [!Equals [!Ref DestinationCidrBlock, ""]]
+  Ipv6Route: !Not [!Equals [!Ref DestinationCidrBlockIpv6, ""]]
 
 Resources:
   RouteToTransitGateway:
@@ -42,7 +60,8 @@ Resources:
     Condition: GatewayTypeTransitGW
     Properties:
       RouteTableId: !Ref RouteTableId
-      DestinationCidrBlock: !Ref DestinationCidrBlock
+      DestinationCidrBlock: !If [ Ipv4Route, !Ref DestinationCidrBlock, !Ref "AWS::NoValue" ]
+      DestinationIpv6CidrBlock: !If [ Ipv6Route, !Ref DestinationCidrBlockIpv6, !Ref "AWS::NoValue" ]
       TransitGatewayId:  !Ref TransitGatewayId
 
   RouteToInternetGateway:
@@ -50,7 +69,8 @@ Resources:
     Condition: GatewayTypeInternetGW
     Properties:
       RouteTableId: !Ref RouteTableId
-      DestinationCidrBlock: !Ref DestinationCidrBlock
+      DestinationCidrBlock: !If [ Ipv4Route, !Ref DestinationCidrBlock, !Ref "AWS::NoValue" ]
+      DestinationIpv6CidrBlock: !If [ Ipv6Route, !Ref DestinationCidrBlockIpv6, !Ref "AWS::NoValue" ]
       GatewayId: !Ref InternetGatewayId
 
   RouteToNatGateway:
@@ -58,5 +78,15 @@ Resources:
     Condition: GatewayTypeNatGW
     Properties:
       RouteTableId: !Ref RouteTableId
-      DestinationCidrBlock: !Ref DestinationCidrBlock
+      DestinationCidrBlock: !If [ Ipv4Route, !Ref DestinationCidrBlock, !Ref "AWS::NoValue" ]
+      DestinationIpv6CidrBlock: !If [ Ipv6Route, !Ref DestinationCidrBlockIpv6, !Ref "AWS::NoValue" ]
       NatGatewayId: !Ref NatGatewayId
+
+  RouteToEgressOnlyGateway:
+    Type: "AWS::EC2::Route"
+    Condition: GatewayTypeEgressOnly
+    Properties:
+      RouteTableId: !Ref RouteTableId
+      DestinationCidrBlock: !If [ Ipv4Route, !Ref DestinationCidrBlock, !Ref "AWS::NoValue" ]
+      DestinationIpv6CidrBlock: !If [ Ipv6Route, !Ref DestinationCidrBlockIpv6, !Ref "AWS::NoValue" ]
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGatewayId
