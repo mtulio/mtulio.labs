@@ -1,18 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Deploy Bastion EC2 Instance.
+Description: Deploy Proxy Instance.
 
 Parameters:
   NamePrefix:
     AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
-    MaxLength: 16
+    MaxLength: 24
     MinLength: 1
     ConstraintDescription: Cluster name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
     Description: A short, representative cluster name to use for host names and other identifying names.
     Type: String
-
-  NameSuffix:
-    Type: String
-    Default: "-bastion"
 
   TemplatesBaseURL:
     Type: String
@@ -42,7 +38,7 @@ Parameters:
     Type: String
 
   InstanceType:
-    Default: "t3a.small"
+    Default: "m6i.large"
     Description: Base64 user data to provision the EC2.
     Type: String
 
@@ -61,68 +57,115 @@ Parameters:
     Default: "False"
     AllowedValues: ["True", "False"]
 
+  Ipv6AddressCount:
+    Description: Base64 user data to provision the EC2.
+    Type: String
+    Default: "0"
+
 Resources:
   #
   # Proxy Deployment
   #
+  # ProxyIamRole:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "00_iam_role.yaml"]]
+  #     TimeoutInMinutes: 5
+  #     Parameters:
+  #       NamePrefix: !Ref NamePrefix
+  #       #NameSuffix: "proxy"
+  #       #CustomPolicyArns: !Join ["-", [!Ref IamPolicy]]
+
   IamRole:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::IAM::Role
     Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "00_iam_role.yaml"]]
-      TimeoutInMinutes: 5
-      Parameters:
-        NamePrefix: !Ref NamePrefix
-        #NameSuffix: !Ref NameSuffix
-        ManagedPolicyArns: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+            - "ec2.amazonaws.com"
+          Action:
+          - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns: !If [ HasManagedPolicies, !Split [",", !Ref ManagedPolicyArns], !Ref "AWS::NoValue"]
+      Policies: !If [ HasCustomPolicies, !Split [",", !Ref CustomPolicyArns], !Ref "AWS::NoValue"]
+
+
+  IamPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: GetObject
+      PolicyName: !Join ["-", [!Ref NamePrefix, "proxy"]]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Action: "s3:Get*"
+          Resource: "*"
+      Roles:
+      - !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
 
   InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
+    Type: "AWS::IAM::InstanceProfile"
     Properties:
-      InstanceProfileName: !Join ['-', [!Ref NamePrefix, "bastion"]]
-      Path: /
-      Roles: 
-        - !GetAtt 'IamRole.Outputs.IamRoleArn'
+      Path: "/"
+      Roles:
+      - !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
 
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Join ['', ["Security Group for ", "bastion host"]]
+      GroupDescription: !Join ['', ["Security Group for ", "proxy host"]]
       SecurityGroupIngress:
       - IpProtocol: "tcp"
         FromPort: 22
         ToPort: 22
         CidrIp: "0.0.0.0/0"
+      - IpProtocol: "tcp"
+        FromPort: 3128
+        ToPort: 3128
+        CidrIp: !Ref VpcCidr
+      - IpProtocol: "tcp"
+        FromPort: 3130
+        ToPort: 3130
+        CidrIp: !Ref VpcCidr
       SecurityGroupEgress:
       - IpProtocol: "-1"
         CidrIp: "0.0.0.0/0"
       VpcId: !Ref VpcId
       Tags:
       - Key: Name
-        Value: !Join ['', [!Ref NamePrefix, !Ref NameSuffix]]
+        Value: !Join ['', [!Ref NamePrefix, "-proxy-sg"]]
 
-  Instance:
+  ProxyInstance:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "04_ec2_instance.yaml"]]
       TimeoutInMinutes: 5
       Parameters:
         NamePrefix: !Ref NamePrefix
-        NameSuffix: !Ref NameSuffix
         AmiId: !Ref AmiId
         SubnetId: !Ref SubnetId
         UserData: !Ref UserData
-        IamRoleArn: !GetAtt 'IamRole.Outputs.IamRoleArn'
+        IamRoleArn: !GetAtt 'ProxyIamRole.Outputs.IamRoleArn'
         KeyName: !Ref KeyName
         InstanceType: !Ref InstanceType
         SecurityGroupId: !Ref SecurityGroup
         IsPublic: !Ref IsPublic
-        # InstanceType: "t3.micro"
-        InstanceType: "t3.medium"
+        Ipv6AddressCount: !Ref Ipv6AddressCount
 
 Outputs:
-  InstanceId:
+  ProxyInstanceId:
     Description: Instance ID.
-    Value: !GetAtt 'Instance.Outputs.InstanceId'
-  PrivateIp:
+    Value: !GetAtt 'ProxyInstance.Outputs.InstanceId'
+  ProxyPrivateIp:
     Description: Private IP.
-    Value: !GetAtt 'Instance.Outputs.PrivateIp'
+    Value: !GetAtt 'ProxyInstance.Outputs.PrivateIp'
+  SecurityGroupId:
+    Description: Security Group for the service.
+    Value: !Ref SecurityGroup
+  InstanceId:
+    Description: Security Group for the service.
+    Value: !Ref ProxyInstance

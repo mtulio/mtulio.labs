@@ -28,17 +28,17 @@ export BASTION_SSM_IMAGE=quay.io/mrbraga/aws-ssm-agent:latest
 export BASTION_NAME="${PREFIX_VARIANT}-bastion"
 export BASTION_AMI_ID=$(jq -r .architectures.x86_64.images.aws.regions[\"${AWS_REGION}\"].image < /tmp/fcos.json)
 
-export BASTION_SERVICE_NO_PROXY="$PROXY_SERVICE_NO_PROXY,ec2messages.$REGION.amazonaws.com,ssm.$REGION.amazonaws.com"
+# export BASTION_SERVICE_NO_PROXY="$PROXY_SERVICE_NO_PROXY,ec2messages.$REGION.amazonaws.com,ssm.$REGION.amazonaws.com"
 
-export BASTION_AWS_ENDPOINT_SSM=https://$(aws ec2 describe-vpc-endpoints \
-  --filters Name=vpc-id,Values=$VPC_ID \
-  | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ssm")).DnsEntries[0].DnsName')
-export BASTION_AWS_ENDPOINT_SSMMESSAGES=https://$(aws ec2 describe-vpc-endpoints \
-  --filters Name=vpc-id,Values=$VPC_ID \
-  | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ssmmessages")).DnsEntries[0].DnsName')
-export BASTION_AWS_ENDPOINT_EC2MESSAGES=https://$(aws ec2 describe-vpc-endpoints \
-  --filters Name=vpc-id,Values=$VPC_ID \
-  | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ec2messages")).DnsEntries[0].DnsName')
+# export BASTION_AWS_ENDPOINT_SSM=https://$(aws ec2 describe-vpc-endpoints \
+#   --filters Name=vpc-id,Values=$VPC_ID \
+#   | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ssm")).DnsEntries[0].DnsName')
+# export BASTION_AWS_ENDPOINT_SSMMESSAGES=https://$(aws ec2 describe-vpc-endpoints \
+#   --filters Name=vpc-id,Values=$VPC_ID \
+#   | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ssmmessages")).DnsEntries[0].DnsName')
+# export BASTION_AWS_ENDPOINT_EC2MESSAGES=https://$(aws ec2 describe-vpc-endpoints \
+#   --filters Name=vpc-id,Values=$VPC_ID \
+#   | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ec2messages")).DnsEntries[0].DnsName')
 # https://developers.redhat.com/blog/2020/03/12/how-to-customize-fedora-coreos-for-dedicated-workloads-with-ostree#the_rpm_ostree_tool
 # https://docs.fedoraproject.org/en-US/fedora-coreos/running-containers/
 # https://docs.fedoraproject.org/en-US/fedora-coreos/proxy/
@@ -66,13 +66,13 @@ storage:
           all_proxy=${PROXY_SERVICE_URL}
           no_proxy=${BASTION_SERVICE_NO_PROXY}
           NO_PROXY=${BASTION_SERVICE_NO_PROXY}
-    - path: /etc/aws.env
-      mode: 0644
-      contents:
-        inline: |
-          AWS_ENDPOINT_URL_SSM=${BASTION_AWS_ENDPOINT_SSM}
-          AWS_ENDPOINT_URL_EC2MESSAGES=${BASTION_AWS_ENDPOINT_EC2MESSAGES}
-          AWS_ENDPOINT_URL_SSMMESSAGES=${BASTION_AWS_ENDPOINT_SSMMESSAGES}
+    # - path: /etc/aws.env
+    #   mode: 0644
+    #   contents:
+    #     inline: |
+    #       AWS_ENDPOINT_URL_SSM=${BASTION_AWS_ENDPOINT_SSM}
+    #       AWS_ENDPOINT_URL_EC2MESSAGES=${BASTION_AWS_ENDPOINT_EC2MESSAGES}
+    #       AWS_ENDPOINT_URL_SSMMESSAGES=${BASTION_AWS_ENDPOINT_SSMMESSAGES}
 
 systemd:
   units:
@@ -90,7 +90,7 @@ systemd:
         Restart=on-failure
         RemainAfterExit=yes
         EnvironmentFile=/etc/proxy.env
-        EnvironmentFile=/etc/aws.env
+        #EnvironmentFile=/etc/aws.env
         ExecStartPre=podman pull ${BASTION_SSM_IMAGE}
         ExecStart=podman run -d --name aws-ssm-agent ${BASTION_SSM_IMAGE}
         ExecStop=podman stop -t 10 aws-ssm-agent

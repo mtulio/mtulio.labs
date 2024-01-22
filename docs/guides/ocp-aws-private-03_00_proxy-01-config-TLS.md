@@ -24,7 +24,7 @@ https://github.com/openshift/release/blob/master/ci-operator/step-registry/upi/c
 #
 echo "Generating proxy certs..."
 
-WORKDIR_PROXY=${WORKDIR}/proxy4
+WORKDIR_PROXY=${WORKDIR}/proxy5
 mkdir -p $WORKDIR_PROXY
 
 ROOTCA=${WORKDIR_PROXY}/CA
@@ -220,7 +220,6 @@ systemd:
     #   name: systemd-journal-gatewayd.service
     # - enabled: true
     #   name: systemd-journal-gatewayd.socket
-
 EOF
 
 butane ${WORKDIR_PROXY}/proxy-config.bu --output ${WORKDIR_PROXY}/proxy.ign

@@ -136,6 +136,12 @@ TEMPLATES+=("01_vpc_99_security_group.yaml")
 TEMPLATES+=("01_vpc_01_egress_internet_gateway.yaml")
 TEMPLATES+=("01_vpc_99_endpoints.yaml")
 TEMPLATES+=("04_ec2_instance.yaml")
-TEMPLATES+=("99_service_proxy_ha.yaml")
+TEMPLATES+=("99_custom-service_proxy.yaml")
+TEMPLATES+=("99_custom-service_proxy_ha-lb_asg.yaml")
+TEMPLATES+=("99_EC2-create_ami.yaml")
+TEMPLATES+=("stack_ocp_private-vpc_ipv4_public_blackhole.yaml")
+TEMPLATES+=("stack_ocp_private-node_proxy.yaml")
+TEMPLATES+=("stack_ocp_private-cluster_proxy.yaml")
+TEMPLATES+=("stack_ocp_private-node_bastion.yaml")
 update_templates
 ```
