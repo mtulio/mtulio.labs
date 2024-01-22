@@ -38,7 +38,7 @@ jobs:
   #         config_file: .github/workflows/yaml-linter-config.yml
 
   # https://github.com/marketplace/actions/cfn-lint-action
-  linter-CloudFormation:
+  CloudFormation:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -47,12 +47,13 @@ jobs:
       - name: Setup Cloud Formation Linter with Latest Version
         uses: scottbrenner/cfn-lint-action@v2
 
-      - name: Print the Cloud Formation Linter Version & run Linter.
+      - name: Run
         run: |
           cfn-lint --version
           TEMPLATE_LIST=()
-          TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_EC2_CreateAmi.yaml")
-          
+          TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_EC2-create_ami.yaml")
+          TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_custom-service_proxy_ha.yaml")
+
           # Running
           for TPL in ${TEMPLATE_LIST[*]}; do
             echo "Running CloudFormation link to file ${TPL}"
