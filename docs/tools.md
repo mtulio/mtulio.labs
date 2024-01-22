@@ -1,5 +1,12 @@
 # @mtulio tools
 
+## Serverless services
+
+- [What is my IP Address?](https://mtulio.dev/api/ip/ip)
+- [Geo information about my IP](https://mtulio.dev/api/geo)
+- [HTTP echo](https://mtulio.dev/api/echo/echo?just-a-test)
+- [Ping!](https://mtulio.dev/api/ping/ping)
+
 - your IPv4
 
 ``` shell

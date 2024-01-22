@@ -1,27 +1,33 @@
 # Home
 
-This is my personal notes, not linked with any company nor product.
+Howdy! o/
 
-You can use/follow those steps/labs with your own risks, without any warranty, otherwise it will be very explicit on the description the risks and how to mitigate it.
+Welcome to my hacking labs.
+
+This is my personal notes, not linked with any company or product.
+
+Feel free to contribute if you find any issue or would like to contribute.
+
+To get started:
+
+- take a look at the latest content published in the [Blog](/blog), I am infrequently publishing content there =)
+- navigate to [Guides](/guides) to for structured solutions/tutorials/guides/playbooks and contents grouped by specific subjects/technilogies
+- finally there are random drafts available at [Notes](./notes), good luck ;-)
+
+
+!!! warning "Risk"
+    You can use/follow those steps/labs with your own risks, without any warranty, otherwise it will be very explicit on the description the risks and how to mitigate it.
 
 Enjoy it! =)
 
+<!--
 
-## Pages
+## Getting started
 
 - [Home](https://mtulio.dev)
 - [Guides/Runbooks/Playbooks](https://mtulio.dev/playbooks) : Steps to run some solution
 - [Notes](https://mtulio.dev/notes) : Random notes organized by technology
 - [Articles](https://mtulio.dev/articles) : Blog/Articles
-
-## Serverless services
-
-- [What is my IP Address?](https://mtulio.dev/api/ip/ip)
-- [Geo information about my IP](https://mtulio.dev/api/geo)
-- [HTTP echo](https://mtulio.dev/api/echo/echo?just-a-test)
-- [Ping!](https://mtulio.dev/api/ping/ping)
-
-<!--
 
 ## Pages
 
