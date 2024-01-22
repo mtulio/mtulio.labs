@@ -103,26 +103,26 @@ Resources:
         NameSuffix: "private"
         VpcId: !Ref VPC
 
-  EgressOnlyInternetGateway:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_egress_internet_gateway.yaml"]]
-      TimeoutInMinutes: 5
-      Parameters:
-        VpcId: !Ref VPC
+  # EgressOnlyInternetGateway:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_egress_internet_gateway.yaml"]]
+  #     TimeoutInMinutes: 5
+  #     Parameters:
+  #       VpcId: !Ref VPC
 
   #https://docs.aws.amazon.com/vpc/latest/userguide/egress-only-internet-gateway.html
-  RouteDefaultPrivateIpv6:
-    Type: AWS::CloudFormation::Stack
-    DependsOn:
-    - PublicRouteTable
-    Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_03_route_entry.yaml"]]
-      TimeoutInMinutes: 5
-      Parameters:
-        RouteTableId:  !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
-        DestinationCidrBlockIpv6: "::/0"
-        EgressOnlyInternetGatewayId: !GetAtt 'EgressOnlyInternetGateway.Outputs.Id'
+  # RouteDefaultPrivateIpv6:
+  #   Type: AWS::CloudFormation::Stack
+  #   DependsOn:
+  #   - PublicRouteTable
+  #   Properties:
+  #     TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_03_route_entry.yaml"]]
+  #     TimeoutInMinutes: 5
+  #     Parameters:
+  #       RouteTableId:  !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
+  #       DestinationCidrBlockIpv6: "::/0"
+  #       EgressOnlyInternetGatewayId: !GetAtt 'EgressOnlyInternetGateway.Outputs.Id'
 
   SubnetsZone1:
     Type: AWS::CloudFormation::Stack
@@ -135,10 +135,11 @@ Resources:
         ZoneName: us-east-1a
         PrivateSubnetCidr: !Select [ 0, !Cidr [ !GetAtt VPC.CidrBlock, 1, 8 ]]
         PublicSubnetCidr: !Select [ 1, !Cidr [ !GetAtt VPC.CidrBlock, 2, 8 ]]
-        PrivateSubnetCidrIpv6: !Select [ 0, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 1, 64 ]]
+        #PrivateSubnetCidrIpv6: !Select [ 0, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 1, 64 ]]
         PublicSubnetCidrIpv6: !Select [ 1, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 2, 64 ]]
         PrivateRouteTableId: !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
         PublicRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        MapPublicIpOnLaunch: "False"
 
   SubnetsZone2:
     Type: AWS::CloudFormation::Stack
@@ -151,10 +152,11 @@ Resources:
         ZoneName: us-east-1b
         PrivateSubnetCidr: !Select [ 2, !Cidr [ !GetAtt VPC.CidrBlock, 3, 8 ]]
         PublicSubnetCidr: !Select [ 3, !Cidr [ !GetAtt VPC.CidrBlock, 4, 8 ]]
-        PrivateSubnetCidrIpv6: !Select [ 2, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 3, 64 ]]
+        #PrivateSubnetCidrIpv6: !Select [ 2, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 3, 64 ]]
         PublicSubnetCidrIpv6: !Select [ 3, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 4, 64 ]]
         PrivateRouteTableId: !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
         PublicRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        MapPublicIpOnLaunch: "False"
 
 Outputs:
   VpcId:

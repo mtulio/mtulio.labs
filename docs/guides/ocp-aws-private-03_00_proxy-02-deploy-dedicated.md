@@ -17,6 +17,9 @@ PROXY_SUBNET_ID="$(aws cloudformation describe-stacks \
   --stack-name "${VPC_STACK_NAME}" \
   --query 'Stacks[].Outputs[?OutputKey==`PublicSubnetIds`].OutputValue' \
   --output text | tr ',' '\n' | head -n1)"
+
+# When deployinh IPv6 subnet
+export PROXY_IPV6_ENABLED=1
 ```
 
 - Create EC2
@@ -33,7 +36,7 @@ PROXY_SUBNET_ID=$PROXY_SUBNET_ID
 TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
-export PROXY_STACK_NAME="${PREFIX_VARIANT}-proxy-09"
+export PROXY_STACK_NAME="${PREFIX_VARIANT}-proxy-12"
 aws cloudformation create-change-set \
 --stack-name "${PROXY_STACK_NAME}" \
 --change-set-name "${PROXY_STACK_NAME}" \
@@ -49,6 +52,7 @@ aws cloudformation create-change-set \
   ParameterKey=UserData,ParameterValue=${PROXY_USER_DATA} \
   ParameterKey=SubnetId,ParameterValue=${PROXY_SUBNET_ID} \
   ParameterKey=IsPublic,ParameterValue="True" \
+  ParameterKey=Ipv6AddressCount,ParameterValue="${PROXY_IPV6_ENABLED}" \
   ParameterKey=TemplatesBaseURL,ParameterValue="${TEMPLATE_BASE_URL}"
 
 sleep 20

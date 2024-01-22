@@ -76,8 +76,8 @@ Resources:
       VpcId: !Ref VpcId
       AvailabilityZone: !Ref ZoneName
       CidrBlock: !Ref PublicSubnetCidr
-      # Ipv6CidrBlock: !If [ CreateIpv6OnPublicSubnet, !Ref PublicSubnetCidrIpv6, !Ref "AWS::NoValue" ]
-      # AssignIpv6AddressOnCreation: !If [ CreateIpv6OnPublicSubnet, True, !Ref "AWS::NoValue" ]
+      #Ipv6CidrBlock: !If [ CreateIpv6OnPublicSubnet, !Ref PublicSubnetCidrIpv6, !Ref "AWS::NoValue" ]
+      #AssignIpv6AddressOnCreation: !If [ CreateIpv6OnPublicSubnet, True, !Ref "AWS::NoValue" ]
       MapPublicIpOnLaunch: !Ref MapPublicIpOnLaunch
       Tags:
       - Key: Name

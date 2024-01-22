@@ -1,0 +1,187 @@
+Description: |
+  Create an AMI from a given EC2 instance ID.
+
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  InstanceId:
+    Description: Instance ID to create an image.
+    Type: String
+    AllowedPattern: ^(?:(?:i)(?:-[a-zA-Z0-9]+)?\b|(?:[0-9]{1,3}\.){3}[0-9]{1,3})$
+    ConstraintDescription: InstanceId must be with valid name, starting with i-.*.
+
+  NamePrefix:
+    AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
+    MaxLength: 16
+    MinLength: 1
+    ConstraintDescription: NamePrefix name must be alphanumeric, start with a letter, and have a maximum of 16 characters.
+    Description: A short name prefix used to tag resources.
+    Type: String
+  TerminateOnCreate:
+    Default: "False"
+    Description: Terminate the instance after the AMI has been creaeted.
+    Type: String
+
+Resources:
+  AMI:
+    Type: Custom::AMI
+    Properties:
+      ServiceToken: !GetAtt AMIFunction.Arn
+      InstanceId: !Ref InstanceId
+      ResourceNamePrefix: !Ref NamePrefix
+      TerminateInstance: !Ref TerminateOnCreate
+
+  AMIFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import logging
+          import cfnresponse
+          import json
+          import boto3
+          from threading import Timer
+          from botocore.exceptions import WaiterError
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def handler(event, context):
+              ec2 = boto3.resource('ec2')
+              physicalId = event['PhysicalResourceId'] if 'PhysicalResourceId' in event else None
+              terminate = False
+              namePrefix = ''
+
+              print(event, context)
+              # return {"data": event}
+              def success(data={}):
+                  returnData = {"Data": data}
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, returnData, physicalId)
+                  return
+
+              def failed(e):
+                  data={"Data": {"Error": f"Error: {str(e)}"}}
+                  cfnresponse.send(event, context, cfnresponse.FAILED, data, physicalId)
+                  return
+
+              try:
+                if 'ResourceProperties' in event:
+                  namePrefix = event['ResourceProperties']['ResourceNamePrefix'] if 'ResourceNamePrefix' in event['ResourceProperties'] else ''
+                  terminate = event['ResourceProperties']['ResourceNamePrefix'] if 'TerminateInstance' in event['ResourceProperties'] else False
+                  if terminate == "True":
+                    terminate = True 
+              except Exception as e:
+                print(str(e))
+                failed({"ERROR": "init exception", "Exception": e})
+
+              logger.info('Request received: %s\n' % json.dumps(event))
+              print("debug 01...")
+              try:
+                instanceId = event['ResourceProperties']['InstanceId']
+                if (not instanceId):
+                  failed('InstanceId required')
+              
+                if not 'RequestType' in event:
+                  failed({'Data': 'Unhandled request type'})
+                  # return
+                  
+                if event['RequestType'] == 'Delete':
+                  if (not physicalId.startswith('ami-')):
+                    failed('Unknown PhysicalId: %s' % physicalId)
+
+                  ec2client = boto3.client('ec2')
+                  images = ec2client.describe_images(ImageIds=[physicalId])
+                  for image in images['Images']:
+                    ec2.Image(image['ImageId']).deregister()
+                    snapshots = ([bdm['Ebs']['SnapshotId'] 
+                                  for bdm in image['BlockDeviceMappings'] 
+                                  if 'Ebs' in bdm and 'SnapshotId' in bdm['Ebs']])
+                    for snapshot in snapshots:
+                      ec2.Snapshot(snapshot).delete()
+              
+                  return {'Data': 'OK'}
+
+                elif event['RequestType'] in set(['Create', 'Update']):
+                  print("debug 02...")
+                  if not physicalId:  # AMI creation has not been requested yet
+                      print(f"debug 03...instanceId={instanceId}")
+                      instance = ec2.Instance(instanceId)
+                      #instance.wait_until_stopped()
+
+                      from datetime import datetime
+                      now = datetime.now()
+                      random_name=(f"{now.year}{now.month}{now.day}{now.hour}{now.minute}{now.second}")
+                      image_name=(f"{namePrefix}ami-{random_name}-from-{instanceId}")
+                      print(f"Creating image...{random_name}")
+                      image = instance.create_image(Name=image_name)
+
+                      print(f"created...{image}")
+                      physicalId = image.image_id
+                  else:
+                    logger.info('Continuing in awaiting image available: %s\n' % physicalId)
+              
+                  try:
+                    ec2client = boto3.client('ec2')
+                    waiter = ec2client.get_waiter('image_available')
+                    print("Waiting for AMI complete...")
+                    waiter.wait(ImageIds=[physicalId], WaiterConfig={'Delay': 20, 'MaxAttempts': 30})
+                    
+                  except WaiterError as e:
+                    print(str(e))
+                    print("ERROR waiting ")
+                    failed({"ERROR": "ERROR waiting AMI", "Exception": e})
+
+                  print("AMI create done...")
+                  try:
+                    if terminate:
+                      print("Terminating the instance...")
+                      response = ec2client.terminate_instances(InstanceIds=[instanceId])
+                      print(response)
+                  except WaiterError as e:
+                    print(str(e))
+                    print("ERROR terminating instance ")
+                    failed({"ERROR": "ERROR terminating instance", "Exception": e})
+
+                  success({'Data': 'OK'})
+                else:
+                  success({'Data': 'OK'})
+              except Exception as e:
+                print(str(e))
+                failed({"ERROR": "main exception", "Exception": e})
+
+      Runtime: python3.12
+      Timeout: 600
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: {Service: [lambda.amazonaws.com]}
+          Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      Policies:
+      - PolicyName: EC2Policy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+              - 'ec2:DescribeInstances'
+              - 'ec2:DescribeImages'
+              - 'ec2:CreateImage'
+              - 'ec2:DeregisterImage'
+              - 'ec2:DescribeSnapshots'
+              - 'ec2:DeleteSnapshot'
+              - 'ec2:TerminateInstances'
+              Resource: ['*']
+
+Outputs:
+  AmiId:
+    Value: !Ref AMI

@@ -145,3 +145,7 @@ Outputs:
         ",",
         [!GetAtt 'SubnetsZone1.Outputs.PrivateSubnetId', !GetAtt 'SubnetsZone2.Outputs.PrivateSubnetId']
       ]
+  
+  VpCEndpointsDNS:
+    Description: Comma sepparated list of VPC Endpoints
+    Value: !GetAtt 'VPCEndpoints.Outputs.InterfaceEndpointDNS'

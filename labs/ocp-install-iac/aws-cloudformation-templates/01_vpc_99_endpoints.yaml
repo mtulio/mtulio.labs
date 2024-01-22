@@ -212,3 +212,12 @@ Resources:
       SubnetIds: !Split [",", !Ref SubnetIds]
       SecurityGroupIds:
       - !Ref VPCeSecurityGroup
+
+Outputs:
+  GatewayEndpoints:
+    Description: All endpoints list sepparated by comma.
+    Value: !Join [',', [!Ref S3Endpoint]]
+    #Value: !Ref S3Endpoint
+  InterfaceEndpointDNS:
+    Description: All interface endpoints list sepparated by comma.
+    Value: !Join [',', [!Select [0, !GetAtt 'EC2Endpoint.DnsEntries']]]

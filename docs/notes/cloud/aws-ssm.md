@@ -1,3 +1,17 @@
+# Notes | AWS SSM Agent
+
+Random notes about using AWS SSM agent and remote session.
+
+See more structured guide at:
+
+- [Guides/ocp-aws-private-00-build-image-ssm.md](../../guides/ocp-aws-private-00-build-image-ssm.md)
+- [Guides/ocp-aws-private-03_bastion-00-about.md](../../guides/ocp-aws-private-03_bastion-00-about.md)
+
+___
+___
+
+<<< DRAFT >>>
+
 # Build SSM image extension
 
 ## Setup VPC Endpoint for SSM
@@ -16,17 +30,7 @@ com.amazonaws.us-east-1.ssm
 
 ### Install manually on Linux
 
-> https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-install-managed-linux.html
 
-> https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-rhel-8-9.html
-
-```sh
-sudo rpm-ostree install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-
-sudo systemctl enable --now amazon-ssm-agent
-```
-
-- Check the instance registered in the System Manager console: https://us-east-1.console.aws.amazon.com/systems-manager/inventory?region=us-east-1
 
 ### Create a container image for SSM Agent
 
@@ -74,6 +78,7 @@ podman push quay.io/mrbraga/aws-session-manager-plugin:latest
 References:
 
 - https://docs.aws.amazon.com/systems-manager/latest/userguide/install-plugin-linux.html
+
 
 ## Create ignition configuration
 
@@ -186,3 +191,9 @@ aws ssm start-session \
 ```sh
 oc --kubeconfig ~/tmp/kubeconfig-tunnel get nodes
 ```
+
+## Using it
+
+- Run the container in the target machine
+
+- Check the instance registered in the System Manager console: https://us-east-1.console.aws.amazon.com/systems-manager/inventory?region=us-east-1

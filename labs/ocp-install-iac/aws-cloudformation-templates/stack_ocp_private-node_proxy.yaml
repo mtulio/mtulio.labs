@@ -140,9 +140,9 @@ Resources:
         Ipv6AddressCount: !Ref Ipv6AddressCount
 
 Outputs:
-  ProxyInstanceId:
+  InstanceId:
     Description: Proxy Instance ID.
     Value: !GetAtt 'ProxyInstance.Outputs.InstanceId'
-  ProxyPrivateIp:
+  PrivateIp:
     Description: Proxy Private IP.
     Value: !GetAtt 'ProxyInstance.Outputs.PrivateIp'
