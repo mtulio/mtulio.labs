@@ -1,0 +1,1 @@
+../../guides/ocp-aws-private.md
