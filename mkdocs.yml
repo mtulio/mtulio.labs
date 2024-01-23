@@ -172,6 +172,17 @@ nav:
       - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelength-zones-hands-on.md
       - Installing on AWS extending compute nodes to AWS Outposts in Day-2: guides/ocp-aws-outposts.md
 
+    - OpenShift node scaling labs:
+      - Karpenter cluster install: guides/ocp-aws-karpenter.md
+      - OCP Scaling: guides/ocp-aws-autoscaling.md
+      - Draft with Spot.io: guides/ocp-aws-spot-lab-with-spotio.md
+      - Spot interruption with FIS: guides/ocp-aws-spot-interrupt.md
+      - Spot interruption with FIS CCO (FIX): guides/ocp-aws-spot-interrupt-CCO.md
+      - Lab scaling - Readme: guides/ocp-lab-scaling-readme.md
+      - Lab scaling - Setup OCP Autoscaler: guides/setup-ocp-autoscaler.md
+      - Lab scaling - Setup Spot.io: guides/setup-spotio-ocean.md
+      - Lab scaling - Setup Karpenter: guides/setup-karpenter.md
+
     - OpenShift Dev:
       - Build components: playbooks/openshift/dev-build-components.md
       - Create custom release: playbooks/openshift/dev-custom-release.md
@@ -199,7 +210,6 @@ nav:
         - Home: learning/README.md
         - Workshops: learning/workshops.md
         - Trainings: learning/trainings.md
-
 #
 # Notes / Drafts
 #

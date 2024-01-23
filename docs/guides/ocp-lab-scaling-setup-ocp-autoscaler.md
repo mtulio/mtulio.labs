@@ -1,0 +1,1 @@
+../../labs/ocp-aws-scaling/setup-ocp-autoscaler.md
