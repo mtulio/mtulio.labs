@@ -112,7 +112,6 @@ extra:
     - icon: fontawesome/brands/linkedin
       link: https://linkedin.com/in/mtuliorbraga/
 
-
 nav:
 #
 # Blog
@@ -147,30 +146,32 @@ nav:
       - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
       - Installing on AWS with BYO Public IPv4 Pool: guides/ocp-install-profiles/ocp-install-aws-byo-public-ipv4-pool..md
       - Installing on AWS with BYO Elastic IPs: guides/ocp-install-profiles/ocp-install-aws-byo-eip.md
-      - OpenShift Installing Private on AWS:
-        - guides/ocp-aws-private.md
-        - "Solution 1): BYO VPC with Proxy":
-          - Prerequisites:
-            - Sync CloudFormation Templates to deploy Nested Stacks: guides/ocp-aws-private-01_00-pre.md
-            - "Optional: Build Squid Proxy container image": guides/ocp-aws-private-01_01-build-image-squid-proxy.md
-            - "Optional: Build AWS SSM Agent container image": guides/ocp-aws-private-01_01-build-image-ssm.md
-          - Step 1 - Create VPC:
-            - Option 1 - Create Blackhole private subnets with single-stack IPv4 VPC: guides/ocp-aws-private-02-vpc-ipv4-pub-blackhole.md
-          - Step 2 - Create Proxy service:
-            - 2.1 option 1 - Create Proxy service with TLS: guides/ocp-aws-private-03_00_proxy-01-config-TLS.md
-            - 2.1 option 2 - Create Proxy service without TLS (not recommended): guides/ocp-aws-private-03_00_proxy-01-config.md
-            - 2.2 - Create standalone Proxy service: guides/ocp-aws-private-03_00_proxy-02-deploy-dedicated.md
-            - 2.3 - Create HA Proxy service (HA/LB/ASG): guides/ocp-aws-private-03_00_proxy-03_00-deploy-cluster.md
-            - 2.4/TBD - Share the Proxy service between AWS Accounts with custom VPC Endpoint/PrivateLink: guides/ocp-aws-private-03_00_proxy-03_01-deploy-cluster-vpce.md
-          - Step 3 - Create Bastion host:
-            - Abount bastion host on AWS: guides/ocp-aws-private-03_bastion-00-about.md
-            - 3.1 - Create bastion host configuration: guides/ocp-aws-private-03_bastion-01-config.md
-            - 3.2 - Deploy bastion host in private subnet: guides/ocp-aws-private-03_bastion-02-deploy.md
-          - Step 5 - Install OpenShift cluster:
-            - Option 1 - Installing private OpenShift using regional endpoints: guides/ocp-aws-private-04-cluster-install-00-proxy-bastion.md
-            - Option 2 - Installing private OpenShift on AWS with VPC Endpoints (default): guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-01.md
-            - Option 3 - Installing private OpenShift on AWS with VPC Endpoints and STS: guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-02-sts.md
-        - "Solution 2): BYO VPC with dual-stack IPv6 in public subnets": guides/ocp-aws-private-proxy.md
+
+    - OpenShift Installing Private on AWS:
+      - guides/ocp-aws-private.md
+      - "Solution 0): Automatic deploy for BYO VPC with Proxy": guides/ocp-aws-private-one-time-deploy.md
+      - "Solution 1): BYO VPC with Proxy":
+        - Prerequisites:
+          - Sync CloudFormation Templates to deploy Nested Stacks: guides/ocp-aws-private-01_00-pre.md
+          - "Optional: Build Squid Proxy container image": guides/ocp-aws-private-01_01-build-image-squid-proxy.md
+          - "Optional: Build AWS SSM Agent container image": guides/ocp-aws-private-01_01-build-image-ssm.md
+        - Step 1 - Create VPC:
+          - Option 1 - Create Blackhole private subnets with single-stack IPv4 VPC: guides/ocp-aws-private-02-vpc-ipv4-pub-blackhole.md
+        - Step 2 - Create Proxy service:
+          - 2.1 option 1 - Create Proxy service with TLS: guides/ocp-aws-private-03_00_proxy-01-config-TLS.md
+          - 2.1 option 2 - Create Proxy service without TLS (not recommended): guides/ocp-aws-private-03_00_proxy-01-config.md
+          - 2.2 - Create standalone Proxy service: guides/ocp-aws-private-03_00_proxy-02-deploy-dedicated.md
+          - 2.3 - Create HA Proxy service (HA/LB/ASG): guides/ocp-aws-private-03_00_proxy-03_00-deploy-cluster.md
+          - 2.4/TBD - Share the Proxy service between AWS Accounts with custom VPC Endpoint/PrivateLink: guides/ocp-aws-private-03_00_proxy-03_01-deploy-cluster-vpce.md
+        - Step 3 - Create Bastion host:
+          - Abount bastion host on AWS: guides/ocp-aws-private-03_bastion-00-about.md
+          - 3.1 - Create bastion host configuration: guides/ocp-aws-private-03_bastion-01-config.md
+          - 3.2 - Deploy bastion host in private subnet: guides/ocp-aws-private-03_bastion-02-deploy.md
+        - Step 5 - Install OpenShift cluster:
+          - Option 1 - Installing private OpenShift using regional endpoints: guides/ocp-aws-private-04-cluster-install-00-proxy-bastion.md
+          - Option 2 - Installing private OpenShift on AWS with VPC Endpoints (default): guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-01.md
+          - Option 3 - Installing private OpenShift on AWS with VPC Endpoints and STS: guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-02-sts.md
+      - "Solution 2): BYO VPC with dual-stack IPv6 in public subnets": guides/ocp-aws-private-proxy.md
 
     - OpenShift on AWS with STS:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md

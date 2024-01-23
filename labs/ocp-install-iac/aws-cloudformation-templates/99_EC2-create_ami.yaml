@@ -134,7 +134,7 @@ Resources:
 
                   print("AMI create done...")
                   try:
-                    if terminate:
+                    if terminate == True:
                       print("Terminating the instance...")
                       response = ec2client.terminate_instances(InstanceIds=[instanceId])
                       print(response)
