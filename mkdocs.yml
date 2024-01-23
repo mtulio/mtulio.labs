@@ -146,6 +146,7 @@ nav:
       - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
     - OpenShift Installing Private on AWS:
       - guides/ocp-aws-private.md
+      - "Solution 0): Automatic deploy for BYO VPC with Proxy": guides/ocp-aws-private-one-time-deploy.md
       - "Solution 1): BYO VPC with Proxy":
         - Prerequisites:
           - Sync CloudFormation Templates to deploy Nested Stacks: guides/ocp-aws-private-01_00-pre.md

@@ -167,6 +167,22 @@ Resources:
     Properties:
       Duration: PT300S
 
+  # Proxy callback
+  ProxyWaitHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+  ParameterProxyCallbackURL:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "ocp-proxy-cb-cfn-url"
+      Type: String
+      Value: !Ref 'ProxyWaitHandle'
+      #Tier: Advanced
+      #Policies: '[{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2020-05-13T00:00:00.000Z"}},{"Type":"ExpirationNotification","Version":"1.0","Attributes":{"Before":"5","Unit":"Days"}},{"Type":"NoChangeNotification","Version":"1.0","Attributes":{"After":"60","Unit":"Days"}}]'
+      Description: SSM Parameter VPCe.
+      #AllowedPattern: "^[a-zA-Z]{1,10}$"
+      #Tags:
+      #  Environment: DEV
+
   ProxyAMI:
     Type: AWS::CloudFormation::Stack
     DependsOn: ProxySetupDelay
@@ -194,7 +210,7 @@ Resources:
         DnsRecordName: !Ref ProxyDnsRecordName
         InstanceType: "t3.small"
 
-  #
+  #q
   # Bastion host
   #
   BastionNode:
@@ -223,17 +239,12 @@ Outputs:
     Description: Bastion Host Instance ID.
     Value: !GetAtt 'BastionNode.Outputs.InstanceId'
   # Bastion CMD: session fwd bastion
-  BastionSessionCommandSSH:
+  BastionPrivateIP:
     Description: Bastion Host Instance ID.
-    Value: |
-      aws ssm start-session \
-        --target !GetAtt 'BastionNode.Outputs.InstanceId' \
-        --document-name AWS-StartPortForwardingSessionToRemoteHost \
-        --parameters "{
-          \"portNumber\":[\"22\"],
-          \"localPortNumber\":[\"2222\"],
-          \"host\":[\"!GetAtt 'BastionNode.Outputs.PrivateIp'\"]}"
-  
+    Value: !GetAtt 'BastionNode.Outputs.PrivateIp'
+  ProxyLoadBalancerDnsAddress:
+    Description: Load Balancer Address for the Proxy service.
+    Value: !Ref ProxyDnsRecordName
 
   # Bastion CMD: session fwd API-int
   # Bastion CMD: session fwd bootstrap

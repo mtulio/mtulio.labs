@@ -24,7 +24,7 @@ https://github.com/openshift/release/blob/master/ci-operator/step-registry/upi/c
 #
 echo "Generating proxy certs..."
 
-WORKDIR_PROXY=${WORKDIR}/proxy5
+WORKDIR_PROXY=${WORKDIR}/proxy11
 mkdir -p $WORKDIR_PROXY
 
 ROOTCA=${WORKDIR_PROXY}/CA
@@ -45,9 +45,10 @@ PROXY_KEY_PASSWORD="$(cat ${ROOTCA}/intpassfile)"
 CA_CHAIN="$(base64 -w0 ${INTERMEDIATE}/certs/ca-chain.cert.pem)"
 # create random uname and pw
 # pushd ${WORKDIR_PROXY}
-PROXY_USER_NAME="${PREFIX_VARIANT}-proxy"
+PROXY_USER_NAME="proxy"
 # popd
-PROXY_PASSWORD="$(uuidgen | sha256sum | cut -b -32)"
+#PROXY_PASSWORD="$(uuidgen | sha256sum | cut -b -32)"
+PROXY_PASSWORD="proxy"
 
 HTPASSWD_CONTENTS="${PROXY_USER_NAME}:$(openssl passwd -apr1 ${PROXY_PASSWORD})"
 HTPASSWD_CONTENTS="$(echo -e ${HTPASSWD_CONTENTS} | base64 -w0)"
@@ -176,21 +177,18 @@ storage:
       contents:
         source: "data:text/plain;base64,${KEY_PASSWORD}"
       mode: 493
+    - path: /etc/aws-cfn-callback-success.sh
+      user:
+        name: root
+      mode: 0755
+      contents:
+        inline: |
+          #!/usr/bin/env bash
+          CFN_CALLBACK=$(aws ssm get-parameter --name "ocp-proxy-cb-cfn-url")
+          curl -d '{"Status":"SUCCESS","UniqueId" : "SingleCount1","Data" :"Provisioning finished","Reason":"empty"}'
+
 systemd:
   units:
-    # - contents: |
-    #     [Install]
-    #     WantedBy=multi-user.target
-    #     [Unit]
-    #     Wants=network-online.target
-    #     After=network-online.target
-    #     [Service]
-    #     StandardOutput=journal+console
-    #     ExecStart=bash /etc/squid.sh
-    #     [Install]
-    #     RequiredBy=multi-user.target
-    #   enabled: true
-    #   name: squid.service
     - name: squid.service
       enabled: true
       contents: |
@@ -212,6 +210,22 @@ systemd:
         [Install]
         WantedBy=multi-user.target
 
+    - name: cfn-callback.service
+      contents: |
+        [Unit]
+        Description=Send provision callback confirmation to CloudFormation.
+        Wants=network-online.target
+        After=squid.service
+
+        [Service]
+        Type=oneshot
+        ExecStart=/bin/bash /etc/aws-cfn-callback-success.sh
+        RemainAfterExit=yes
+
+        [Install]
+        WantedBy=multi-user.target
+      enabled: true
+      
     # - dropins:
     #     - contents: |
     #         [Service]
@@ -244,4 +258,17 @@ EOF
 butane ${WORKDIR_PROXY}/proxy-userData.bu --output ${WORKDIR_PROXY}/proxy-userData.ign
 
 export PROXY_USER_DATA=$(base64 -w0 <(<${WORKDIR_PROXY}/proxy-userData.ign))
+
+
+
+# Export Proxy Serivce URL to be used by clients
+export PROXY_DNS_RECORD="lab-proxy.devcluster.openshift.com"
+
+export PROXY_SERVICE_ENDPOINT="$PROXY_DNS_RECORD"
+export PROXY_SERVICE_URL="http://${PROXY_USER_NAME}:${PROXY_PASSWORD}@${PROXY_SERVICE_ENDPOINT}:3128"
+export PROXY_SERVICE_URL_TLS="https://${PROXY_USER_NAME}:${PROXY_PASSWORD}@${PROXY_SERVICE_ENDPOINT}:3130"
+export PROXY_SERVICE_NO_PROXY="169.254.169.254,.vpce.amazonaws.com"
+
+
+export PROXY_DNS_HOSTED_ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name $DNS_BASE_DOMAIN | jq -r ".HostedZones[] | select(.Name==\"$DNS_BASE_DOMAIN.\").Id" | awk -F'/' '{print$3}')
 ```
