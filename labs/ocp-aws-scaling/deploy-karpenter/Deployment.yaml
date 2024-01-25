@@ -5,10 +5,10 @@ metadata:
     openshift.io/scc: anyuid
   labels:
     app.kubernetes.io/instance: karpenter
-    app.kubernetes.io/managed-by: Helm
+    #app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: karpenter
     app.kubernetes.io/version: 0.33.0
-    helm.sh/chart: karpenter-v0.33.0
+    #helm.sh/chart: karpenter-v0.33.0
   name: karpenter
   namespace: karpenter
 spec:
@@ -79,6 +79,10 @@ spec:
           value: "0.075"
         - name: RESERVED_ENIS
           value: "0"
+        - name: SYSTEM_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         image: public.ecr.aws/karpenter/controller:v0.33.0@sha256:5e5f59f74d86ff7f13d7d80b89afff8c661cb4e3265f2fdda95b76dd9c838cc1
         imagePullPolicy: IfNotPresent
         livenessProbe:
