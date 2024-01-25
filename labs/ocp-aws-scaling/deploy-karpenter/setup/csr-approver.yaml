@@ -39,6 +39,12 @@ spec:
         app: csr-approver
     spec:
       serviceAccountName: csr-approver
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: "NoSchedule"
       containers:
       - command:
         - /bin/bash

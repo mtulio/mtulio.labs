@@ -51,6 +51,12 @@ cp ${INSTALL_DIR}/install-config.yaml ${INSTALL_DIR}/install-config.yaml-bkp
 ./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
 ```
 
+- Scale down the 3rd machineset to optimize the tests leaving two hosts for regular workloads:
+
+```sh
+oc scale machineset -n openshift-machine-api --replicas=0 $(oc get machineset -n openshift-machine-api -o jsonpath='{.items[2].metadata.name}')
+```
+
 ### Install Karpenter with staic IAM user
 
 - Setup namespace and credentials:
@@ -112,7 +118,6 @@ helm upgrade --install --namespace karpenter \
   --set clusterName=${CLUSTER_NAME} \
   --set aws.defaultInstanceProfile=$WORKER_PROFILE \
   --set settings.cluster-endpoint=$KUBE_ENDPOINT 
-
 ```
 
 - Apply patches to fix karpenter default deployment:
@@ -194,8 +199,8 @@ spec:
   # Limits prevent Karpenter from creating new instances once the limit is exceeded.
   limits:
     resources:
-      cpu: "1000"
-      memory: 1000Gi
+      cpu: "128"
+      memory: 256Gi
   labels:
     node-role.kubernetes.io/app: ""
     node-role.kubernetes.io/worker: ""
@@ -257,6 +262,12 @@ less ./kpt-provisioner-m6.yaml
 oc create -f ./kpt-provisioner-m6.yaml
 ```
 
+Check if objects have been created:
+
+```sh
+oc get provisioner
+oc get AWSNodeTemplate
+```
 
 ## Run scaling tests
 
