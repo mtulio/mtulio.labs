@@ -17,6 +17,8 @@ spec:
     apiVersion: cloudcredential.openshift.io/v1
     kind: AWSProviderSpec
     statementEntries:
+    # TODO: refine the permissions allowed by karpenter. Ref:
+    # https://raw.githubusercontent.com/aws/karpenter-provider-aws/v0.33.1/website/content/en/preview/getting-started/getting-started-with-karpenter/cloudformation.yaml
     - action:
       - "ssm:GetParameter"
       - "ec2:DescribeImages"
@@ -34,6 +36,10 @@ spec:
       - "ec2:CreateFleet"
       - "ec2:DescribeSpotPriceHistory"
       - "pricing:GetProducts"
+      - "sqs:DeleteMessage"
+      - "sqs:GetQueueUrl"
+      - "sqs:ReceiveMessage"
+      - "iam:GetInstanceProfile"
       effect: Allow
       resource: '*'
     - action:
