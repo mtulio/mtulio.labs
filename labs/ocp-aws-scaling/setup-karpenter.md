@@ -17,7 +17,7 @@ export AWS_PROFILE=lab-scaling
 VERSION="4.14.8"
 PULL_SECRET_FILE="${HOME}/.openshift/pull-secret-latest.json"
 RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:${VERSION}-x86_64
-CLUSTER_NAME=kpt-p1c1
+CLUSTER_NAME=kpt-p2c1
 INSTALL_DIR=${HOME}/openshift-labs/$CLUSTER_NAME
 CLUSTER_BASE_DOMAIN=lab-scaling.devcluster.openshift.com
 SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
@@ -58,6 +58,8 @@ echo ">> install-config.yaml created: "
 cp -v ${INSTALL_DIR}/install-config.yaml ${INSTALL_DIR}/install-config.yaml-bkp
 
 ./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
+
+export KUBECONFIG=$PWD/auth/kubeconfig
 ```
 
 - Scale down the 3rd machineset to optimize the tests leaving two hosts for regular workloads:
@@ -70,7 +72,7 @@ oc scale machineset -n openshift-machine-api --replicas=0 $(oc get machineset -n
 
 ```sh
 # Get the cluster VPC from existing node subnet
-export CLUSTER_NAME=$(oc get infrastructures cluster -o jsonpath='{.status.infrastructureName}')
+export CLUSTER_ID=$(oc get infrastructures cluster -o jsonpath='{.status.infrastructureName}')
 export MACHINESET_NAME=$(oc get machineset -n openshift-machine-api -o jsonpath='{.items[0].metadata.name}')
 export MACHINESET_SUBNET_NAME=$(oc get machineset -n openshift-machine-api $MACHINESET_NAME -o json | jq -r '.spec.template.spec.providerSpec.value.subnet.filters[0].values[0]')
 
@@ -172,37 +174,30 @@ helm upgrade --install --namespace karpenter \
 # Patches
 #
 
-# 1) RBAC and SCC. TODO fix karpenter to run with restrictive RBAC in OCP
+# 1) Remove custom SCC defined by karpenter inheriting from Namespace
+oc patch deployment.apps/karpenter -n karpenter --type=json -p="[{'op': 'remove', 'path': '/spec/template/spec/containers/0/securityContext'}]"
 
-# Error 01) SCC
-# Warning   FailedCreate        replicaset/karpenter-8cc95cf9        Error creating: pods "karpenter-8cc95cf9-" is forbidden: unable to validate against any security context constraint: [provider "anyuid": Forbidden: not usable by user or serviceaccount, provider restricted-v2: .containers[0].runAsUser: Invalid value: 65536: must be in the ranges: [1001160000, 1001169999], provider "restricted": Forbidden: not usable by user or serviceaccount, provider "nonroot-v2": Forbidden: not usable by user or serviceaccount, provider "nonroot": Forbidden: not usable by user or serviceaccount, provider "hostmount-anyuid": Forbidden: not usable by user or serviceaccount, provider "machine-api-termination-handler": Forbidden: not usable by user or serviceaccount, provider "hostnetwork-v2": Forbidden: not usable by user or serviceaccount, provider "hostnetw
-#oc policy add-role-to-user cluster-admin -z karpenter
-oc patch deployment.apps/karpenter --type=json -p="[{'op': 'remove', 'path': '/spec/template/spec/containers/0/securityContext'}]"
-
-# Error 02) RBAC
-# https://github.com/aws/karpenter-provider-aws/blob/main/charts/karpenter/templates/clusterrole-core.yaml#L52-L67
-# - apiGroups: ["karpenter.sh"]
-#   resources: ["nodepoolss/finalizers"]
-#   verbs: ["create", "delete", "patch","update"]
-oc patch clusterrole karpenter --type=json -p '[{
-    "op": "add",
-    "path": "/rules/-",
-    "value": {"apiGroups":["karpenter.sh"], "resources": ["nodeclaims","nodeclaims/finalizers", "nodepools","nodepools/finalizers"], "verbs": ["create","update","delete","patch"]}
-  }]'
-
-# 3) Mount volumes/creds
+# 2A) Mount volumes/creds created by CCO (CredentialsRequests)
 oc set volume deployment.apps/karpenter --add -t secret -m /var/secrets/karpenter --secret-name=karpenter-aws-credentials --read-only=true
 
-# 4) set env vars
+# 2B) Set env vars required to use custom credentials and OpenShift specifics
 oc set env deployment.apps/karpenter LOG_LEVEL=debug AWS_REGION=$AWS_REGION AWS_SHARED_CREDENTIALS_FILE=/var/secrets/karpenter/credentials CLUSTER_ENDPOINT=$KUBE_ENDPOINT
 
-# 5) Run karpenter on Control Plane
-# Preventing issues of lack of resources in minimal worker pool
+# 3) Run karpenter on Control Plane
 oc patch deployment.apps/karpenter --type=json -p '[{
     "op": "add",
     "path": "/spec/template/spec/tolerations/-",
     "value": {"key":"node-role.kubernetes.io/master", "operator": "Exists", "effect": "NoSchedule"}
 }]'
+
+# 4) Fix RBAC allowing karpenter to create nodeClaims
+# https://github.com/aws/karpenter-provider-aws/blob/main/charts/karpenter/templates/clusterrole-core.yaml#L52-L67
+# {"level":"ERROR","time":"2024-01-30T21:13:12.667Z","logger":"controller","message":"Reconciler error","commit":"2dd7fdc","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-nvpkv"},"namespace":"","name":"default-nvpkv","reconcileID":"1a1a3577-753b-424f-b70a-3f89a6d388ab","error":"syncing node, syncing node labels, nodes \"ip-10-0-33-137.ec2.internal\" is forbidden: cannot set blockOwnerDeletion if an ownerReference refers to a resource you can't set finalizers on: , <nil>"} 
+oc patch clusterrole karpenter --type=json -p '[{
+    "op": "add",
+    "path": "/rules/-",
+    "value": {"apiGroups":["karpenter.sh"], "resources": ["nodeclaims","nodeclaims/finalizers", "nodepools","nodepools/finalizers"], "verbs": ["create","update","delete","patch"]}
+  }]'
 ```
 
 ## Setup Karpenter for test variants
@@ -574,7 +569,7 @@ NS_JOBS=cluster-scaling
 for X in $(seq 0 3); do echo "Deleting namespace $NS_JOBS-$X" && oc delete ns $NS_JOBS-$X & done
 
 # Remove KB
-oc delete ns kb-burner
+oc delete ns kb-burner &
 oc delete ClusterRoleBinding kube-burner-user
 ```
 
@@ -590,32 +585,69 @@ mkdir -p $DATA_DIR
 - Test logs and Karpenter
 
 ```sh
-oc adm inspect ns/kb-burner --dest-dir $DATA_DIR/ns-kb-burner
-oc adm inspect ns/karpenter --dest-dir $DATA_DIR/ns-karpenter
+oc adm inspect ns/kb-burner ns/karpenter --dest-dir $DATA_DIR/namespace-tests
+#oc adm inspect ns/karpenter --dest-dir $DATA_DIR/ns-karpenter
+
+tar cfJ $DATA_DIR/namespace-tests.txz $DATA_DIR/namespace-tests &
 ```
 
 - Cluster Must-gather
 
 ```sh
-oc adm must-gather ns/kb-burner --dest-dir $DATA_DIR/must-gather
+oc adm must-gather --dest-dir $DATA_DIR/must-gather
+
+tar cfJ $DATA_DIR/must-gather.txz $DATA_DIR/must-gather
 ```
 
 - Prometheus
 
+> https://access.redhat.com/solutions/5482971
 
 ```sh
 # save to $DATA_DIR/prometheus
-# TODO
+cat <<'EOF' > prometheus-metrics.sh
+#!/usr/bin/env bash
+
+function queue() {
+local TARGET="${1}"
+shift
+local LIVE
+LIVE="$(jobs | wc -l)"
+while [[ "${LIVE}" -ge 45 ]]; do
+  sleep 1
+  LIVE="$(jobs | wc -l)"
+done
+echo "${@}"
+if [[ -n "${FILTER:-}" ]]; then
+  "${@}" | "${FILTER}" >"${TARGET}" &
+else
+  "${@}" >"${TARGET}" &
+fi
+}
+
+ARTIFACT_DIR=$PWD
+mkdir -p $ARTIFACT_DIR/metrics
+echo "Snapshotting prometheus (may take 15s) ..."
+queue ${ARTIFACT_DIR}/metrics/prometheus.tar.gz oc --insecure-skip-tls-verify exec -n openshift-monitoring prometheus-k8s-0 -- tar cvzf - -C /prometheus .
+FILTER=gzip queue ${ARTIFACT_DIR}/metrics/prometheus-target-metadata.json.gz oc --insecure-skip-tls-verify exec -n openshift-monitoring prometheus-k8s-0 -- /bin/bash -c "curl -G http://localhost:9090/api/v1/targets/metadata --data-urlencode 'match_target={instance!=\"\"}'"
+wait
+EOF
+bash prometheus-metrics.sh
 ```
 
 - Prometheus check
 
 ```sh
-# TODO
+# TODO/not working:
+mkdir $DATA_DIR/metrics/prometheus
+tar xfz $DATA_DIR/metrics/prometheus.tar.gz -C $DATA_DIR/metrics/prometheus
+podman run \
+    -p 9090:9090 \
+    -v ${PWD}/$DATA_DIR/metrics/prometheus:/prometheus:w \
+    -d quay.io/prometheus/prometheus:v2.45.3
 ```
 
 - Cluster costs: Wait for available in Cost Explorer
-
 
 
 ### Clean up cluster
