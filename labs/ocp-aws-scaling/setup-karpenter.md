@@ -3,7 +3,7 @@
 [karpenter.sh](https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/)
 deployment steps to experiment in OpenShift clusters on AWS.
 
-### Install OpenShift
+## Install OpenShift
 
 - Export the AWS credentials
 
@@ -14,11 +14,12 @@ export AWS_PROFILE=lab-scaling
 - Install OpenShift cluster
 
 ```sh
+export AWS_PROFILE=lab-scaling
 VERSION="4.14.8"
 PULL_SECRET_FILE="${HOME}/.openshift/pull-secret-latest.json"
 RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:${VERSION}-x86_64
-CLUSTER_NAME=kpt-p2c1
-INSTALL_DIR=${HOME}/openshift-labs/$CLUSTER_NAME
+CLUSTER_NAME=kptv3-p2c2
+INSTALL_DIR=${HOME}/openshift-labs/karpenter-round2/$CLUSTER_NAME
 CLUSTER_BASE_DOMAIN=lab-scaling.devcluster.openshift.com
 SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
 REGION=us-east-1
@@ -88,37 +89,37 @@ aws ec2 create-tags --region $AWS_REGION --tags "Key=karpenter.sh/discovery,Valu
     | jq -r '.[] | select(.Name | contains("private")).Id'  | tr '\n' ' ')
 ```
 
-### Install Karpenter with staic IAM user
+## Install Karpenter
 
-- Setup namespace and credentials:
+- Setup namespace and Credentials (CredentialsRequests / Static IAM User):
 
-> TODO: decrease permissions for NS
+> TODO: decrease permissions for the Namespace
 
 ```sh
-oc apply -f deploy-karpenter/setup/base.yaml
-
-# OR
-
 oc create -f https://raw.githubusercontent.com/mtulio/mtulio.labs/lab-kube-scaling/labs/ocp-aws-scaling/deploy-karpenter/setup/base.yaml
+
+# Or local development
+
+oc apply -f deploy-karpenter/setup/base.yaml
 ```
 
-- Deploy the csr-approver:
+- Deploy the "csr-approver":
 
 !!! warning "Not recommended"
     CSR approver is a quickly way to approve CSRs in the development and controlled environment.
     It is not recommended to approve all certification requests without validation of the source.
 
-    TODO: find a better way to approve certs.
+<!-- TODO: find a better way to approve certs. -->
 
 ```sh
-oc apply -f deploy-karpenter/setup/csr-approver.yaml
-
-# OR
-
 oc apply -f https://raw.githubusercontent.com/mtulio/mtulio.labs/lab-kube-scaling/labs/ocp-aws-scaling/deploy-karpenter/setup/csr-approver.yaml
+
+# Or local
+
+oc apply -f deploy-karpenter/setup/csr-approver.yaml
 ```
 
-- Export Required variables
+- Discovery and export required variables
 
 > https://github.com/aws/karpenter-provider-aws/blob/main/charts/karpenter/README.md
 
@@ -136,7 +137,7 @@ WORKER_PROFILE=$WORKER_PROFILE
 EOF
 ```
 
-- Provision the infra required by Karpenter (SQS Queues)
+- Provision the infra required by Karpenter (SQS Queues):
 
 ```sh
 # Based in https://raw.githubusercontent.com/aws/karpenter-provider-aws/v0.33.1/website/content/en/preview/getting-started/getting-started-with-karpenter/cloudformation.yaml
@@ -167,7 +168,7 @@ helm upgrade --install --namespace karpenter \
   --set "settings.cluster-endpoint=$KUBE_ENDPOINT"
 ```
 
-- Apply patches to fix karpenter default deployment:
+- Apply patches to fix karpenter default deployment on OpenShift:
 
 ```sh
 #
@@ -178,13 +179,13 @@ helm upgrade --install --namespace karpenter \
 oc patch deployment.apps/karpenter -n karpenter --type=json -p="[{'op': 'remove', 'path': '/spec/template/spec/containers/0/securityContext'}]"
 
 # 2A) Mount volumes/creds created by CCO (CredentialsRequests)
-oc set volume deployment.apps/karpenter --add -t secret -m /var/secrets/karpenter --secret-name=karpenter-aws-credentials --read-only=true
+oc set volume deployment.apps/karpenter -n karpenter  --add -t secret -m /var/secrets/karpenter --secret-name=karpenter-aws-credentials --read-only=true
 
 # 2B) Set env vars required to use custom credentials and OpenShift specifics
-oc set env deployment.apps/karpenter LOG_LEVEL=debug AWS_REGION=$AWS_REGION AWS_SHARED_CREDENTIALS_FILE=/var/secrets/karpenter/credentials CLUSTER_ENDPOINT=$KUBE_ENDPOINT
+oc set env deployment.apps/karpenter -n karpenter  LOG_LEVEL=debug AWS_REGION=$AWS_REGION AWS_SHARED_CREDENTIALS_FILE=/var/secrets/karpenter/credentials CLUSTER_ENDPOINT=$KUBE_ENDPOINT
 
 # 3) Run karpenter on Control Plane
-oc patch deployment.apps/karpenter --type=json -p '[{
+oc patch deployment.apps/karpenter -n karpenter --type=json -p '[{
     "op": "add",
     "path": "/spec/template/spec/tolerations/-",
     "value": {"key":"node-role.kubernetes.io/master", "operator": "Exists", "effect": "NoSchedule"}
@@ -200,7 +201,13 @@ oc patch clusterrole karpenter --type=json -p '[{
   }]'
 ```
 
-## Setup Karpenter for test variants
+Check if the pods for Karpenter controller are running:
+
+```sh
+oc get pods -n karpenter
+```
+
+## Setup Karpenter for each test variant
 
 - Discover the node provisioner configuration from MAPI/MachineSet object:
 
@@ -231,7 +238,7 @@ TAG_NAME=$TAG_NAME
 EOF
 ```
 
-- Create Karpenter Node Class:
+- Create Karpenter default `EC2NodeClass`:
 
 !!! tip "References"
     - [About Node Templates](https://karpenter.sh/v0.31/concepts/node-templates/)
@@ -280,8 +287,13 @@ less $NODE_CLASS_FILENAME
 oc create -f $NODE_CLASS_FILENAME
 ```
 
-### Create Karpenter NodePool for test Phase-1-Case-1: OnDemand single type
+### Test profiles
 
+Setup the Node Pool for each test variant. **Choose one by test case/cluster**.
+
+#### p1c1 - Node poool for Phase-1-Case-1: OnDemand single type
+
+Homogeneus On-Demand test config:
 
 - Creating NodePool
 
@@ -311,7 +323,6 @@ spec:
       nodeClassRef:
         name: $NODE_CLASS_NAME
 
-      # forcing to match m6i.xlarge (phase 1)
       requirements:
         - key: "kubernetes.io/arch"
           operator: In
@@ -345,7 +356,9 @@ less $POOL_CONFIG_FILE
 oc apply -f $POOL_CONFIG_FILE
 ```
 
-### Create Karpenter NodePool for test Phase-1-Case-2: OnDemand + Spot single type
+### p1c2 - Create Karpenter NodePool for test Phase-1-Case-2: OnDemand + Spot single type
+
+Homogeneus On-Demand+Spot test config:
 
 - Creating NodePool
 
@@ -406,7 +419,9 @@ less $POOL_CONFIG_FILE
 oc create -f $POOL_CONFIG_FILE
 ```
 
-### Create Karpenter NodePool for test Phase-2-Case-1: OnDemand mixed types
+### p2c1 - Create Karpenter NodePool for test Phase-2-Case-1: OnDemand mixed types
+
+Heterogeneous On-Demand test config:
 
 - Creating NodePool
 
@@ -464,9 +479,11 @@ less $POOL_CONFIG_FILE
 oc create -f $POOL_CONFIG_FILE
 ```
 
-### Create Karpenter NodePool for test Phase-2-Case-2: OnDemand+Spot mixed types
+### p2c2 - Create Karpenter NodePool for test Phase-2-Case-2: OnDemand+Spot mixed types
 
-- Creating NodePool
+Heterogeneous On-Demand+Spot test config:
+
+- Creating NodePool:
 
 ```sh
 POOL_NAME=p2c2-mixed-od-spot
@@ -537,10 +554,13 @@ oc get NodePool -o yaml
 Check the logs (expected no errors):
 
 ```sh
-oc logs -f -c controller deployment.apps/karpenter
+oc logs -f -c controller deployment.apps/karpenter -n karpenter
 ```
 
 ## Run scaling tests
+
+The test tool used is a modified version of kube-burner supporting kubernetes autoscaling
+exercises. For more details read the repository: https://github.com/elmiko/openshift-lab-scaling/devel
 
 - Start:
 
@@ -561,7 +581,11 @@ oc logs -n kb-burner -f -l batch.kubernetes.io/job-name=pykb-runner
 oc get pods -A | grep -i pending
 ```
 
-### Clean up jobs
+### Optional: force clean up jobs
+
+Use this step to force cleaning up the jobs if before regular execution.
+
+The steps described here will force and will lose the test data.
 
 ```sh
 # Remove jobs
@@ -573,7 +597,7 @@ oc delete ns kb-burner &
 oc delete ClusterRoleBinding kube-burner-user
 ```
 
-## Collect the data:
+## Collect the data
 
 - Create local file dir for cluster data
 
@@ -586,7 +610,6 @@ mkdir -p $DATA_DIR
 
 ```sh
 oc adm inspect ns/kb-burner ns/karpenter --dest-dir $DATA_DIR/namespace-tests
-#oc adm inspect ns/karpenter --dest-dir $DATA_DIR/ns-karpenter
 
 tar cfJ $DATA_DIR/namespace-tests.txz $DATA_DIR/namespace-tests &
 ```
@@ -605,37 +628,43 @@ tar cfJ $DATA_DIR/must-gather.txz $DATA_DIR/must-gather
 
 ```sh
 # save to $DATA_DIR/prometheus
-cat <<'EOF' > prometheus-metrics.sh
+cat << EOF > ./prometheus-metrics.sh
 #!/usr/bin/env bash
 
 function queue() {
-local TARGET="${1}"
-shift
-local LIVE
-LIVE="$(jobs | wc -l)"
-while [[ "${LIVE}" -ge 45 ]]; do
-  sleep 1
-  LIVE="$(jobs | wc -l)"
-done
-echo "${@}"
-if [[ -n "${FILTER:-}" ]]; then
-  "${@}" | "${FILTER}" >"${TARGET}" &
-else
-  "${@}" >"${TARGET}" &
-fi
+  local TARGET="\${1}"; shift
+  local LIVE;
+  LIVE="\$(jobs | wc -l)"
+
+  while [[ "\${LIVE}" -ge 45 ]]; do
+    sleep 1
+    LIVE="\$(jobs | wc -l)"
+  done
+  echo "\${@}"
+  if [[ -n "\${FILTER:-}" ]]; then
+    "\${@}" | "\${FILTER}" >"\${TARGET}" &
+  else
+    "\${@}" >"\${TARGET}" &
+  fi
 }
 
-ARTIFACT_DIR=$PWD
-mkdir -p $ARTIFACT_DIR/metrics
+mkdir -p "$DATA_DIR/metrics"
 echo "Snapshotting prometheus (may take 15s) ..."
-queue ${ARTIFACT_DIR}/metrics/prometheus.tar.gz oc --insecure-skip-tls-verify exec -n openshift-monitoring prometheus-k8s-0 -- tar cvzf - -C /prometheus .
-FILTER=gzip queue ${ARTIFACT_DIR}/metrics/prometheus-target-metadata.json.gz oc --insecure-skip-tls-verify exec -n openshift-monitoring prometheus-k8s-0 -- /bin/bash -c "curl -G http://localhost:9090/api/v1/targets/metadata --data-urlencode 'match_target={instance!=\"\"}'"
+queue ${DATA_DIR}/metrics/prometheus.tar.gz oc --insecure-skip-tls-verify exec -n openshift-monitoring prometheus-k8s-0 -- tar cvzf - -C /prometheus .
+FILTER=gzip queue \${DATA_DIR}/metrics/prometheus-target-metadata.json.gz oc --insecure-skip-tls-verify exec -n openshift-monitoring prometheus-k8s-0 -- /bin/bash -c "curl -G http://localhost:9090/api/v1/targets/metadata --data-urlencode 'match_target={instance!=\"\"}'"
 wait
 EOF
-bash prometheus-metrics.sh
+
+chmod u+x ./prometheus-metrics.sh
+
+# Collect the metrics data/prometheus dump two times (sometimes)
+# the things go wrong, let's keep a backup. :)
+./prometheus-metrics.sh
+mv $DATA_DIR/metrics $DATA_DIR/metrics-bkp
+./prometheus-metrics.sh
 ```
 
-- Prometheus check
+<!-- - Prometheus check
 
 ```sh
 # TODO/not working:
@@ -645,12 +674,12 @@ podman run \
     -p 9090:9090 \
     -v ${PWD}/$DATA_DIR/metrics/prometheus:/prometheus:w \
     -d quay.io/prometheus/prometheus:v2.45.3
-```
+``` -->
 
 - Cluster costs: Wait for available in Cost Explorer
 
 
-### Clean up cluster
+## Clean up cluster
 
 - Karpenter only
 
