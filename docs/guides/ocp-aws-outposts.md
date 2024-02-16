@@ -2,11 +2,14 @@
 
 Lab steps to install an OpenShift cluster on AWS, extending compute nodes to AWS Outposts as a day-2 operations.
 
+Total time running this lab: ~120 minutes (install, setup, test, destroy).
+
 ## Install OpenShift
 
 - Export the AWS credentials
 
 ```sh
+export AWS_DEFAULT_REGION=us-east-1
 export AWS_PROFILE=outposts
 ```
 
@@ -75,7 +78,7 @@ Create Cloudformation template:
 
 
 ```sh
-TEMPLATE_NAME=./cfn-subnet.yaml
+TEMPLATE_NAME=./cfn-subnet-outposts.yaml
 cat <<EOF > ${TEMPLATE_NAME}
 AWSTemplateFormatVersion: 2010-09-09
 Description: Template for Best Practice Subnets (Public and Private)
@@ -220,20 +223,32 @@ PrivateRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values
 
 # 1. When the last subnet CIDR is 10.0.192.0/20, it will return 208 (207+1, where 207 is the last 3rd octect of the network)
 # 2. Create /24 subnets
-NextFree3rdOctectIP=$(echo "$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VpcId \
-    | jq  -r ".Subnets[].CidrBlock" |sort -t . -k 3,3n -k 4,4n | tail -n1 \
-    | xargs ipcalc  | grep ^HostMax | awk '{print$2}' | awk -F'.' '{print$3}'\
-    ) + 1" | bc)
-PublicSubnetCidr="10.0.${NextFree3rdOctectIP}.0/24"
+NextFreeNet=$(echo "$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VpcId | jq  -r ".Subnets[].CidrBlock" | sort -t . -k 3,3n -k 4,4n | tail -n1 | xargs ipcalc | grep ^HostMax | awk '{print$2}' | awk -F'.' '{print$3}') + 1" | bc)
+PublicSubnetCidr="10.0.${NextFreeNet}.0/24"
 
-NextFree3rdOctectIP=$(( NextFree3rdOctectIP + 1 ))
-PrivateSubnetCidr="10.0.${NextFree3rdOctectIP}.0/24"
+NextFreeNet=$(( NextFreeNet + 1 ))
+PrivateSubnetCidr="10.0.${NextFreeNet}.0/24"
+```
+
+- Review the variables before proceed:
+
+```sh
+cat <<EOF
+OutpostId=$OutpostId
+OutpostArn=$OutpostArn
+OutpostAvailabilityZone=$OutpostAvailabilityZone
+ClusterName=$ClusterName
+PublicRouteTableId=$PublicRouteTableId
+PrivateRouteTableId=$PrivateRouteTableId
+PublicSubnetCidr=$PublicSubnetCidr
+PrivateSubnetCidr=$PrivateSubnetCidr
+EOF
 ```
 
 - Create the subnet:
 
 ```sh
-STACK_NAME=${CLUSTER_ID}-subnets-outpost-v1
+STACK_NAME=${CLUSTER_ID}-subnets-outpost
 aws cloudformation create-stack --stack-name $STACK_NAME \
     --region ${AWS_REGION} \
     --template-body file://${TEMPLATE_NAME} \
@@ -248,6 +263,10 @@ aws cloudformation create-stack --stack-name $STACK_NAME \
         ParameterKey=OutpostArn,ParameterValue="${OutpostArn}" \
         ParameterKey=PrivateSubnetLabel,ParameterValue="private-outpost" \
         ParameterKey=PublicSubnetLabel,ParameterValue="public-outpost"
+
+aws cloudformation wait stack-create-complete --stack-name ${STACK_NAME}
+
+aws cloudformation describe-stacks --stack-name ${STACK_NAME}
 ```
 
 - List the subnets in Outpost:
@@ -273,6 +292,12 @@ OutpostPrivateSubnetId=$(aws ec2 describe-subnets --filters Name=outpost-arn,Val
 ```sh
 # Choose from $ aws outposts get-outpost-instance-types
 OutpostInstanceType=m5.xlarge
+
+cat <<EOF
+OutpostPublicSubnetId=$OutpostPublicSubnetId
+OutpostPrivateSubnetId=$OutpostPrivateSubnetId
+OutpostInstanceType=$OutpostInstanceType
+EOF
 ```
 
 - Create machine set patch:
@@ -328,25 +353,26 @@ EOF
 ```sh
 oc get machineset -n openshift-machine-api $(oc get machineset -n openshift-machine-api -o jsonpath='{.items[0].metadata.name}') -o yaml \
     | yq4 'del(
-        .status,
+        .metadata.annotations,
         .metadata.uid,
-        .spec.template.spec.providerSpec.value.subnet,
         .spec.template.metadata.labels,
-        .metadata.annotations)' \
+        .spec.template.spec.providerSpec.value.subnet,
+        .spec.template.spec.providerSpec.value.blockDevices,
+        .status)' \
     > ./outpost-tpl-00.yaml
 
-yq3 merge ./outpost-machineset-patch.yaml ./outpost-tpl-00.yaml > ./outpost-machineset.yaml
+yq4 ea '. as $item ireduce ({}; . * $item )' ./outpost-tpl-00.yaml ./outpost-machineset-patch.yaml > ./outpost-machineset.yaml
 ```
 
-- Apply the Machine set
+- Review and create the machine set
 
-```
+```sh
 oc create -f ./outpost-machineset.yaml
 ```
 
 Example output
 
-```
+```sh
 $ oc get nodes -l node-role.kubernetes.io/outpost
 NAME                         STATUS   ROLES            AGE   VERSION
 ip-10-0-209-9.ec2.internal   Ready    outpost,worker   12h   v1.28.6+f1618d5
@@ -386,7 +412,7 @@ serviceNetwork:
 - check current value for host network MTU:
 
 ```sh
-NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/outpost='' -o jsonpath={.items[0].metadata.name})
+NODE_NAME=$(oc get nodes -l location=outpost -o jsonpath={.items[0].metadata.name})
 # Hardware MTU
 oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "ip address show | grep -E '^(.*): ens'" 2>/dev/null
 # CN MTU
@@ -397,6 +423,7 @@ Example output:
 
 ```sh
 2: ens5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9001 qdisc mq master ovs-system state UP group default qlen 1000
+5: br-int: <BROADCAST,MULTICAST> mtu 8901 qdisc noop state DOWN group default qlen 1000
 ```
 
 - Patch
@@ -410,42 +437,20 @@ oc patch Network.operator.openshift.io cluster --type=merge --patch \
   "{\"spec\": { \"migration\": { \"mtu\": { \"network\": { \"from\": $OVERLAY_FROM, \"to\": ${OVERLAY_TO} } , \"machine\": { \"to\" : $MACHINE_TO } } } } }"
 ```
 
-- Check if the value has been updated
-
-```yaml
-$  oc get network.config cluster -o yaml | yq4 ea .status
-clusterNetwork:
-  - cidr: 10.128.0.0/14
-    hostPrefix: 23
-clusterNetworkMTU: 1200
-migration:
-  mtu:
-    machine:
-      to: 9001
-    network:
-      from: 8901
-      to: 1200
-networkType: OVNKubernetes
-serviceNetwork:
-  - 172.30.0.0/16
-```
-
-- Follow the progress
-    - MachineConfigPool must be progressing:
+- Wait until the machines are updated:
+    - MachineConfigPool must be progressing
     - Nodes will be restarted
     - Nodes must have correct MTU for overlay interface
 
 ```sh
-# Wait until updating == true
-oc get mcp -w
-
-# View the nodes rebooting (or use the function check_node_mcp)
-oc get nodes -w
-
 function check_node_mcp() {
+    echo ">>>> $(date)"
+    echo -e "Network migration status: $(oc get network.config cluster -o jsonpath={.status.migration})"
+    oc get mcp
+    oc get nodes
     MCP_WORKER=$(oc get mcp worker -o jsonpath='{.spec.configuration.name}')
     MCP_MASTER=$(oc get mcp master -o jsonpath='{.spec.configuration.name}')
-    echo -e "\n$(date) Checking if nodes has desired config: master[${MCP_MASTER}] worker[${MCP_WORKER}]"
+    echo -e "\n Checking if nodes have desired config: master[${MCP_MASTER}] worker[${MCP_WORKER}]"
     for NODE in $(oc get nodes -o jsonpath='{.items[*].metadata.name}');
     do
         MCP_NODE=$(oc get node ${NODE} -o json | jq -r '.metadata.annotations["machineconfiguration.openshift.io/currentConfig"]');
@@ -453,12 +458,11 @@ function check_node_mcp() {
         then
             NODE_CN_MTU=$(oc debug node/${NODE} --  chroot /host /bin/bash -c "ip address show | grep -E '^([0-9]): br-int'" 2>/dev/null | awk -F'mtu ' '{print$2}' | cut -d ' ' -f1)
             NODE_HOST_MTU=$(oc debug node/${NODE} --  chroot /host /bin/bash -c "ip address show | grep -E '^([0-9]): ens'" 2>/dev/null | awk -F'mtu ' '{print$2}' | cut -d ' ' -f1)
-            echo -e "$NODE\t OK \t HOST_MTU=${NODE_HOST_MTU} CN_MTU=${NODE_CN_MTU}";
+            echo -e "$NODE\t OK \t Interface MTU HOST(ens*)=${NODE_HOST_MTU} CN(br-ext)=${NODE_CN_MTU}";
             continue;
         fi;
         echo -e "$NODE\t FAIL \t CURRENT[${MCP_NODE}] != DESIRED[${MCP_WORKER} || ${MCP_MASTER}]";
     done
-    oc get mcp
 }
 
 while true; do check_node_mcp; sleep 15; done
@@ -477,7 +481,35 @@ oc patch Network.operator.openshift.io cluster --type=merge --patch \
 while true; do check_node_mcp; sleep 15; done
 ```
 
-- Validating cluster network MTU
+Example output:
+
+```sh
+>>>>
+Network migration status: 
+NAME     CONFIG                                             UPDATED   UPDATING   DEGRADED   MACHINECOUNT   READYMACHINECOUNT   UPDATEDMACHINECOUNT   DEGRADEDMACHINECOUNT   AGE
+master   rendered-master-fc0b5ff7d3a94127f978fb7aa0af54e6   False     True       False      3              2                   2                     0                      115m
+worker   rendered-worker-a2227d03f8f0ab2dd9915db57b64de3a   True      False      False      4              4                   4                     0                      115m
+NAME                           STATUS                     ROLES                  AGE    VERSION
+ip-10-0-1-185.ec2.internal     Ready                      control-plane,master   118m   v1.28.6+f1618d5
+ip-10-0-19-202.ec2.internal    Ready                      control-plane,master   118m   v1.28.6+f1618d5
+ip-10-0-209-142.ec2.internal   Ready                      outpost,worker         48m    v1.28.6+f1618d5
+ip-10-0-3-77.ec2.internal      Ready                      worker                 109m   v1.28.6+f1618d5
+ip-10-0-31-217.ec2.internal    Ready                      worker                 109m   v1.28.6+f1618d5
+ip-10-0-42-105.ec2.internal    Ready,SchedulingDisabled   control-plane,master   118m   v1.28.6+f1618d5
+ip-10-0-45-78.ec2.internal     Ready                      worker                 109m   v1.28.6+f1618d5
+
+Fri Feb 16 05:58:34 PM -03 2024 Checking if nodes have desired config: master[rendered-master-657a60a6f36d8443378fb549fbb34d52] worker[rendered-worker-a2227d03f8f0ab2dd9915db57b64de3a]
+ip-10-0-1-185.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-19-202.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-209-142.ec2.internal    OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-3-77.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-31-217.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-42-105.ec2.internal	 FAIL 	 CURRENT[rendered-master-fc0b5ff7d3a94127f978fb7aa0af54e6] != DESIRED[rendered-worker-a2227d03f8f0ab2dd9915db57b64de3a || rendered-master-657a60a6f36d8443378fb549fbb34d52]
+ip-10-0-45-78.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+...
+```
+
+- Validating cluster network MTU by pulling image from internal registry from the Outpost node:
 
 ```sh
 NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/outpost='' -o jsonpath={.items[0].metadata.name})
@@ -702,18 +734,20 @@ spec:
 EOF
 ``` -->
 
-### Create a service with ALB ingress
+### Exposing the service with ALB ingress
 
 Steps to deploy the service using Application Load Balancer on Outpost with ALBO (AWS Load Balancer Operator).
 
 #### Install ALBO
 
-- Install ALBO
+- Setup requirements to install ALBO through OLM:
+
 ```sh
 ALBO_NS=aws-load-balancer-operator
 
-# Install the Operator from OLM:
-# Create the subscription:
+# Create the namespace
+# Create the CredentialsRequests
+# Subscribe to operator
 cat << EOF | oc create -f -
 ---
 kind: Namespace
@@ -779,10 +813,10 @@ oc get OperatorGroup $ALBO_NS -n $ALBO_NS
 oc get Subscription $ALBO_NS -n $ALBO_NS
 oc get installplan -n $ALBO_NS
 oc get all -n $ALBO_NS
+oc get pods -w -n $ALBO_NS
 ```
 
-- Wait the resources to be created, then create the controller:
-
+- Wait for the operator be created, then create the controller:
 
 ```bash
 # Create cluster ALBO controller
@@ -800,7 +834,7 @@ spec:
     - AWSWAFv2
 EOF
 
-# Wait for the pod becamig running
+# Wait for the controller be in Running
 oc get pods -w -n $ALBO_NS -l app.kubernetes.io/name=aws-load-balancer-operator
 ```
 
@@ -811,12 +845,13 @@ oc get pods -w -n $ALBO_NS -l app.kubernetes.io/name=aws-load-balancer-operator
 - Deploy the service using the ingress
 
 ```sh
+SVC_NAME_ALB=${APP_NAME}-alb
 cat << EOF > ./outpost-svc-alb.yaml
 ---
 apiVersion: v1
 kind: Service 
 metadata:
-  name: ${APP_NAME}-svc-alb
+  name: ${SVC_NAME_ALB}
   namespace: ${APP_NAME}
 spec:
   ports:
@@ -840,7 +875,7 @@ cat << EOF | oc create -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: outpost-${APP_NAME}
+  name: alb-outpost-public
   namespace: ${APP_NAME}
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
@@ -858,10 +893,242 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ${APP_NAME}-svc-alb
+                name: ${SVC_NAME_ALB}
                 port:
                   number: 80
 EOF
+```
+
+Check if the ingress has been created:
+
+```sh
+oc get ingress alb-outpost-public -n ${APP_NAME}
+```
+
+Try to access the Load Balancer
+
+```sh
+APP_INGRESS=$(./oc get ingress -n ${APP_NAME} alb-outpost-public \
+  --template='{{(index .status.loadBalancer.ingress 0).hostname}}')
+
+while ! curl $APP_INGRESS; do sleep 5; done
+```
+
+Example output:
+
+```sh
+$ while ! curl $APP_INGRESS; do sleep 5; done
+curl: (6) Could not resolve host: k8s-myappout-outpostm-8f4b5eecb7-432946071.us-east-1.elb.amazonaws.com
+curl: (6) Could not resolve host: k8s-myappout-outpostm-8f4b5eecb7-432946071.us-east-1.elb.amazonaws.com
+curl: (6) Could not resolve host: k8s-myappout-outpostm-8f4b5eecb7-432946071.us-east-1.elb.amazonaws.com
+curl: (6) Could not resolve host: k8s-myappout-outpostm-8f4b5eecb7-432946071.us-east-1.elb.amazonaws.com
+curl: (6) Could not resolve host: k8s-myappout-outpostm-8f4b5eecb7-432946071.us-east-1.elb.amazonaws.com
+curl: (6) Could not resolve host: k8s-myappout-outpostm-8f4b5eecb7-432946071.us-east-1.elb.amazonaws.com
+curl: (6) Could not resolve host: k8s-myappout-outpostm-8f4b5eecb7-432946071.us-east-1.elb.amazonaws.com
+GET / HTTP/1.1
+X-Forwarded-For: 189.114.197.154
+X-Forwarded-Proto: http
+X-Forwarded-Port: 80
+Host: k8s-myappout-outpostm-8f4b5eecb7-432946071.us-east-1.elb.amazonaws.com
+X-Amzn-Trace-Id: Root=1-65cfd390-56d5743b52a8b84148e8562f
+User-Agent: curl/8.0.1
+Accept: */*
+```
+
+### Service LoadBalancer with AWS Classic Load Balancer (unsupported scenarios)
+
+Exercising unsupported scenarios to validate each with CLB on Outposts.
+
+#### Service CLB default (unreachable)
+
+Description:
+
+- LB Type: default (CLB, default for CCM)
+- Extra configuration: None
+- Result: failed
+- Reason: CLB attached Outpost node but can't route traffic to it.
+
+
+Default service CLB:
+
+```sh
+SVC_NAME_CLB=${APP_NAME}-clb
+cat << EOF | oc create -f -
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${APP_NAME}
+  name: ${SVC_NAME_CLB}
+  namespace: ${APP_NAME}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+EOF
+```
+
+- Test:
+
+```sh
+APP_CLB=$(./oc get svc -n ${APP_NAME} ${SVC_NAME_CLB} \
+  -o jsonpath={.status.loadBalancer.ingress[0].hostname})
+
+echo "APP_CLB=${APP_CLB}"
+while ! curl -v $APP_CLB; do sleep 5; done
+```
+
+Example output:
+
+```text
+while ! curl -v $APP_CLB; do sleep 5; done
+APP_CLB=ab3bd4e16e45645fb879a446bb6d2eca-385790984.us-east-1.elb.amazonaws.com
+*   Trying 54.156.108.187:80...
+* Connected to ab3bd4e16e45645fb879a446bb6d2eca-385790984.us-east-1.elb.amazonaws.com (54.156.108.187) port 80 (#0)
+> GET / HTTP/1.1
+> Host: ab3bd4e16e45645fb879a446bb6d2eca-385790984.us-east-1.elb.amazonaws.com
+> User-Agent: curl/8.0.1
+> Accept: */*
+> 
+* Recv failure: Connection reset by peer
+* Closing connection 0
+curl: (56) Recv failure: Connection reset by peer
+
+```
+
+#### Service CLB with Outpost subnets (not supported)
+
+Description:
+
+- LB Type: custom Outpost subnet
+- Extra configuration:
+    - Annotation:
+        - service.beta.kubernetes.io/aws-load-balancer-subnets: ${OutpostPublicSubnetId}
+- Result: failed
+- Reason: CLB does not support Outpost subnets.
+
+Deploy service:
+
+```sh
+SVC_NAME_CLB_SB=${APP_NAME}-clb-op-sb
+cat << EOF | oc create -f -
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${APP_NAME}
+  name: ${SVC_NAME_CLB_SB}
+  namespace: ${APP_NAME}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-subnets: ${OutpostPublicSubnetId}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+EOF
+```
+
+- Test:
+
+```sh
+APP_CLB_SB=$(./oc get svc -n ${APP_NAME} ${SVC_NAME_CLB_SB} \
+  -o jsonpath={.status.loadBalancer.ingress[0].hostname})
+
+echo "SVC_NAME_CLB_SB=${SVC_NAME_CLB_SB}"
+while ! curl $SVC_NAME_CLB_SB; do sleep 5; done
+```
+
+Output:
+```
+$ oc describe svc $SVC_NAME_CLB_SB -n ${APP_NAME} | grep ^Events -A20
+Events:
+  Type     Reason                  Age    From                Message
+  ----     ------                  ----   ----                -------
+  Warning  SyncLoadBalancerFailed  4m56s  service-controller  Error syncing load balancer: failed to ensure load balancer: ValidationError: You cannot use Outposts subnets for load balancers of type 'classic'
+           status code: 400, request id: 875a7b34-7d34-42e2-88c6-e52c74e85d33
+  x4
+  Normal   EnsuringLoadBalancer    2m18s (x6 over 4m57s)  service-controller  Ensuring load balancer
+  Warning  SyncLoadBalancerFailed  2m17s                  service-controller  Error syncing load balancer: failed to ensure load balancer: ValidationError: You cannot use Outposts subnets for load balancers of type 'classic'
+           status code: 400, request id: 936eb787-5d7f-4db0-9572-0b7bdf410674
+
+```
+
+
+#### Service CLB limiting Outposts nodes (unreachable)
+
+Description:
+
+- LB Type: select target instance
+- Extra configuration:
+    - Annotation:
+        - service.beta.kubernetes.io/aws-load-balancer-target-node-labels: location=outpost
+- Result: failed
+- Reason: Only Outpost node attached, although CLB can't reach traffic to the node.
+
+Deploy:
+
+```sh
+SVC_NAME_CLB_NODE=${APP_NAME}-clb-op-node
+cat << EOF | oc create -f -
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${APP_NAME}
+  name: ${SVC_NAME_CLB_NODE}
+  namespace: ${APP_NAME}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-target-node-labels: location=outpost
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+EOF
+```
+
+- Test:
+
+```sh
+APP_CLB_NODE=$(./oc get svc -n ${APP_NAME} ${SVC_NAME_CLB_NODE} \
+  -o jsonpath={.status.loadBalancer.ingress[0].hostname})
+
+echo "APP_CLB_NODE=${APP_CLB_NODE}"
+while ! curl -v $APP_CLB_NODE; do sleep 5; done
+```
+
+Output:
+
+```text
+$ while ! curl -v $APP_CLB_NODE; do sleep 5; done
+*   Trying 54.160.90.21:80...
+* Connected to a62e971109b834921851c290a946bcb2-939519935.us-east-1.elb.amazonaws.com (54.160.90.21) port 80 (#0)
+> GET / HTTP/1.1
+> Host: a62e971109b834921851c290a946bcb2-939519935.us-east-1.elb.amazonaws.com
+> User-Agent: curl/8.0.1
+> Accept: */*
+> 
+* Recv failure: Connection reset by peer
+* Closing connection 0
+curl: (56) Recv failure: Connection reset by peer
+
 ```
 
 ## Destroy the cluster
