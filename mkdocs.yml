@@ -134,7 +134,7 @@ nav:
         - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
         - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
 
-      - OpenShift and AWS Local Zones:
+      - OpenShift hybrid cloud deployments on AWS:
         - Articles: guides/ocp-aws-local-zones.md
         - Extending OCP to AWS Local Zones (Day-2): ocp-aws-local-zones-day-2.md
         - Installing OCP on AWS extending to Local Zones (Day-0): ocp-aws-local-zones-day-0.md
@@ -147,6 +147,7 @@ nav:
         - Blog demo - Installing with Local Zone nodes in Existing VPC (4.13+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413-script.md
         - Hands-on Local Zones (verbose draft) : guides/ocp-aws-local-zones-hands-on.md
         - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelength-zones-hands-on.md
+        - Installing on AWS extending compute nodes to AWS Outposts in Day-2: guides/ocp-aws-outposts.md
 
       - OpenShift Dev:
         - Build components: playbooks/openshift/dev-build-components.md
