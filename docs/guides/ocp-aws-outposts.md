@@ -1151,3 +1151,10 @@ aws cloudformation delete-stack --stack-name ${STACK_NAME}
 ```sh
 ./openshift-install destroy cluster --log-level debug
 ```
+
+## References
+
+- [AWS Doc: What is AWS Outposts?](https://docs.aws.amazon.com/outposts/latest/userguide/what-is-outposts.html)
+- [AWS Doc: How AWS Outposts works](https://docs.aws.amazon.com/outposts/latest/userguide/how-outposts-works.html)
+- [AWS Blog: Configuring an Application Load Balancer on AWS Outposts](https://aws.amazon.com/blogs/networking-and-content-delivery/configuring-an-application-load-balancer-on-aws-outposts/)
+- [AWS Doc Outposts: Customer-owned IP addresses](https://docs.aws.amazon.com/outposts/latest/userguide/routing.html#ip-addressing)
