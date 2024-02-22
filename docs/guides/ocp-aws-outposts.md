@@ -958,7 +958,7 @@ Accept: */*
 
 Exercising unsupported scenarios to validate each with CLB on Outposts.
 
-#### Service CLB default (unreachable)
+#### Test: Service CLB default (unreachable)
 
 Description:
 
@@ -1021,7 +1021,7 @@ curl: (56) Recv failure: Connection reset by peer
 
 ```
 
-#### Service CLB with Outpost subnets (not supported)
+#### Test: Service CLB with Outpost subnets (not supported)
 
 Description:
 
@@ -1085,7 +1085,7 @@ Events:
 ```
 
 
-#### Service CLB limiting Outposts nodes (unreachable)
+#### Test: Service CLB limiting Outposts nodes (unreachable)
 
 Description:
 
@@ -1149,6 +1149,207 @@ $ while ! curl -v $APP_CLB_NODE; do sleep 5; done
 curl: (56) Recv failure: Connection reset by peer
 
 ```
+
+#### Test: Replace default ingress (Service CLB) to NLB
+
+Documentation: [Replacing Ingress Controller Classic Load Balancer with Network Load Balancer](https://docs.openshift.com/container-platform/4.14/networking/configuring_ingress_cluster_traffic/configuring-ingress-cluster-traffic-aws.html#nw-aws-replacing-clb-with-nlb_configuring-ingress-cluster-traffic-aws)
+
+Scenario:
+- OP rack is attached to zone A
+- subnets on OP with unmanaged tag
+- region has subnets on B and C zones
+
+Expected: success w/ NLB on non-OP subnets
+
+Result: success
+
+Steps:
+
+- Check the existing LB for default router:
+
+```sh
+$ oc get svc router-default -n openshift-ingress
+NAME             TYPE           CLUSTER-IP       EXTERNAL-IP                                                              PORT(S)                      AGE
+router-default   LoadBalancer   172.30.235.194   ae44f5e3a79b4466f9ecf97854241419-628902116.us-east-1.elb.amazonaws.com   80:32281/TCP,443:32404/TCP   9h
+```
+
+- Run the migration step
+
+```sh
+cat << EOF |  oc replace --force --wait -f -
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  name: default
+  namespace: openshift-ingress-operator
+spec:
+  endpointPublishingStrategy:
+    loadBalancer:
+      scope: External
+      providerParameters:
+        type: AWS
+        aws:
+          type: NLB
+    type: LoadBalancerService
+EOF
+```
+
+- Check if the ingress has been replaced
+
+```sh
+$ oc get svc router-default -n openshift-ingress
+NAME             TYPE           CLUSTER-IP      EXTERNAL-IP                                                                     PORT(S)                      AGE
+router-default   LoadBalancer   172.30.87.237   a7824438c657046a1a5f6fa543ffec11-eea19794cae4d69c.elb.us-east-1.amazonaws.com   80:31030/TCP,443:30410/TCP   6m10s
+```
+
+- Check the subnets for the NLB ingress:
+
+```sh
+ROUTER_NLB_HOSTNAME=$(oc get svc router-default -n openshift-ingress -o jsonpath={.status.loadBalancer.ingress[0].hostname})
+aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"${ROUTER_NLB_HOSTNAME}\") | {"Type": .Type, "zones": .AvailabilityZones} "
+```
+
+Output
+
+```json
+{
+  "Type": "network",
+  "zones": [
+    {
+      "ZoneName": "us-east-1b",
+      "SubnetId": "subnet-03a8525cc9092d77d",
+      "LoadBalancerAddresses": []
+    },
+    {
+      "ZoneName": "us-east-1c",
+      "SubnetId": "subnet-0eaefe029bf6c591c",
+      "LoadBalancerAddresses": []
+    }
+  ]
+}
+```
+
+#### Test: Create Service LB NLB on Outpost clusters
+
+Scenario:
+- OP rack is attached to zone A
+- subnets on OP with unmanaged tag
+- region has subnets on B and C zones
+- default subnet discovery
+
+Expected:
+- Creation Success
+- Failed to connect as the target is not "routable"
+
+Steps:
+
+```sh
+SVC_NAME_NLB=${APP_NAME}-nlb
+cat << EOF | oc create -f -
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${APP_NAME}
+  name: ${SVC_NAME_NLB}
+  namespace: ${APP_NAME}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+EOF
+```
+
+- Test:
+
+```sh
+APP_NLB=$(oc get svc ${SVC_NAME_NLB} -n ${APP_NAME} -o jsonpath={.status.loadBalancer.ingress[0].hostname})
+
+echo "APP_NLB=${APP_NLB}"
+while ! curl $APP_NLB; do sleep 5; done
+```
+
+- Check the subnets for the NLB ingress:
+
+```sh
+aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"${APP_NLB}\") | {"Type": .Type, "zones": .AvailabilityZones} "
+```
+
+Output:
+```json
+$ aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"${APP_NLB}\") | {"Type": .Type, "zones": .AvailabilityZones} "
+{
+  "Type": "network",
+  "zones": [
+    {
+      "ZoneName": "us-east-1c",
+      "SubnetId": "subnet-0eaefe029bf6c591c",
+      "LoadBalancerAddresses": []
+    },
+    {
+      "ZoneName": "us-east-1b",
+      "SubnetId": "subnet-03a8525cc9092d77d",
+      "LoadBalancerAddresses": []
+    }
+  ]
+}
+```
+
+#### Test: Create Service LB with NLB on Outpost
+
+Scenario:
+- OP rack is attached to zone A
+- subnets on OP with unmanaged tag
+- region has subnets on B and C zones
+- annotate OP subnet
+
+Expected: Fail to create as unsupported type on OP
+
+Result: Fail to create as unsupported type on OP
+
+Steps:
+
+```sh
+SVC_NAME_NLB_OP=${APP_NAME}-nlb-op
+cat << EOF | oc create -f -
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${APP_NAME}
+  name: ${SVC_NAME_NLB_OP}
+  namespace: ${APP_NAME}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-subnets: ${OutpostPublicSubnetId}
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+EOF
+```
+
+- Validation error:
+
+```sh
+$ oc describe svc ${SVC_NAME_NLB_OP} -n ${APP_NAME}  | tail -n1
+  Warning  SyncLoadBalancerFailed  18s                service-controller  Error syncing load balancer: failed to ensure load balancer: error creating load balancer: "ValidationError: You cannot use Outposts subnets for load balancers of type 'network'\n\tstatus code: 400, request id: facb472e-2455-4608-b108-0d17dc925397"
+```
+
 
 ## Destroy the cluster
 
