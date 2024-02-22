@@ -19,7 +19,7 @@ export AWS_PROFILE=outposts
 VERSION="4.15.0-rc.7"
 PULL_SECRET_FILE="${HOME}/.openshift/pull-secret-latest.json"
 RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:${VERSION}-x86_64
-CLUSTER_NAME=otp-01
+CLUSTER_NAME=op-04
 INSTALL_DIR=${HOME}/openshift-labs/$CLUSTER_NAME
 CLUSTER_BASE_DOMAIN=outpost-dev.devcluster.openshift.com
 SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
@@ -43,13 +43,22 @@ apiVersion: v1
 baseDomain: ${CLUSTER_BASE_DOMAIN}
 metadata:
   name: "${CLUSTER_NAME}"
+controlPlane:
+  platform:
+    aws:
+      zones:
+      - us-east-1b
+compute:
+- name: worker
+  platform:
+    aws:
+      zones:
+      - us-east-1b
 platform:
   aws:
     region: ${REGION}
-    propagateUserTags: true
-    userTags:
-      cluster_name: $CLUSTER_NAME
-      Environment: cluster
+    zones:
+    - us-east-1b
 publish: External
 pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
 sshKey: |
@@ -210,16 +219,24 @@ CLUSTER_ID=$(oc get infrastructures cluster -o jsonpath='{.status.infrastructure
 MACHINESET_NAME=$(oc get machineset -n openshift-machine-api -o jsonpath='{.items[0].metadata.name}')
 MACHINESET_SUBNET_NAME=$(oc get machineset -n openshift-machine-api $MACHINESET_NAME -o json | jq -r '.spec.template.spec.providerSpec.value.subnet.filters[0].values[0]')
 
-VpcId=$(aws ec2 describe-subnets --region $AWS_REGION --filters Name=tag:Name,Values=$MACHINESET_SUBNET_NAME --query 'Subnets[].VpcId' --output text)
+VpcId=$(aws ec2 describe-subnets --region $AWS_DEFAULT_REGION --filters Name=tag:Name,Values=$MACHINESET_SUBNET_NAME --query 'Subnets[].VpcId' --output text)
 
 ClusterName=$CLUSTER_ID
 
 PublicRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VpcId \
     | jq -r '.RouteTables[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .RouteTableId }]' \
     | jq -r '.[]  | select(.Name | contains("public")).Id')
+
+# When deploying NAT GW in the same zone of Outpost
 PrivateRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VpcId \
     | jq -r '.RouteTables[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .RouteTableId }]' \
     | jq -r ".[]  | select(.Name | contains(\"${OutpostAvailabilityZone}\")).Id")
+
+# When deploying NAT GW in the same zone of Outpost
+NGW_ZONE=us-east-1b
+PrivateRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VpcId \
+    | jq -r '.RouteTables[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .RouteTableId }]' \
+    | jq -r ".[]  | select(.Name | contains(\"${NGW_ZONE}\")).Id")
 
 # 1. When the last subnet CIDR is 10.0.192.0/20, it will return 208 (207+1, where 207 is the last 3rd octect of the network)
 # 2. Create /24 subnets
@@ -234,6 +251,8 @@ PrivateSubnetCidr="10.0.${NextFreeNet}.0/24"
 
 ```sh
 cat <<EOF
+AWS_REGION=$AWS_REGION
+AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
 OutpostId=$OutpostId
 OutpostArn=$OutpostArn
 OutpostAvailabilityZone=$OutpostAvailabilityZone
@@ -250,7 +269,7 @@ EOF
 ```sh
 STACK_NAME=${CLUSTER_ID}-subnets-outpost
 aws cloudformation create-stack --stack-name $STACK_NAME \
-    --region ${AWS_REGION} \
+    --region ${AWS_DEFAULT_REGION} \
     --template-body file://${TEMPLATE_NAME} \
     --parameters \
         ParameterKey=VpcId,ParameterValue="${VpcId}" \
@@ -308,7 +327,7 @@ metadata:
   annotations: {}
   labels:
     machine.openshift.io/cluster-api-cluster: ${CLUSTER_ID}
-    location: outpost
+    location: outposts
   name: ${CLUSTER_ID}-outposts-${OutpostAvailabilityZone}
   namespace: openshift-machine-api
 spec:
@@ -316,20 +335,20 @@ spec:
   selector:
     matchLabels:
       machine.openshift.io/cluster-api-cluster: ${CLUSTER_ID}
-      machine.openshift.io/cluster-api-machineset: ${CLUSTER_ID}-outpost-${OutpostAvailabilityZone}
+      machine.openshift.io/cluster-api-machineset: ${CLUSTER_ID}-outposts-${OutpostAvailabilityZone}
   template:
     metadata:
       labels:
         machine.openshift.io/cluster-api-cluster: ${CLUSTER_ID}
-        machine.openshift.io/cluster-api-machine-role: outpost
-        machine.openshift.io/cluster-api-machine-type: outpost
-        machine.openshift.io/cluster-api-machineset: ${CLUSTER_ID}-outpost-${OutpostAvailabilityZone}
-        location: outpost
+        machine.openshift.io/cluster-api-machine-role: outposts
+        machine.openshift.io/cluster-api-machine-type: outposts
+        machine.openshift.io/cluster-api-machineset: ${CLUSTER_ID}-outposts-${OutpostAvailabilityZone}
+        location: outposts
     spec:
       metadata:
         labels:
-          node-role.kubernetes.io/outpost: ""
-          location: outpost
+          node-role.kubernetes.io/outposts: ""
+          location: outposts
       providerSpec:
         value:
           blockDevices:
@@ -343,7 +362,7 @@ spec:
           subnet:
             id: ${OutpostPrivateSubnetId}
       taints: 
-        - key: node-role.kubernetes.io/outpost
+        - key: node-role.kubernetes.io/outposts
           effect: NoSchedule
 EOF
 ```
@@ -512,7 +531,7 @@ ip-10-0-45-78.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
 - Validating cluster network MTU by pulling image from internal registry from the Outpost node:
 
 ```sh
-NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/outpost='' -o jsonpath={.items[0].metadata.name})
+NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/outposts='' -o jsonpath={.items[0].metadata.name})
 KPASS=$(cat auth/kubeadmin-password)
 
 API_INT=$(oc get infrastructures cluster -o jsonpath={.status.apiServerInternalURI})
@@ -589,15 +608,15 @@ spec:
     metadata:
       labels:
         app: ${APP_NAME}
-        zone-type: outposts
+        location: outposts
     spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
       nodeSelector: 
-        node-role.kubernetes.io/outpost: ''
+        node-role.kubernetes.io/outposts: ''
       tolerations: 
-      - key: "node-role.kubernetes.io/outpost"
+      - key: "node-role.kubernetes.io/outposts"
         operator: "Equal"
         value: ""
         effect: "NoSchedule"
