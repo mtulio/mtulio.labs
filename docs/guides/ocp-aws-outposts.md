@@ -954,7 +954,7 @@ User-Agent: curl/8.0.1
 Accept: */*
 ```
 
-### Service LoadBalancer with AWS Classic Load Balancer (unsupported scenarios)
+### Validating Service LoadBalancer in Outposts
 
 Exercising unsupported scenarios to validate each with CLB on Outposts.
 
@@ -967,6 +967,7 @@ Description:
 - Result: failed
 - Reason: CLB attached Outpost node but can't route traffic to it.
 
+Result: unreachable
 
 Default service CLB:
 
@@ -1032,7 +1033,11 @@ Description:
 - Result: failed
 - Reason: CLB does not support Outpost subnets.
 
-Deploy service:
+Result: unsupported. OP subnets can't be attached to CLB
+
+Steps:
+
+- Deploy the service
 
 ```sh
 SVC_NAME_CLB_SB=${APP_NAME}-clb-op-sb
@@ -1096,7 +1101,10 @@ Description:
 - Result: failed
 - Reason: Only Outpost node attached, although CLB can't reach traffic to the node.
 
-Deploy:
+Result: unreachable
+
+
+Steps:
 
 ```sh
 SVC_NAME_CLB_NODE=${APP_NAME}-clb-op-node
