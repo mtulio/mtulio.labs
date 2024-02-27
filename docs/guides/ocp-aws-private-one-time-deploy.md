@@ -22,7 +22,7 @@ TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL
 EOF
 
 # Create a variant to prevent any 'cache' of the template in CloudFormation
-PREFIX_VARIANT="${RESOURCE_NAME_PREFIX}-55"
+PREFIX_VARIANT="${RESOURCE_NAME_PREFIX}-61"
 export VPC_STACK_NAME="${PREFIX_VARIANT}-vpc"
 aws cloudformation create-change-set \
 --stack-name "${VPC_STACK_NAME}" \
