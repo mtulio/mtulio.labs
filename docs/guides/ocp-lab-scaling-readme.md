@@ -1,0 +1,1 @@
+../../labs/ocp-aws-scaling/README.md
