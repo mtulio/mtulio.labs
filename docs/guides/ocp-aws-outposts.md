@@ -1099,18 +1099,19 @@ Accept: */*
 
 Exercising service LoadBalancer scenarios to understand the limitations and workarounds required.
 
-| ID | Test Summary | Zones | `unmanaged` tag? | Result |
+| ID | Test Summary | Zones | `unmanaged` tag?* | Result |
 | -- | -- | -- | -- | -- |
 | 1A | CLB default | all | yes | Failed (eventual consistent) |
-| 1B | CLB w/ OP-parent subnet only and OP node selector | 1a | y | Failed(Couldn't connect to server) |
-| 1C | NLB default | all | y | TBD |
-| 1D | NLB w/ OP-parent subnet only and OP node selector | 1a | y | Failed(Connection reset by peer) |
-| 2 | CLB w/ OP subnets | Failed (unsupported by AWS) | 1a-OP | y |
-| 3 | CLB w/ OP nodes (default subnets) | all | y | Failed |
-| 4 | NLB replace from CLB. OP-subnets w/ unmanaged tag (non OP zone) | 1b,1c | y | Success(selected correct subnets) |
-| 5A | NLB w/ OP-subnets w/ unmanaged tag (non OP zone) | 1b,1c | y | Success(selected correct subnets) |
-| 5B | NLB w/ OP-subnet annotation | 1A-OP | y | Failed(unsupported by AWS) |
+| 1B | CLB w/ OP-parent subnet only and OP node selector | 1a | yes | Failed(Couldn't connect to server) |
+| 1C | NLB default | all | yes | TBD |
+| 1D | NLB w/ OP-parent subnet only and OP node selector | 1a | yes | Failed(Connection reset by peer) |
+| 2 | CLB w/ OP subnets | 1a-OP | yes | Failed (unsupported by AWS) |
+| 3 | CLB w/ OP nodes (default subnets) | all | yes | Failed |
+| 4 | NLB replace from CLB. OP-subnets w/ unmanaged tag (non OP zone) | 1b,1c | yes | Success(selected correct subnets) |
+| 5A | NLB w/ OP-subnets w/ unmanaged tag (non OP zone) | 1b,1c | yes | Success(selected correct subnets) |
+| 5B | NLB w/ OP-subnet annotation | 1a-OP | yes | Failed(unsupported by AWS) |
 
+*`unmanaged` subnet tag means the scenarios with the Outpost subnet has been tagged with `kubernetes.io/cluster/unmanaged:true` to prevent CCM by discoverying the Outpost subnet when creating service LB.
 
 #### Test 1A: Service CLB default (eventual consistent)
 
