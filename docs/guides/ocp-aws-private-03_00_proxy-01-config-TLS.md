@@ -24,7 +24,7 @@ https://github.com/openshift/release/blob/master/ci-operator/step-registry/upi/c
 #
 echo "Generating proxy certs..."
 
-WORKDIR_PROXY=${WORKDIR}/proxy11
+WORKDIR_PROXY=${WORKDIR}/proxy13
 mkdir -p $WORKDIR_PROXY
 
 ROOTCA=${WORKDIR_PROXY}/CA
