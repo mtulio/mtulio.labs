@@ -1103,7 +1103,7 @@ Exercising service LoadBalancer scenarios to understand the limitations and work
 | -- | -- | -- | -- | -- |
 | 1A | CLB default | all | yes | Failed (eventual consistent) |
 | 1B | CLB w/ OP-parent subnet only and OP node selector | 1a | yes | Failed(Couldn't connect to server) |
-| 1C | NLB default | all | yes | TBD |
+| 1C | NLB default | all | yes | Failed (unable to connect to the backend app) |
 | 1D | NLB w/ OP-parent subnet only and OP node selector | 1a | yes | Failed(Connection reset by peer) |
 | 2 | CLB w/ OP subnets | 1a-OP | yes | Failed (unsupported by AWS) |
 | 3 | CLB w/ OP nodes (default subnets) | all | yes | Failed |
@@ -1253,7 +1253,7 @@ curl: (56) Recv failure: Connection reset by peer
 ...
 ```
 
-#### Test 1D: Service NLB default
+#### Test 1C: Service NLB default
 
 Scenario:
 
