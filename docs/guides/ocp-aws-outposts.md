@@ -19,7 +19,7 @@ export AWS_PROFILE=outposts
 VERSION="4.15.0-rc.7"
 PULL_SECRET_FILE="${HOME}/.openshift/pull-secret-latest.json"
 RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:${VERSION}-x86_64
-CLUSTER_NAME=op-04
+CLUSTER_NAME=op-05
 INSTALL_DIR=${HOME}/openshift-labs/$CLUSTER_NAME
 CLUSTER_BASE_DOMAIN=outpost-dev.devcluster.openshift.com
 SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
@@ -34,7 +34,39 @@ oc adm release extract \
 
 tar xvfz openshift-client-linux-${VERSION}.tar.gz
 tar xvfz openshift-install-linux-${VERSION}.tar.gz
+```
 
+- Install config (option 1): Default zones
+
+```sh
+echo "> Creating install-config.yaml"
+# Create a single-AZ install config
+mkdir -p ${INSTALL_DIR}
+cat <<EOF | envsubst > ${INSTALL_DIR}/install-config.yaml
+apiVersion: v1
+baseDomain: ${CLUSTER_BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME}"
+platform:
+  aws:
+    region: ${REGION}
+publish: External
+pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
+sshKey: |
+  $(cat ${SSH_PUB_KEY_FILE})
+EOF
+
+echo ">> install-config.yaml created: "
+cp -v ${INSTALL_DIR}/install-config.yaml ${INSTALL_DIR}/install-config.yaml-bkp
+
+./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
+
+export KUBECONFIG=$PWD/auth/kubeconfig
+```
+
+- Install config (option 2): Limiting only for zones not attached the Outpost rack (use1a)
+
+```sh
 echo "> Creating install-config.yaml"
 # Create a single-AZ install config
 mkdir -p ${INSTALL_DIR}
@@ -227,17 +259,27 @@ PublicRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=
     | jq -r '.RouteTables[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .RouteTableId }]' \
     | jq -r '.[]  | select(.Name | contains("public")).Id')
 
-# When deploying NAT GW in the same zone of Outpost
+```
+
+- Export the private route table ID (choose one):
+
+```sh
+# Private gateway Option 1) When deploying NAT GW in the same zone of Outpost
 PrivateRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VpcId \
     | jq -r '.RouteTables[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .RouteTableId }]' \
     | jq -r ".[]  | select(.Name | contains(\"${OutpostAvailabilityZone}\")).Id")
 
-# When deploying NAT GW in the same zone of Outpost
+# Private gateway Option 2) When deploying NAT GW in the same zone of Outpost
 NGW_ZONE=us-east-1b
 PrivateRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VpcId \
     | jq -r '.RouteTables[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .RouteTableId }]' \
     | jq -r ".[]  | select(.Name | contains(\"${NGW_ZONE}\")).Id")
 
+```
+
+- Export the CIDR blocks for subnets:
+
+```sh
 # 1. When the last subnet CIDR is 10.0.192.0/20, it will return 208 (207+1, where 207 is the last 3rd octect of the network)
 # 2. Create /24 subnets
 NextFreeNet=$(echo "$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VpcId | jq  -r ".Subnets[].CidrBlock" | sort -t . -k 3,3n -k 4,4n | tail -n1 | xargs ipcalc | grep ^HostMax | awk '{print$2}' | awk -F'.' '{print$3}') + 1" | bc)
@@ -889,18 +931,19 @@ oc create -f ./outpost-svc-alb.yaml
 - Create the Ingress in Outpost subnet selecting only the instance running in Outpost as a target:
 
 ```sh
+INGRESS_NAME=alb-outpost-public
 cat << EOF | oc create -f -
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: alb-outpost-public
+  name: $INGRESS_NAME
   namespace: ${APP_NAME}
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: instance
     alb.ingress.kubernetes.io/subnets: ${OutpostPublicSubnetId}
-    alb.ingress.kubernetes.io/target-node-labels: location=outpost
+    alb.ingress.kubernetes.io/target-node-labels: location=outposts
   labels:
     location: outpost
 spec:
@@ -954,25 +997,138 @@ User-Agent: curl/8.0.1
 Accept: */*
 ```
 
+#### ALBO testing w/ unmanaged subnets
+
+Validating ingress created using ALBO steps when the Outpost subnets are tagged with "unmanaged" cluster tag.
+
+> Note: those steps have been created to validate the open question for [this thread](https://github.com/openshift/openshift-docs/pull/71263/files#r1503214052).
+
+Check list:
+
+1. Subnets created by CloudFormation
+```sh
+$ aws cloudformation  describe-stacks --stack-name ${CLUSTER_ID}-subnets-outpost | jq '.Stacks[].Outputs[] | select(.OutputKey=="PublicSubnetId")'
+{
+  "OutputKey": "PublicSubnetId",
+  "OutputValue": "subnet-0f2c7cb846fd7c55a",
+  "Description": "Subnet ID of the public subnets."
+}
+
+PUBLIC_SUBNET=$(aws cloudformation  describe-stacks --stack-name ${CLUSTER_ID}-subnets-outpost | jq -r '.Stacks[].Outputs[] | select(.OutputKey=="PublicSubnetId").OutputValue')
+```
+
+2. Tags from those subnets
+```sh
+$ aws ec2 describe-subnets --subnet-ids ${PUBLIC_SUBNET} | jq '.Subnets[] | [.SubnetId, (.Tags[] | select(.Key | contains("kubernetes"))) ]'
+[
+  "subnet-0f2c7cb846fd7c55a",
+  {
+    "Key": "kubernetes.io/cluster/unmanaged",
+    "Value": "true"
+  }
+]
+```
+
+3. Ingress created and ALB FQDN
+```sh
+$ oc get ingress -n ${APP_NAME}
+NAME                 CLASS   HOSTS   ADDRESS                                                                   PORTS   AGE
+alb-outpost-public   cloud   *       k8s-myappout-alboutpo-091a2e4eac-1527379645.us-east-1.elb.amazonaws.com   80      15s
+
+ALB_FQDN=$(oc get ingress -n ${APP_NAME} alb-outpost-public \
+  --template='{{(index .status.loadBalancer.ingress 0).hostname}}')
+
+echo $ALB_FQDN
+
+$ echo $ALB_FQDN
+k8s-myappout-alboutpo-091a2e4eac-1527379645.us-east-1.elb.amazonaws.com
+```
+
+4. ALB subnets (created by ALBC)
+```sh
+$ aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"${ALB_FQDN}\").AvailabilityZones"
+[
+  {
+    "ZoneName": "us-east-1a",
+    "SubnetId": "subnet-0f2c7cb846fd7c55a",
+    "OutpostId": "op-0a759e7fbceffcb86",
+    "LoadBalancerAddresses": []
+  }
+]
+```
+
+5. ALB's target instances (in the target group)
+```sh
+ALB_ARN=$(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"${ALB_FQDN}\").LoadBalancerArn")
+TG_ARN=$(aws elbv2 describe-target-groups --load-balancer-arn $ALB_ARN  | jq -r .TargetGroups[0].TargetGroupArn)
+
+$ aws elbv2 describe-target-health  --target-group-arn $TG_ARN
+{
+    "TargetHealthDescriptions": [
+        {
+            "Target": {
+                "Id": "i-09ea38f1672bbd7be",
+                "Port": 30474
+            },
+            "HealthCheckPort": "30474",
+            "TargetHealth": {
+                "State": "healthy"
+            }
+        }
+    ]
+}
+```
+
+6. Testing
+```sh
+$ APP_INGRESS=$(./oc get ingress -n ${APP_NAME} alb-outpost-public \
+  --template='{{(index .status.loadBalancer.ingress 0).hostname}}')
+
+while ! curl $APP_INGRESS; do sleep 5; done
+GET / HTTP/1.1
+X-Forwarded-For: 179.193.53.233
+X-Forwarded-Proto: http
+X-Forwarded-Port: 80
+Host: k8s-myappout-alboutpo-091a2e4eac-1527379645.us-east-1.elb.amazonaws.com
+X-Amzn-Trace-Id: Root=1-65dceb86-05ffe6523dc625cf64c07ffe
+User-Agent: curl/8.0.1
+Accept: */*
+```
+
 ### Validating Service LoadBalancer in Outposts
 
-Exercising unsupported scenarios to validate each with CLB on Outposts.
+Exercising service LoadBalancer scenarios to understand the limitations and workarounds required.
 
-#### Test: Service CLB default (unreachable)
+| ID | Test Summary | Zones | `unmanaged` tag? | Result |
+| -- | -- | -- | -- | -- |
+| 1A | CLB default | all | yes | Failed (eventual consistent) |
+| 1B | CLB w/ OP-parent subnet only and OP node selector | 1a | y | Failed(Couldn't connect to server) |
+| 1C | NLB default | all | y | TBD |
+| 1D | NLB w/ OP-parent subnet only and OP node selector | 1a | y | Failed(Connection reset by peer) |
+| 2 | CLB w/ OP subnets | Failed (unsupported by AWS) | 1a-OP | y |
+| 3 | CLB w/ OP nodes (default subnets) | all | y | Failed |
+| 4 | NLB replace from CLB. OP-subnets w/ unmanaged tag (non OP zone) | 1b,1c | y | Success(selected correct subnets) |
+| 5A | NLB w/ OP-subnets w/ unmanaged tag (non OP zone) | 1b,1c | y | Success(selected correct subnets) |
+| 5B | NLB w/ OP-subnet annotation | 1A-OP | y | Failed(unsupported by AWS) |
 
-Description:
+
+#### Test 1A: Service CLB default (eventual consistent)
+
+Description/Scenario:
 
 - LB Type: default (CLB, default for CCM)
 - Extra configuration: None
 - Result: failed
 - Reason: CLB attached Outpost node but can't route traffic to it.
 
-Result: unreachable
+Result: 
+- unreachable some requests
+- eventual balanced to node which has the application
 
 Default service CLB:
 
 ```sh
-SVC_NAME_CLB=${APP_NAME}-clb
+SVC_NAME_CLB=${APP_NAME}-clb-default
 cat << EOF | oc create -f -
 ---
 apiVersion: v1
@@ -1007,22 +1163,211 @@ while ! curl -v $APP_CLB; do sleep 5; done
 Example output:
 
 ```text
-while ! curl -v $APP_CLB; do sleep 5; done
-APP_CLB=ab3bd4e16e45645fb879a446bb6d2eca-385790984.us-east-1.elb.amazonaws.com
-*   Trying 54.156.108.187:80...
-* Connected to ab3bd4e16e45645fb879a446bb6d2eca-385790984.us-east-1.elb.amazonaws.com (54.156.108.187) port 80 (#0)
+APP_CLB=accb46c817bc8408381f4f171895a47b-1332448957.us-east-1.elb.amazonaws.com
+*   Trying 54.147.88.143:80...
+* Connected to accb46c817bc8408381f4f171895a47b-1332448957.us-east-1.elb.amazonaws.com (54.147.88.143) port 80 (#0)
 > GET / HTTP/1.1
-> Host: ab3bd4e16e45645fb879a446bb6d2eca-385790984.us-east-1.elb.amazonaws.com
+> Host: accb46c817bc8408381f4f171895a47b-1332448957.us-east-1.elb.amazonaws.com
 > User-Agent: curl/8.0.1
 > Accept: */*
 > 
+
 * Recv failure: Connection reset by peer
 * Closing connection 0
 curl: (56) Recv failure: Connection reset by peer
-
+*   Trying 54.210.221.253:80...
+* Connected to accb46c817bc8408381f4f171895a47b-1332448957.us-east-1.elb.amazonaws.com (54.210.221.253) port 80 (#0)
+> GET / HTTP/1.1
+> Host: accb46c817bc8408381f4f171895a47b-1332448957.us-east-1.elb.amazonaws.com
+> User-Agent: curl/8.0.1
+> Accept: */*
+> 
 ```
 
-#### Test: Service CLB with Outpost subnets (not supported)
+#### Test 1B: Service CLB limiting Outposts nodes and parent subnet
+
+Scenario:
+- VPC created by installer
+- Outpost subnet created by CloudFormation template with "unmanaged" subnet tag
+- LB Type: default (CLB, default for CCM)
+- Service LoadBalancer created with annotations:
+    - subnet: using **only the subnet** for the Outpost's Parent zone
+    - targets/nodes: limited by attaching only nodes with label `location=outposts`
+
+Result:
+- TBD
+
+Steps:
+
+- Create the service:
+```sh
+OUTPOST_PARENT_ZONE=$(aws outposts list-outposts --query "Outposts[].AvailabilityZone" --output text)
+PUBLIC_SUBNET_OP_PARENT_ZONE=$(aws ec2 describe-subnets \
+    --filters Name=vpc-id,Values=$VpcId Name=availability-zone,Values=$OUTPOST_PARENT_ZONE \
+    | jq -r '.Subnets[] | {"Id": .SubnetId, "Name": .Tags[]|select(.Key=="Name")|select(.Value | contains("public")) | select(.Value | contains("outpost") | not).Value }.Id')
+
+SVC_NAME_CLB_SB_NODE_OP=${APP_NAME}-clb-sb-nd
+cat << EOF | oc create -f -
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${APP_NAME}
+  name: ${SVC_NAME_CLB_SB_NODE_OP}
+  namespace: ${APP_NAME}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-subnets: ${PUBLIC_SUBNET_OP_PARENT_ZONE}
+    service.beta.kubernetes.io/aws-load-balancer-target-node-labels: location=outposts
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+EOF
+```
+
+- Test:
+
+```sh
+APP_CLB_SB_NODE_OP=$(./oc get svc -n ${APP_NAME} ${SVC_NAME_CLB_SB_NODE_OP} \
+  -o jsonpath={.status.loadBalancer.ingress[0].hostname})
+
+echo "APP_CLB_SB_NODE_OP=${APP_CLB_SB_NODE_OP}"
+while ! curl $APP_CLB_SB_NODE_OP; do sleep 5; done
+```
+
+Output:
+```
+echo "APP_CLB_SB_NODE_OP=${APP_CLB_SB_NODE_OP}"
+while ! curl $APP_CLB_SB_NODE_OP; do sleep 5; done
+APP_CLB_SB_NODE_OP=a4b1fb0033cbf4925b2b6abb66acb6b6-222743820.us-east-1.elb.amazonaws.com
+curl: (56) Recv failure: Connection reset by peer
+curl: (56) Recv failure: Connection reset by peer
+curl: (56) Recv failure: Connection reset by peer
+...
+```
+
+#### Test 1D: Service NLB default
+
+Scenario:
+
+- Similar of 1A but using NLB LB type
+- Similar 5A but VPC have subnets on zone A (where OP rack is attached)
+
+Resuts: Failed (unable to connect to the backend app)
+
+Steps:
+
+```sh
+SVC_NAME_NLB_DEF=${APP_NAME}-nlb-def
+cat << EOF | oc create -f -
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${APP_NAME}
+  name: ${SVC_NAME_NLB_DEF}
+  namespace: ${APP_NAME}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+EOF
+```
+
+- Test:
+
+```sh
+APP_NLB_DEF=$(oc get svc ${SVC_NAME_NLB_DEF} -n ${APP_NAME} -o jsonpath={.status.loadBalancer.ingress[0].hostname})
+
+echo "APP_NLB_DEF=${APP_NLB_DEF}"
+while ! curl $APP_NLB_DEF; do sleep 10; done
+```
+
+Output:
+
+```
+echo "APP_NLB_DEF=${APP_NLB_DEF}"
+while ! curl $APP_NLB_DEF; do sleep 10; done
+APP_NLB_DEF=a36f257114ba940b6bf4c17055a07657-bf40210300eb8592.elb.us-east-1.amazonaws.com
+curl: (6) Could not resolve host: a36f257114ba940b6bf4c17055a07657-bf40210300eb8592.elb.us-east-1.amazonaws.com
+...
+curl: (6) Could not resolve host: a36f257114ba940b6bf4c17055a07657-bf40210300eb8592.elb.us-east-1.amazonaws.com
+...
+```
+
+#### Test 1D: Service NLB limiting Outposts nodes and parent subnet
+
+Scenario:
+
+- Similar of 1B but using NLB LB type
+
+Resuts: Failed (unable to connect to the backend app)
+
+Steps:
+
+```sh
+SVC_NAME_NLB_SB_NODE_OP=${APP_NAME}-nlb-sb-nd
+cat << EOF | oc create -f -
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${APP_NAME}
+  name: ${SVC_NAME_NLB_SB_NODE_OP}
+  namespace: ${APP_NAME}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-subnets: ${PUBLIC_SUBNET_OP_PARENT_ZONE}
+    service.beta.kubernetes.io/aws-load-balancer-target-node-labels: location=outposts
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+EOF
+```
+
+- Test:
+
+```sh
+APP_NLB_SB_NODE_OP=$(oc get svc ${SVC_NAME_NLB_SB_NODE_OP} -n ${APP_NAME} -o jsonpath={.status.loadBalancer.ingress[0].hostname})
+
+echo "APP_NLB_SB_NODE_OP=${APP_NLB_SB_NODE_OP}"
+while ! curl $APP_NLB_SB_NODE_OP; do sleep 10; done
+```
+
+Output:
+
+```
+while ! curl $APP_NLB_SB_NODE_OP; do sleep 10; done
+APP_NLB_SB_NODE_OP=ac87494bab8344afeb1aaaaa841e898b-404654f41be20122.elb.us-east-1.amazonaws.com
+curl: (6) Could not resolve host: ac87494bab8344afeb1aaaaa841e898b-404654f41be20122.elb.us-east-1.amazonaws.com
+....
+curl: (6) Could not resolve host: ac87494bab8344afeb1aaaaa841e898b-404654f41be20122.elb.us-east-1.amazonaws.com
+...
+curl: (7) Failed to connect to ac87494bab8344afeb1aaaaa841e898b-404654f41be20122.elb.us-east-1.amazonaws.com port 80 after 170 ms: Couldn't connect to server
+```
+
+#### Test 2: Service CLB with Outpost subnets (not supported)
 
 Description:
 
@@ -1090,7 +1435,7 @@ Events:
 ```
 
 
-#### Test: Service CLB limiting Outposts nodes (unreachable)
+#### Test 3: Service CLB limiting Outposts nodes (unreachable)
 
 Description:
 
@@ -1118,7 +1463,7 @@ metadata:
   name: ${SVC_NAME_CLB_NODE}
   namespace: ${APP_NAME}
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-target-node-labels: location=outpost
+    service.beta.kubernetes.io/aws-load-balancer-target-node-labels: location=outposts
 spec:
   ports:
   - name: http
@@ -1158,7 +1503,7 @@ curl: (56) Recv failure: Connection reset by peer
 
 ```
 
-#### Test: Replace default ingress (Service CLB) to NLB
+#### Test 4: Replace default ingress (Service CLB) to NLB
 
 Documentation: [Replacing Ingress Controller Classic Load Balancer with Network Load Balancer](https://docs.openshift.com/container-platform/4.14/networking/configuring_ingress_cluster_traffic/configuring-ingress-cluster-traffic-aws.html#nw-aws-replacing-clb-with-nlb_configuring-ingress-cluster-traffic-aws)
 
@@ -1237,7 +1582,7 @@ Output
 }
 ```
 
-#### Test: Create Service LB NLB on Outpost clusters
+#### Test 5A: Create Service LB NLB on Outpost clusters
 
 Scenario:
 - OP rack is attached to zone A
@@ -1311,7 +1656,7 @@ $ aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName=
 }
 ```
 
-#### Test: Create Service LB with NLB on Outpost
+#### Test 5B: Create Service LB with NLB on Outpost
 
 Scenario:
 - OP rack is attached to zone A
