@@ -1101,7 +1101,7 @@ Exercising service LoadBalancer scenarios to understand the limitations and work
 
 | ID | Test Summary | Zones | `unmanaged` tag?* | Result |
 | -- | -- | -- | -- | -- |
-| 1A | CLB default | all | yes | Failed (eventual consistent) |
+| 1A | CLB default | all | yes | Failed (inconsistent) |
 | 1B | CLB w/ OP-parent subnet only and OP node selector | 1a | yes | Failed(Couldn't connect to server) |
 | 1C | NLB default | all | yes | Failed (unable to connect to the backend app) |
 | 1D | NLB w/ OP-parent subnet only and OP node selector | 1a | yes | Failed(Connection reset by peer) |
@@ -1113,7 +1113,7 @@ Exercising service LoadBalancer scenarios to understand the limitations and work
 
 *`unmanaged` subnet tag means the scenarios with the Outpost subnet have been tagged with `kubernetes.io/cluster/unmanaged:true` to prevent CCM from discovering the Outpost subnet when creating service LB.
 
-#### Test 1A: Service CLB default (eventually consistent)
+#### Test 1A: Service CLB default (inconsistent)
 
 Description/Scenario:
 
@@ -1123,8 +1123,8 @@ Description/Scenario:
 - Reason: CLB attached the Outpost node but can't route traffic to it.
 
 Result: 
-- unreachable some requests
-- eventual balanced to the node which has the application
+- Can connect to the listener but can't reach the backend
+- unreachable requests
 
 Default service CLB:
 
@@ -1159,6 +1159,8 @@ APP_CLB=$(./oc get svc -n ${APP_NAME} ${SVC_NAME_CLB} \
 
 echo "APP_CLB=${APP_CLB}"
 while ! curl -v $APP_CLB; do sleep 5; done
+
+while true; do curl -w'%{http_code}' $APP_CLB; do date; done
 ```
 
 Example output:
