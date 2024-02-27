@@ -1,6 +1,6 @@
-# Installing OpenShift on AWS extending to AWS Outposts in Day-2
+# Installing OpenShift on AWS extending to AWS Outposts on Day-2
 
-Lab steps to install an OpenShift cluster on AWS, extending compute nodes to AWS Outposts as a day-2 operations.
+Lab steps to install an OpenShift cluster on AWS, extending compute nodes to AWS Outposts as day-2 operations.
 
 Total time running this lab: ~120 minutes (install, setup, test, destroy).
 
@@ -64,7 +64,7 @@ cp -v ${INSTALL_DIR}/install-config.yaml ${INSTALL_DIR}/install-config.yaml-bkp
 export KUBECONFIG=$PWD/auth/kubeconfig
 ```
 
-- Install config (option 2): Limiting only for zones not attached the Outpost rack (use1a)
+- Install config (option 2): Limiting only for zones not attached to the Outpost rack (use1a)
 
 ```sh
 echo "> Creating install-config.yaml"
@@ -107,9 +107,9 @@ export KUBECONFIG=$PWD/auth/kubeconfig
 
 ## Create an AWS Outposts subnets
 
-This steps modify existing CloudFormation template available in the installer repository to create VPC subnets, specially in Wavelength or Local Zones.
+These steps modify the existing CloudFormation template available in the installer repository to create VPC subnets, especially in Wavelength or Local Zones.
 
-The template is modifyed to receive the parameter to support AWS Outpost instance ARN.
+The template is modified to receive the parameter to support AWS Outpost instance ARN.
 
 ### Prerequisites
 
@@ -264,12 +264,12 @@ PublicRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=
 - Export the private route table ID (choose one):
 
 ```sh
-# Private gateway Option 1) When deploying NAT GW in the same zone of Outpost
+# Private gateway Option 1) When deploying NAT GW in the same zone of the Outpost
 PrivateRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VpcId \
     | jq -r '.RouteTables[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .RouteTableId }]' \
     | jq -r ".[]  | select(.Name | contains(\"${OutpostAvailabilityZone}\")).Id")
 
-# Private gateway Option 2) When deploying NAT GW in the same zone of Outpost
+# Private gateway Option 2) When deploying NAT GW in the same zone of the Outpost
 NGW_ZONE=us-east-1b
 PrivateRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VpcId \
     | jq -r '.RouteTables[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .RouteTableId }]' \
@@ -280,7 +280,7 @@ PrivateRouteTableId=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values
 - Export the CIDR blocks for subnets:
 
 ```sh
-# 1. When the last subnet CIDR is 10.0.192.0/20, it will return 208 (207+1, where 207 is the last 3rd octect of the network)
+# 1. When the last subnet CIDR is 10.0.192.0/20, it will return 208 (207+1, where 207 is the last 3rd octet of the network)
 # 2. Create /24 subnets
 NextFreeNet=$(echo "$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VpcId | jq  -r ".Subnets[].CidrBlock" | sort -t . -k 3,3n -k 4,4n | tail -n1 | xargs ipcalc | grep ^HostMax | awk '{print$2}' | awk -F'.' '{print$3}') + 1" | bc)
 PublicSubnetCidr="10.0.${NextFreeNet}.0/24"
@@ -289,7 +289,7 @@ NextFreeNet=$(( NextFreeNet + 1 ))
 PrivateSubnetCidr="10.0.${NextFreeNet}.0/24"
 ```
 
-- Review the variables before proceed:
+- Review the variables before proceeding:
 
 ```sh
 cat <<EOF
@@ -338,7 +338,7 @@ aws ec2 describe-subnets --filters Name=outpost-arn,Values=${OutpostArn} Name=vp
 
 - Export the subnets according to your needs:
 
-> TODO get from CloudFormation template instead of discoverying
+> TODO get from CloudFormation template instead of discovering
 
 ```sh
 OutpostPublicSubnetId=$(aws ec2 describe-subnets --filters Name=outpost-arn,Values=${OutpostArn} Name=vpc-id,Values=$VpcId | jq -r '.Subnets[] | [{"Name": .Tags[]|select(.Key=="Name").Value, "Id": .SubnetId }]'  | jq -r '.[] | select(.Name | contains("public")).Id')
@@ -409,7 +409,7 @@ spec:
 EOF
 ```
 
-- Retrieve Machine set and merge into yours
+- Retrieve the Machine set and merge it into yours
 
 ```sh
 oc get machineset -n openshift-machine-api $(oc get machineset -n openshift-machine-api -o jsonpath='{.items[0].metadata.name}') -o yaml \
@@ -451,13 +451,13 @@ otp-00-n89jb-outpost-us-east-1a   1         1         1       1           12h   
 
 ## Changing cluster network MTU 
 
-The correct cluster network MTU is required for correctly operation of cluster network.
+The correct cluster network MTU is required for the correctly operation of the cluster network.
 
-The steps below adjust the MTU based in the supported information from AWS: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/network_mtu.html
+The steps below adjust the MTU based on the supported information from AWS: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/network_mtu.html
 
 > Currently the supported value is: 1300
 
-- check current value for cluster network MTU:
+- check the current value for cluster network MTU:
 
 ```sh
 $ oc get network.config cluster -o yaml | yq4 ea .status
@@ -473,7 +473,7 @@ serviceNetwork:
 - check current value for host network MTU:
 
 ```sh
-NODE_NAME=$(oc get nodes -l location=outpost -o jsonpath={.items[0].metadata.name})
+NODE_NAME=$(oc get nodes -l location=outposts -o jsonpath={.items[0].metadata.name})
 # Hardware MTU
 oc debug node/${NODE_NAME} --  chroot /host /bin/bash -c "ip address show | grep -E '^(.*): ens'" 2>/dev/null
 # CN MTU
@@ -501,7 +501,7 @@ oc patch Network.operator.openshift.io cluster --type=merge --patch \
 - Wait until the machines are updated:
     - MachineConfigPool must be progressing
     - Nodes will be restarted
-    - Nodes must have correct MTU for overlay interface
+    - Nodes must have the correct MTU for the overlay interface
 
 ```sh
 function check_node_mcp() {
@@ -545,32 +545,32 @@ while true; do check_node_mcp; sleep 15; done
 Example output:
 
 ```sh
->>>>
+>>>> Tue Feb 27 12:22:32 AM -03 2024
 Network migration status: 
 NAME     CONFIG                                             UPDATED   UPDATING   DEGRADED   MACHINECOUNT   READYMACHINECOUNT   UPDATEDMACHINECOUNT   DEGRADEDMACHINECOUNT   AGE
-master   rendered-master-fc0b5ff7d3a94127f978fb7aa0af54e6   False     True       False      3              2                   2                     0                      115m
-worker   rendered-worker-a2227d03f8f0ab2dd9915db57b64de3a   True      False      False      4              4                   4                     0                      115m
-NAME                           STATUS                     ROLES                  AGE    VERSION
-ip-10-0-1-185.ec2.internal     Ready                      control-plane,master   118m   v1.28.6+f1618d5
-ip-10-0-19-202.ec2.internal    Ready                      control-plane,master   118m   v1.28.6+f1618d5
-ip-10-0-209-142.ec2.internal   Ready                      outpost,worker         48m    v1.28.6+f1618d5
-ip-10-0-3-77.ec2.internal      Ready                      worker                 109m   v1.28.6+f1618d5
-ip-10-0-31-217.ec2.internal    Ready                      worker                 109m   v1.28.6+f1618d5
-ip-10-0-42-105.ec2.internal    Ready,SchedulingDisabled   control-plane,master   118m   v1.28.6+f1618d5
-ip-10-0-45-78.ec2.internal     Ready                      worker                 109m   v1.28.6+f1618d5
+master   rendered-master-f359387b39abb9eec25b51403d960164   False     True       False      3              1                   1                     0                      10h
+worker   rendered-worker-72552cec3c784dd9ae7ef388773989da   False     True       False      4              3                   3                     0                      10h
+NAME                           STATUS                     ROLES                  AGE   VERSION
+ip-10-0-11-245.ec2.internal    Ready                      worker                 10h   v1.28.6+f1618d5
+ip-10-0-13-57.ec2.internal     Ready                      control-plane,master   10h   v1.28.6+f1618d5
+ip-10-0-20-127.ec2.internal    Ready                      worker                 10h   v1.28.6+f1618d5
+ip-10-0-209-107.ec2.internal   Ready                      outposts,worker        8h    v1.28.6+f1618d5
+ip-10-0-23-35.ec2.internal     Ready,SchedulingDisabled   control-plane,master   10h   v1.28.6+f1618d5
+ip-10-0-36-105.ec2.internal    Ready,SchedulingDisabled   worker                 10h   v1.28.6+f1618d5
+ip-10-0-45-247.ec2.internal    Ready                      control-plane,master   10h   v1.28.6+f1618d5
 
-Fri Feb 16 05:58:34 PM -03 2024 Checking if nodes have desired config: master[rendered-master-657a60a6f36d8443378fb549fbb34d52] worker[rendered-worker-a2227d03f8f0ab2dd9915db57b64de3a]
-ip-10-0-1-185.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
-ip-10-0-19-202.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
-ip-10-0-209-142.ec2.internal    OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
-ip-10-0-3-77.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
-ip-10-0-31-217.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
-ip-10-0-42-105.ec2.internal	 FAIL 	 CURRENT[rendered-master-fc0b5ff7d3a94127f978fb7aa0af54e6] != DESIRED[rendered-worker-a2227d03f8f0ab2dd9915db57b64de3a || rendered-master-657a60a6f36d8443378fb549fbb34d52]
-ip-10-0-45-78.ec2.internal	 OK 	 Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ Checking if nodes have desired config: master[rendered-master-6eb66809b570fd83e0afe136647d94e5] worker[rendered-worker-82cdb4cc3854db575b7fe36e10c7de0c]
+ip-10-0-11-245.ec2.internal      OK      Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-13-57.ec2.internal       OK      Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-20-127.ec2.internal      OK      Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-209-107.ec2.internal     OK      Interface MTU HOST(ens*)=9001 CN(br-ext)=1200
+ip-10-0-23-35.ec2.internal       FAIL    CURRENT[rendered-master-f359387b39abb9eec25b51403d960164] != DESIRED[rendered-worker-82cdb4cc3854db575b7fe36e10c7de0c || rendered-master-6eb66809b570fd83e0afe136647d94e5]
+ip-10-0-36-105.ec2.internal      FAIL    CURRENT[rendered-worker-72552cec3c784dd9ae7ef388773989da] != DESIRED[rendered-worker-82cdb4cc3854db575b7fe36e10c7de0c || rendered-master-6eb66809b570fd83e0afe136647d94e5]
+ip-10-0-45-247.ec2.internal      FAIL    CURRENT[rendered-master-f359387b39abb9eec25b51403d960164] != DESIRED[rendered-worker-82cdb4cc3854db575b7fe36e10c7de0c || rendered-master-6eb66809b570fd83e0afe136647d94e5]
 ...
 ```
 
-- Validating cluster network MTU by pulling image from internal registry from the Outpost node:
+- Validating cluster network MTU by pulling images from internal registry from the Outpost node:
 
 ```sh
 NODE_NAME=$(oc get nodes -l node-role.kubernetes.io/outposts='' -o jsonpath={.items[0].metadata.name})
@@ -770,7 +770,7 @@ Events:
            status code: 400, request id: a90e376b-4ac4-4d5a-b3d3-127e025168f
 ```
 
-- Test creating service in the regino
+- Test creating service in the region
 
 
 ```sh
@@ -808,7 +808,7 @@ ALBO_NS=aws-load-balancer-operator
 
 # Create the namespace
 # Create the CredentialsRequests
-# Subscribe to operator
+# Subscribe to the operator
 cat << EOF | oc create -f -
 ---
 kind: Namespace
@@ -928,7 +928,7 @@ EOF
 oc create -f ./outpost-svc-alb.yaml
 ```
 
-- Create the Ingress in Outpost subnet selecting only the instance running in Outpost as a target:
+- Create the Ingress in the Outpost subnet selecting only the instance running in Outpost as a target:
 
 ```sh
 INGRESS_NAME=alb-outpost-public
@@ -999,11 +999,11 @@ Accept: */*
 
 #### ALBO testing w/ unmanaged subnets
 
-Validating ingress created using ALBO steps when the Outpost subnets are tagged with "unmanaged" cluster tag.
+Validating ingress created using ALBO steps when the Outpost subnets are tagged with the "unmanaged" cluster tag.
 
 > Note: those steps have been created to validate the open question for [this thread](https://github.com/openshift/openshift-docs/pull/71263/files#r1503214052).
 
-Check list:
+Checklist:
 
 1. Subnets created by CloudFormation
 ```sh
@@ -1111,20 +1111,20 @@ Exercising service LoadBalancer scenarios to understand the limitations and work
 | 5A | NLB w/ OP-subnets w/ unmanaged tag (non OP zone) | 1b,1c | yes | Success(selected correct subnets) |
 | 5B | NLB w/ OP-subnet annotation | 1a-OP | yes | Failed(unsupported by AWS) |
 
-*`unmanaged` subnet tag means the scenarios with the Outpost subnet has been tagged with `kubernetes.io/cluster/unmanaged:true` to prevent CCM by discoverying the Outpost subnet when creating service LB.
+*`unmanaged` subnet tag means the scenarios with the Outpost subnet have been tagged with `kubernetes.io/cluster/unmanaged:true` to prevent CCM from discovering the Outpost subnet when creating service LB.
 
-#### Test 1A: Service CLB default (eventual consistent)
+#### Test 1A: Service CLB default (eventually consistent)
 
 Description/Scenario:
 
 - LB Type: default (CLB, default for CCM)
 - Extra configuration: None
 - Result: failed
-- Reason: CLB attached Outpost node but can't route traffic to it.
+- Reason: CLB attached the Outpost node but can't route traffic to it.
 
 Result: 
 - unreachable some requests
-- eventual balanced to node which has the application
+- eventual balanced to the node which has the application
 
 Default service CLB:
 
@@ -1193,7 +1193,7 @@ Scenario:
 - LB Type: default (CLB, default for CCM)
 - Service LoadBalancer created with annotations:
     - subnet: using **only the subnet** for the Outpost's Parent zone
-    - targets/nodes: limited by attaching only nodes with label `location=outposts`
+    - targets/nodes: limited by attaching only nodes with the label `location=outposts`
 
 Result:
 - TBD
@@ -1257,10 +1257,10 @@ curl: (56) Recv failure: Connection reset by peer
 
 Scenario:
 
-- Similar of 1A but using NLB LB type
-- Similar 5A but VPC have subnets on zone A (where OP rack is attached)
+- Similar to 1A but using NLB LB type
+- Similar 5A but VPC has subnets on zone A (where OP rack is attached)
 
-Resuts: Failed (unable to connect to the backend app)
+Results: Failed (unable to connect to the backend app)
 
 Steps:
 
@@ -1314,9 +1314,9 @@ curl: (6) Could not resolve host: a36f257114ba940b6bf4c17055a07657-bf40210300eb8
 
 Scenario:
 
-- Similar of 1B but using NLB LB type
+- Similar to 1B but using NLB LB type
 
-Resuts: Failed (unable to connect to the backend app)
+Results: Failed (unable to connect to the backend app)
 
 Steps:
 
@@ -1445,7 +1445,7 @@ Description:
     - Annotation:
         - service.beta.kubernetes.io/aws-load-balancer-target-node-labels: location=outpost
 - Result: failed
-- Reason: Only Outpost node attached, although CLB can't reach traffic to the node.
+- Reason: Only the Outpost node is attached, although CLB can't reach traffic to the node.
 
 Result: unreachable
 
@@ -1515,11 +1515,11 @@ Scenario:
 
 Expected: success w/ NLB on non-OP subnets
 
-Result: success
+Result: Success
 
 Steps:
 
-- Check the existing LB for default router:
+- Check the existing LB for the default router:
 
 ```sh
 $ oc get svc router-default -n openshift-ingress
@@ -1665,9 +1665,9 @@ Scenario:
 - region has subnets on B and C zones
 - annotate OP subnet
 
-Expected: Fail to create as unsupported type on OP
+Expected: Fail to create an unsupported type on OP
 
-Result: Fail to create as unsupported type on OP
+Result: Fail to create an unsupported type on OP
 
 Steps:
 
