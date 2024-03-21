@@ -46,9 +46,10 @@ Pytorch Tensors: https://pytorch.org/tutorials/beginner/introyt/tensors_deeper_t
 https://pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html
 https://pytorch.org/tutorials/beginner/basics/autogradqs_tutorial.html
 
-### Theory for ML/DP
+### Other knowledge references for AI
 
 - [But what is a neural network? | Chapter 1, Deep learning](https://www.youtube.com/watch?v=aircAruvnKk)
+- [CUDA Explained - Why Deep Learning uses GPUs](https://www.youtube.com/watch?v=6stDhEA0wFQ)
 
 ## Hands on/DIY
 
