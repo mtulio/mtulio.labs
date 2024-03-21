@@ -3,10 +3,24 @@
 - [Learning references](#learning)
 - [Hands on/DYI](#hands-on--diy)
 
+AI in "layers":
+
+| AI -> Machine Learning -> Deep Learning -> Foundation Models (LLM, Visio, Scientific, Audio...) |
 
 ## Learning
 
 Favorites learning references.
+
+### IBM Videos about AI
+
+Watch in the order :)
+
+- Foundation
+  - [Machine Learning vs. Deep Learning vs. Foundation Models](https://www.youtube.com/watch?v=Beh13Cd_QbY)
+  - [How Large Language Models (LLM) Work](https://www.youtube.com/watch?v=5sLYAQS9sWQ)
+  - [The 7 Types of AI - And Why We Talk (Mostly) About 3 of Them](https://www.youtube.com/watch?v=XFZ-rQ8eeR8)
+
+- [Five Steps to Create a New AI Model](https://www.youtube.com/watch?v=jcgaNrC4ElU)
 
 ### Video: [You need to learn AI in 2024!][ytb-01]
 
@@ -31,6 +45,10 @@ Pytorch Github: https://github.com/pytorch/pytorch
 Pytorch Tensors: https://pytorch.org/tutorials/beginner/introyt/tensors_deeper_tutorial.html
 https://pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html
 https://pytorch.org/tutorials/beginner/basics/autogradqs_tutorial.html
+
+### Theory for ML/DP
+
+- [But what is a neural network? | Chapter 1, Deep learning](https://www.youtube.com/watch?v=aircAruvnKk)
 
 ## Hands on/DIY
 
