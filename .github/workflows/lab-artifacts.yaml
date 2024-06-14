@@ -1,0 +1,91 @@
+---
+name: Lab Artifacts
+'on':
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  schedule:
+    - cron: "0 5 * * 0"
+
+jobs:
+
+  printer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
+
+      - name: showw
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          VERSION="${VERSION}"
+          github.event=${{ github.event }}
+          github.event_name=${{ github.event_name }}
+          github.ref=${{ github.ref }}
+          github.head_ref=${{ github.head_ref }}
+          github.base_ref=${{ github.base_ref }}
+          github.workflow=${{ github.workflow }}
+          github.workspace=${{ github.workspace }}
+
+  uploader:
+    name: Uploader
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
+
+      - name: create tarball
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          pwd
+          echo $VERSION > file.txt
+          mkdir build;
+          tar cfz build/mtulio-okd_installer-$VERSION.tar.gz file.txt
+          mv -v build/mtulio-okd_installer-$VERSION.tar.gz \
+             /tmp/mtulio-okd_installer-latest.tar.gz
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: mtulio-okd_installer-builds
+          path: /tmp/mtulio-okd_installer-latest.tar.gz
+
+  downloader:
+    runs-on: ubuntu-latest
+    needs: [uploader]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: mtulio-okd_installer-builds
+          path: build/
+
+      - name: show files
+        env:
+          VERSION: latest
+        run: |
+          pwd
+          echo "list: "
+          ls
+          echo "list tmp: "
+          ls build/
+          echo "list tmp..: "
+          ls build/mtulio-okd_installer-latest.tar.gz
+          #echo "find: "
+          #find / -iname mtulio-okd_installer.tar.gz 2>/dev/null || true 
+          echo "file type: "
+          #file /tmp/mtulio-okd_installer.tar.gz
+          #file /tmp/mtulio-okd_installer.tar.gz/mtulio-okd_installer.tar.gz
+          echo "uncompress: "
+          tar xfz build/mtulio-okd_installer-latest.tar.gz -C ./
+          echo "list: "
+          ls
+          echo "show: "
+          cat file.txt
