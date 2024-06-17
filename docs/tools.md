@@ -1,15 +1,22 @@
 # @mtulio tools
 
+## Serverless services
+
+- [What is my IP Address?](https://mtulio.dev/api/ip/ip)
+- [Geo information about my IP](https://mtulio.dev/api/geo)
+- [HTTP echo](https://mtulio.dev/api/echo/echo?just-a-test)
+- [Ping!](https://mtulio.dev/api/ping/ping)
+
 - your IPv4
 
 ``` shell
-curl https://mtulio.net/api/ip
+curl https://mtulio.dev/api/ip
 ```
 
 - your IPv4 (json output)
 
 ``` shell
-curl -s https://mtulio.net/api/ip/ip?json |jq .
+curl -s https://mtulio.dev/api/ip/ip?json |jq .
 ```
 
 ``` json
@@ -23,7 +30,7 @@ curl -s https://mtulio.net/api/ip/ip?json |jq .
 - http echo
 
 ``` shell
-curl -s https://mtulio.net/api/echo
+curl -s https://mtulio.dev/api/echo
 ```
 - http echo (request headers)
 

@@ -1,12 +1,10 @@
-mkdocs>=1.3,<1.5
-mkdocs-material
-pymdown-extensions
-
-mkdocs-material
+mkdocs>=1.5,<1.6
+mkdocs-material==9.5.3
 mkdocs-mermaid2-plugin
 
 # Diagram as a code with mingrammer https://diagrams.mingrammer.com/
 ## Require graphviz
+pymdown-extensions
 mkdocs-diagrams
 
 # Image resizing
