@@ -3,8 +3,8 @@ on: [push]
 jobs:
 
   # https://github.com/marketplace/actions/shell-linter
-  shellcheck:
-    name: Run shellcheck on changed shell scripts
+  ShellScript:
+    name: ShellScript
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -57,12 +57,14 @@ jobs:
       - name: Run
         run: |
           cfn-lint --version
-          TEMPLATE_LIST=()
-          TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_EC2-create_ami.yaml")
-          TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_custom-service_proxy_ha-lb_asg.yaml")
+          prefix_templates=labs/ocp-install-iac/aws-cloudformation-templates/
 
-          # Running
-          for TPL in ${TEMPLATE_LIST[*]}; do
-            echo "Running CloudFormation link to file ${TPL}"
-            cfn-lint -t ${TPL}
+          echo "Checking CloudFormation templates for changes..."
+          echo "${FILES_CHANGED_YAML}"
+          for file in $(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.yaml$')
+          do
+            if [[ $file == $prefix_templates* ]]; then
+              echo "Running CloudFormation link to file ${TPL}"
+              cfn-lint -t "${TPL}"
+            fi
           done

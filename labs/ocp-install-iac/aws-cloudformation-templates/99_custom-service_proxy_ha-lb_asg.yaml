@@ -20,6 +20,10 @@ Parameters:
     Default: ""
     Description: A short, unique cluster ID used to tag cloud resources and identify items owned or used by the cluster.
     Type: String
+  VpcCidr:
+    Default: ""
+    Description: VPC Cidr.
+    Type: String
   NameSuffix:
     Default: ""
     Description: A short, unique cluster ID used to tag cloud resources and identify items owned or used by the cluster.
@@ -58,6 +62,15 @@ Parameters:
   Monitoring:
     Default: "True"
     Description: Enable detailed EC2 monitoring.
+    Type: String
+
+  DnsHostedZoneId:
+    Default: ""
+    Description: DNS Hosted Zone ID.
+    Type: String
+  DnsRecordName:
+    Default: ""
+    Description: DNS Record Name.
     Type: String
 
 Metadata:
