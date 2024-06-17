@@ -34,7 +34,7 @@ export SQUID_SH="$(envsubst < ${WORKDIR}/proxy-template/squid.sh.template | base
 export PROXY_SH="$(base64 -w0 < ${WORKDIR}/proxy-template/proxy.sh)"
 
 # generate ignition file
-envsubst < ${WORKDIR}/proxy-template/proxy.ign.template > ~/tmp/proxy.ign
+envsubst < ${SOURCE_DIR}/proxy-template/proxy.ign.template > ~/tmp/proxy.ign
 test -f /tmp/proxy.ign || echo "Failed to create ~/tmp/proxy.ign"
 
 # publish ignition to shared bucket

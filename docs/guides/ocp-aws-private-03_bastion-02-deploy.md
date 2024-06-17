@@ -98,5 +98,5 @@ aws ssm start-session \
 
 ```sh
 # Test SSH and proxy access
-ssh -p 2222 core@localhost "curl -s --proxy $PROXY_SERVICE_URL https://mtulio.dev/api/geo" | jq .
+ssh -p 2225 core@localhost "curl -s --proxy $PROXY_SERVICE_URL https://mtulio.dev/api/geo" | jq .
 ```

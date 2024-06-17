@@ -3,23 +3,30 @@ on: [push]
 jobs:
 
   # https://github.com/marketplace/actions/shell-linter
-  linter-ShellCheck:
+  shellcheck:
+    name: Run shellcheck on changed shell scripts
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v1
-      # - name: Create and populate .env file
-      #   run: |
-      #     cp ./.env-sample ./.env
-      #   shell: bash
-      # - name: Run Shellcheck main
-      #   uses: azohra/shell-linter@latest
-      #   with:
-      #     path: "ocp-cluster-orchestrator"
-      - name: Run Shellcheck on ocp-replace-k8s-apiserver-nlb
-        uses: azohra/shell-linter@latest
+        uses: actions/checkout@v3
         with:
-          path: './labs/ocp-replace-k8s-apiserver-nlb'
+          fetch-depth: 0 # Fetch all history for all branches and tags
+
+      - name: Install shellcheck
+        run: sudo apt-get install shellcheck
+
+      - name: Find changed shell scripts
+        id: files
+        run: |
+          echo "::set-output name=shell_files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.sh$')"
+
+      - name: Run shellcheck
+        if: steps.files.outputs.shell_files != ''
+        run: |
+          for file in ${{ steps.files.outputs.shell_files }}
+          do
+            shellcheck "$file"
+          done
 
   # https://github.com/marketplace/actions/yaml-lint
   # linter-yaml:
@@ -52,7 +59,7 @@ jobs:
           cfn-lint --version
           TEMPLATE_LIST=()
           TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_EC2-create_ami.yaml")
-          TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_custom-service_proxy_ha.yaml")
+          TEMPLATE_LIST+=("labs/ocp-install-iac/aws-cloudformation-templates/99_custom-service_proxy_ha-lb_asg.yaml")
 
           # Running
           for TPL in ${TEMPLATE_LIST[*]}; do
