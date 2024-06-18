@@ -17,33 +17,31 @@ Bastion node requires:
 
 ### Create bastion host configuration (ignition)
 
+- Config:
+
+```sh
+export REGION=us-east-1
+export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
+```
+
 - Generate user data (ignitions) for proxy node server (squid):
 
 ```sh
-curl -L -o /tmp/fcos.json https://builds.coreos.fedoraproject.org/streams/stable.json
+function config_bastion() {
+  echo "Getting FCOS..."
+  BASTION_WORKDIR=${WORKDIR}/bastion
+  mkdir -p $BASTION_WORKDIR
+  curl -L -o ${BASTION_WORKDIR}/fcos.json https://builds.coreos.fedoraproject.org/streams/stable.json
 
-export REGION=us-east-1
-export SSH_PUB_KEY_FILE=${HOME}/.ssh/id_rsa.pub
+echo "Exporting config..."
 export BASTION_SSM_IMAGE=quay.io/mrbraga/aws-ssm-agent:latest
 export BASTION_NAME="${PREFIX_VARIANT}-bastion"
-export BASTION_AMI_ID=$(jq -r .architectures.x86_64.images.aws.regions[\"${AWS_REGION}\"].image < /tmp/fcos.json)
+export BASTION_AMI_ID=$(jq -r .architectures.x86_64.images.aws.regions[\"${AWS_REGION}\"].image < ${BASTION_WORKDIR}/fcos.json)
 
-# export BASTION_SERVICE_NO_PROXY="$PROXY_SERVICE_NO_PROXY,ec2messages.$REGION.amazonaws.com,ssm.$REGION.amazonaws.com"
+echo "Using bastion AMI ID [$BASTION_AMI_ID]"
 
-# export BASTION_AWS_ENDPOINT_SSM=https://$(aws ec2 describe-vpc-endpoints \
-#   --filters Name=vpc-id,Values=$VPC_ID \
-#   | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ssm")).DnsEntries[0].DnsName')
-# export BASTION_AWS_ENDPOINT_SSMMESSAGES=https://$(aws ec2 describe-vpc-endpoints \
-#   --filters Name=vpc-id,Values=$VPC_ID \
-#   | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ssmmessages")).DnsEntries[0].DnsName')
-# export BASTION_AWS_ENDPOINT_EC2MESSAGES=https://$(aws ec2 describe-vpc-endpoints \
-#   --filters Name=vpc-id,Values=$VPC_ID \
-#   | jq -r '.VpcEndpoints[] | select(.ServiceName | endswith("ec2messages")).DnsEntries[0].DnsName')
-# https://developers.redhat.com/blog/2020/03/12/how-to-customize-fedora-coreos-for-dedicated-workloads-with-ostree#the_rpm_ostree_tool
-# https://docs.fedoraproject.org/en-US/fedora-coreos/running-containers/
-# https://docs.fedoraproject.org/en-US/fedora-coreos/proxy/
-
-cat <<EOF > ~/tmp/bastion-config.bu
+echo "Generating bastion ignition config..."
+cat <<EOF > ${BASTION_WORKDIR}/bastion-config.bu
 variant: fcos
 version: 1.0.0
 passwd:
@@ -121,10 +119,12 @@ systemd:
 EOF
 
 
-butane ~/tmp/bastion-config.bu --output ~/tmp/bastion-config.json
+butane ${BASTION_WORKDIR}/bastion-config.bu --output ${BASTION_WORKDIR}/bastion-config.json
 
+echo "Exporting user data to env BASTION_USER_DATA"
+export BASTION_USER_DATA=$(base64 -w0 <(<${BASTION_WORKDIR}/bastion-config.json))
 
-export BASTION_USER_DATA=$(base64 -w0 <(<~/tmp/bastion-config.json))
+}
 ```
 
 ### References

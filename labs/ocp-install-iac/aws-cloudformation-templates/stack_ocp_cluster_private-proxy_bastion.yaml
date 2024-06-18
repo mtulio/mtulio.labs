@@ -21,12 +21,6 @@ Parameters:
     Type: String
     Description: Choose 2 Subnets to create Load balancer and ASG
 
-  # VpcId:
-  #   Description: VPC ID to associate the Carrier Gateway.
-  #   Type: String
-  #   AllowedPattern: ^(?:(?:vpc)(?:-[a-zA-Z0-9]+)?\b|(?:[0-9]{1,3}\.){3}[0-9]{1,3})$
-  #   ConstraintDescription: VPC ID must be with valid name, starting with vpc-.*.
-
   VpcCidr:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
@@ -34,8 +28,8 @@ Parameters:
     Description: CIDR block for VPC.
     Type: String
 
-  ProxyAmiId:
-    Description: AMI ID to provision the EC2.
+  BaseAmiId:
+    Description: Base AMI ID to provision the EC2 for services (proxy and bastion).
     Type: String
     AllowedPattern: ^(?:(?:ami)(?:-[a-zA-Z0-9]+)?\b|(?:[0-9]{1,3}\.){3}[0-9]{1,3})$
     ConstraintDescription: Subnet ID must be with valid name, starting with ami-.*.
@@ -44,35 +38,9 @@ Parameters:
     Description: Proxy User Data
     Type: String
 
-  BastionAmiId:
-    Description: AMI ID to provision the EC2.
-    Type: String
-    AllowedPattern: ^(?:(?:ami)(?:-[a-zA-Z0-9]+)?\b|(?:[0-9]{1,3}\.){3}[0-9]{1,3})$
-    ConstraintDescription: Subnet ID must be with valid name, starting with ami-.*.
-
   BastinoUserData:
     Description: Proxy User Data
     Type: String
-
-  # SubnetId:
-  #   Description: Subnet Id.
-  #   Type: String
-  #   Default: ""
-
-  # SubnetIds:
-  #   Description: Subnet Ids.
-  #   Type: 'String'
-  #   Default: ""
-
-  # InstanceType:
-  #   Default: "t3.small"
-  #   Description: Base64 user data to provision the EC2.
-  #   Type: String
-
-  # KeyName:
-  #   Default: "openshift-dev"
-  #   Description: Base64 user data to provision the EC2.
-  #   Type: String
 
   ProxyDnsHostedZoneId:
     Description: DNS Hosted Zone ID to create the DNS Record.
@@ -89,7 +57,7 @@ Resources:
   # Network Setup
   #
   #> Run Nested ChangeSet (Nested from Nested)
-  VPC:
+  Network:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "stack_ocp_private-vpc_ipv4_public_blackhole.yaml"]]
@@ -99,41 +67,11 @@ Resources:
         VpcCidr: !Ref VpcCidr
         TemplatesBaseURL: !Ref TemplatesBaseURL
 
-  ParameterSubnets:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Join ['-', [!Ref NamePrefix, "openshift-cluster-subnets"]]
-      Type: StringList
-      Value: !GetAtt 'VPC.Outputs.PrivateSubnetIds'
-      #Tier: Advanced
-      #Policies: '[{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2020-05-13T00:00:00.000Z"}},{"Type":"ExpirationNotification","Version":"1.0","Attributes":{"Before":"5","Unit":"Days"}},{"Type":"NoChangeNotification","Version":"1.0","Attributes":{"After":"60","Unit":"Days"}}]'
-      Description: SSM Parameter Private Subnets.
-      #AllowedPattern: "^[a-zA-Z]{1,10}$"
-      #Tags:
-      #  Environment: DEV
-
-  ParameterEndpoints:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Join ['-', [!Ref NamePrefix, "openshift-cluster-vpce"]]
-      Type: StringList
-      Value: !GetAtt 'VPC.Outputs.VpCEndpointsDNS'
-      #Tier: Advanced
-      #Policies: '[{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2020-05-13T00:00:00.000Z"}},{"Type":"ExpirationNotification","Version":"1.0","Attributes":{"Before":"5","Unit":"Days"}},{"Type":"NoChangeNotification","Version":"1.0","Attributes":{"After":"60","Unit":"Days"}}]'
-      Description: SSM Parameter VPCe.
-      #AllowedPattern: "^[a-zA-Z]{1,10}$"
-      #Tags:
-      #  Environment: DEV
-
-
   #
   # Proxy Service
   #
   # Create Proxy Config
   # Create Proxy Instance
-  # Create AMI
-  # Create ASG
-
   ProxyNode:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -143,79 +81,19 @@ Resources:
         NamePrefix: !Join ['-', [!Ref NamePrefix, "proxy"]]
         TemplatesBaseURL: !Ref TemplatesBaseURL
         VpcCidr: !Ref VpcCidr
-        VpcId: !GetAtt 'VPC.Outputs.VpcId'
-        AmiId: !Ref ProxyAmiId
-        SubnetId: !Select [0, !Split [",", !GetAtt 'VPC.Outputs.PublicSubnetIds']]
+        VpcId: !GetAtt 'Network.Outputs.VpcId'
+        AmiId: !Ref BaseAmiId
+        SubnetId: !Select [0, !Split [",", !GetAtt 'Network.Outputs.PublicSubnetIds']]
         UserData: !Ref ProxyUserData
-
-  # TODO use alternative method
-  # Wait for node is set correctly before taking snapshoot.
-  # https://github.com/aws-cloudformation/cloudformation-coverage-roadmap/issues/589
-  # aws cloudformation register-type \
-  # --region us-east-1 \
-  # --type-name "Community::CloudFormation::Delay" \
-  # --schema-handler-package "s3://community-resource-provider-catalog/community-cloudformation-delay-0.1.0.zip" \
-  # --type RESOURCE
-  # Callback handler can be one option. How to add presigned URL to the instance?
-  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cloudformation-waitcondition.html
-  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-waitcondition.html
-  # https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-bucket-policies-vpc-endpoint.html
-  ProxySetupDelay:
-    #Condition: CreateTGWPeering
-    DependsOn: ProxyNode
-    Type: Community::CloudFormation::Delay
-    Properties:
-      Duration: PT300S
-
-  # Proxy callback
-  ProxyWaitHandle:
-    Type: AWS::CloudFormation::WaitConditionHandle
-  ParameterProxyCallbackURL:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: "ocp-proxy-cb-cfn-url"
-      Type: String
-      Value: !Ref 'ProxyWaitHandle'
-      #Tier: Advanced
-      #Policies: '[{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2020-05-13T00:00:00.000Z"}},{"Type":"ExpirationNotification","Version":"1.0","Attributes":{"Before":"5","Unit":"Days"}},{"Type":"NoChangeNotification","Version":"1.0","Attributes":{"After":"60","Unit":"Days"}}]'
-      Description: SSM Parameter VPCe.
-      #AllowedPattern: "^[a-zA-Z]{1,10}$"
-      #Tags:
-      #  Environment: DEV
-
-  ProxyAMI:
-    Type: AWS::CloudFormation::Stack
-    DependsOn: ProxySetupDelay
-    Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "99_EC2-create_ami.yaml"]]
-      TimeoutInMinutes: 12
-      Parameters:
-        NamePrefix: !Ref NamePrefix
-        InstanceId: !GetAtt 'ProxyNode.Outputs.InstanceId'
-        TerminateOnCreate: "False"
-
-  ProxyCluster:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "stack_ocp_private-cluster_proxy.yaml"]]
-      TimeoutInMinutes: 5
-      Parameters:
-        NamePrefix: !Join ['-', [!Ref NamePrefix, "proxy"]]
-        TemplatesBaseURL: !Ref TemplatesBaseURL
-        VpcCidr: !Ref VpcCidr
-        VpcId: !GetAtt 'VPC.Outputs.VpcId'
-        AmiId: !GetAtt ProxyAMI.Outputs.AmiId
-        SubnetId: !Select [0, !Split [",", !GetAtt 'VPC.Outputs.PublicSubnetIds']]
         DnsHostedZoneId: !Ref ProxyDnsHostedZoneId
         DnsRecordName: !Ref ProxyDnsRecordName
-        InstanceType: "t3.small"
 
-  #q
+  #
   # Bastion host
   #
   BastionNode:
     Type: AWS::CloudFormation::Stack
-    DependsOn: [ProxyCluster]
+    DependsOn: [ProxyNode]
     Properties:
       TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "stack_ocp_private-node_bastion.yaml"]]
       TimeoutInMinutes: 5
@@ -223,13 +101,15 @@ Resources:
         NamePrefix: !Ref NamePrefix
         TemplatesBaseURL: !Ref TemplatesBaseURL
         VpcCidr: !Ref VpcCidr
-        VpcId: !GetAtt 'VPC.Outputs.VpcId'
-        AmiId: !Ref BastionAmiId
+        VpcId: !GetAtt 'Network.Outputs.VpcId'
+        AmiId: !Ref BaseAmiId
         UserData: !Ref BastinoUserData
-        SubnetId: !Select [0, !Split [",", !GetAtt 'VPC.Outputs.PrivateSubnetIds']]
+        SubnetId: !Select [0, !Split [",", !GetAtt 'Network.Outputs.PrivateSubnetIds']]
 
 Outputs:
-  # VPCID
+  VpcId:
+    Description: VPC ID
+    Value: !GetAtt 'Network.Outputs.VpcId'
   # SubnetsId
   # RouteTables
   # Proxy DNS/LB address

@@ -8,7 +8,6 @@
     [mtulio.labs/labs/labs/ocp-install-iac/aws-cloudformation-templates](https://github.com/mtulio/mtulio.labs/tree/master/labs/ocp-install-iac/aws-cloudformation-templates)
 
 
-
 Steps to create TLS configuration for Squid
 
 Based on:
@@ -19,12 +18,13 @@ https://github.com/openshift/release/blob/master/ci-operator/step-registry/upi/c
 - Generate:
 
 ```sh
+function config_proxy() {
 #
 # Part 1) Gen certs
 #
 echo "Generating proxy certs..."
 
-WORKDIR_PROXY=${WORKDIR}/proxy13
+WORKDIR_PROXY="${WORKDIR}/proxy-${1:-00}"
 mkdir -p $WORKDIR_PROXY
 
 ROOTCA=${WORKDIR_PROXY}/CA
@@ -43,6 +43,8 @@ PROXY_KEY="$(base64 -w0 ${INTERMEDIATE}/private/intermediate.key.pem)"
 PROXY_KEY_PASSWORD="$(cat ${ROOTCA}/intpassfile)"
 
 CA_CHAIN="$(base64 -w0 ${INTERMEDIATE}/certs/ca-chain.cert.pem)"
+
+echo "Generating proxy user/pass..."
 # create random uname and pw
 # pushd ${WORKDIR_PROXY}
 PROXY_USER_NAME="proxy"
@@ -59,25 +61,7 @@ echo ${PROXY_KEY_PASSWORD}
 EOF
 )"
 
-# export PROXY_URL="http://${PROXY_USER_NAME}:${PROXY_PASSWORD}@${PROXY_DNS}:3128/"
-# export TLS_PROXY_URL="https://${PROXY_USER_NAME}:${PROXY_PASSWORD}@${PROXY_DNS}:3130/"
-
-# echo ${PROXY_URL} > ${SHARED_DIR}/PROXY_URL 
-# echo ${TLS_PROXY_URL} > ${SHARED_DIR}/TLS_PROXY_URL
-
-# # TODO:
-# # restore using "httpsProxy: ${TLS_PROXY_URL}"
-# # once we have a squid image with at least version 4.x so that we can do a TLS 1.3 handshake.
-# # Currently 3.5 only does up to 1.2 which podman fails to do a handshake with  https://github.com/containers/image/issues/699
-
-# cat >> ${SHARED_DIR}/install-config.yaml << EOF
-# proxy:
-#   httpsProxy: ${PROXY_URL}
-#   httpProxy: ${PROXY_URL}
-# additionalTrustBundle: |
-# $(cat ${INTERMEDIATE}/certs/ca-chain.cert.pem | awk '{print "  "$0}')
-# EOF
-
+echo "Creating squid conf..."
 # define squid config
 SQUID_CONFIG="$(base64 -w0 << EOF
 http_port 3128
@@ -98,13 +82,7 @@ EOF
 export PROXY_IMAGE=quay.io/mrbraga/squid:6.6
 # PROXY_IMAGE=registry.ci.openshift.org/origin/4.5:egress-http-proxy
 
-# define squid.sh
-# SQUID_SH="$(base64 -w0 << EOF
-# #!/bin/bash
-# podman run --entrypoint='["bash", "/squid/proxy.sh"]' --expose=3128 --export=3130 --net host --volume /tmp/squid:/squid:Z ${PROXY_IMAGE}
-# EOF
-# )"
-
+echo "Creating proxy.sh..."
 # define proxy.sh
 PROXY_SH="$(base64 -w0 << EOF
 #!/bin/bash
@@ -119,6 +97,7 @@ squid -N -f /squid/squid.conf
 EOF
 )"
 
+echo "Creating proxy-config.bu..."
 cat <<EOF > ${WORKDIR_PROXY}/proxy-config.bu
 variant: fcos
 version: 1.0.0
@@ -177,15 +156,15 @@ storage:
       contents:
         source: "data:text/plain;base64,${KEY_PASSWORD}"
       mode: 493
-    - path: /etc/aws-cfn-callback-success.sh
-      user:
-        name: root
-      mode: 0755
-      contents:
-        inline: |
-          #!/usr/bin/env bash
-          CFN_CALLBACK=$(aws ssm get-parameter --name "ocp-proxy-cb-cfn-url")
-          curl -d '{"Status":"SUCCESS","UniqueId" : "SingleCount1","Data" :"Provisioning finished","Reason":"empty"}'
+    #- path: /etc/aws-cfn-callback-success.sh
+    #  user:
+    #    name: root
+    #  mode: 0755
+    #  contents:
+    #    inline: |
+    #      #!/usr/bin/env bash
+    #      CFN_CALLBACK=\$(aws ssm get-parameter --name "ocp-proxy-cb-cfn-url")
+    #      curl -d '{"Status":"SUCCESS","UniqueId" : "SingleCount1","Data" :"Provisioning #finished","Reason":"empty"}'
 
 systemd:
   units:
@@ -236,16 +215,20 @@ systemd:
     #   name: systemd-journal-gatewayd.socket
 EOF
 
+echo "Generating ignition file..."
 butane ${WORKDIR_PROXY}/proxy-config.bu --output ${WORKDIR_PROXY}/proxy.ign
 
 # Need to fetch from s3 as resulted ignitoin is greater than 4k
 #export PROXY_USER_DATA=$(base64 -w0 <(<${WORKDIR_PROXY}/proxy-config.json))
 
+echo "Getting ignition URL..."
 export PROXY_IGN_S3="s3://${BUCKET_NAME}/proxy.ign"
 export PROXY_IGN_URL=$(aws s3 presign ${PROXY_IGN_S3} --expires-in 3600)
 
+echo "Uploading ignition to S3..."
 aws s3 cp ${WORKDIR_PROXY}/proxy.ign $PROXY_IGN_S3
 
+echo "Creating ignition file for user-data..."
 cat <<EOF > ${WORKDIR_PROXY}/proxy-userData.bu
 variant: fcos
 version: 1.0.0
@@ -257,9 +240,8 @@ EOF
 
 butane ${WORKDIR_PROXY}/proxy-userData.bu --output ${WORKDIR_PROXY}/proxy-userData.ign
 
+echo "Saving to PROXY_USER_DATA env var"
 export PROXY_USER_DATA=$(base64 -w0 <(<${WORKDIR_PROXY}/proxy-userData.ign))
-
-
 
 # Export Proxy Serivce URL to be used by clients
 export PROXY_DNS_RECORD="lab-proxy.devcluster.openshift.com"
@@ -269,6 +251,8 @@ export PROXY_SERVICE_URL="http://${PROXY_USER_NAME}:${PROXY_PASSWORD}@${PROXY_SE
 export PROXY_SERVICE_URL_TLS="https://${PROXY_USER_NAME}:${PROXY_PASSWORD}@${PROXY_SERVICE_ENDPOINT}:3130"
 export PROXY_SERVICE_NO_PROXY="169.254.169.254,.vpce.amazonaws.com"
 
-
+echo "Discovering Hosted Zone from DNS $DNS_BASE_DOMAIN and setting to PROXY_DNS_HOSTED_ZONE_ID..."
 export PROXY_DNS_HOSTED_ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name $DNS_BASE_DOMAIN | jq -r ".HostedZones[] | select(.Name==\"$DNS_BASE_DOMAIN.\").Id" | awk -F'/' '{print$3}')
+
+}
 ```

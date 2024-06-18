@@ -62,6 +62,16 @@ Parameters:
     Type: String
     Default: "0"
 
+  DnsHostedZoneId:
+    Description: DNS Hosted Zone ID to create the DNS Record.
+    Type: String
+    Default: "0"
+
+  DnsRecordName:
+    Description: DNS Record Name to create CNAME for Load Balancer DNS.
+    Type: String
+    Default: "0"
+
 Resources:
   #
   # Proxy Deployment
@@ -79,7 +89,6 @@ Resources:
   IamPolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: GetObject
       PolicyName: !Join ["-", [!Ref NamePrefix, "proxy"]]
       PolicyDocument:
         Version: "2012-10-17"
@@ -138,6 +147,16 @@ Resources:
         SecurityGroupId: !Ref SecurityGroup
         IsPublic: !Ref IsPublic
         Ipv6AddressCount: !Ref Ipv6AddressCount
+
+  ProxyDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId : !Ref DnsHostedZoneId
+      Name: !Ref DnsRecordName
+      ResourceRecords:
+      - !GetAtt 'ProxyInstance.Outputs.PublicDnsName'
+      TTL: 900
+      Type: CNAME
 
 Outputs:
   InstanceId:

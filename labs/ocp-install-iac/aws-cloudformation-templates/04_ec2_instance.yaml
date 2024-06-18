@@ -1,5 +1,5 @@
-AWSTemplateFormatVersion: 2010-09-09
-Description: Template for OpenShift Cluster Proxy (EC2 Instance, Security Groups and IAM)
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Template for OpenShift Cluster Proxy (EC2 Instance, Security Groups and IAM)"
 
 Parameters:
   NamePrefix:
@@ -56,10 +56,6 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
-        default: "Cluster Information"
-      Parameters:
-      - InfrastructureName
-    - Label:
         default: "Host Information"
       Parameters:
       - Ami
@@ -73,8 +69,6 @@ Metadata:
       - ClusterName
 
     ParameterLabels:
-      InfrastructureName:
-        default: "Infrastructure Name"
       VpcId:
         default: "VPC ID"
       AllowedProxyCidr:
@@ -132,6 +126,6 @@ Outputs:
   # PrivateDnsName:
   #   Description: The instance private IP address.
   #   Value: !GetAtt "Instance.PrivateDnsName"
-  # PublicDnsName:
-  #   Description: The instance public IP address.
-  #   Value: !GetAtt "Instance.PublicDnsName"
+  PublicDnsName:
+      Description: The instance public IP address.
+      Value: !GetAtt Instance.PublicDnsName #!If [!Equals [!GetAtt Instance.PublicDnsName, ""], "", !GetAtt "Instance.PublicDnsName"]
