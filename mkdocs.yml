@@ -139,6 +139,7 @@ nav:
       - Installing Hypershift on AWS with STS (draft/unfinished): playbooks/openshift/hypershift-install-sts.md
       - Installing single node (SNO) on AWS [draft]: playbooks/openshift/ocp-aws-sno-install.md
       - Installing on Azure with etcd in Data Disks: playbooks/openshift/ocp-azure-disk-ephemeral.md
+      - Installing on Azure with etcd in Data Disks (CAPI): guides/ocp-install-profiles/ocp-azure-capz-datadisk-etcd.md
       - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
 
     - OpenShift on AWS with STS:
