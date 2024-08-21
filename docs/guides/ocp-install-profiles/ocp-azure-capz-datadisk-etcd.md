@@ -20,11 +20,13 @@ openshift-install 4.17.0-ec.1
 - Create install-config:
 
 ```sh
+# Load your environment where you declared PULL_SECRET_FILE, AZURE_DOMAIN, AZURE_BASE_RG...
 source .env
 
-CLUSTER_NAME=azddetcd-02
+CLUSTER_NAME=azddetcd-06
 INSTALL_DIR=${PWD}/$CLUSTER_NAME
 mkdir $CLUSTER_NAME
+
 cat << EOF > ${INSTALL_DIR}/install-config.yaml 
 apiVersion: v1
 metadata:
@@ -44,7 +46,26 @@ platform:
     outboundType: Loadbalancer
     region: eastus
 EOF
-openshift-install create manifests --dir "${INSTALL_DIR}"
+./openshift-install create manifests --dir "${INSTALL_DIR}"
+```
+
+- Patch AzureCluster to enable failure domains 1-3
+
+```sh
+cat << EOF > ${INSTALL_DIR}/tmp_patch-02_azure-cluster.yaml
+spec:
+  failureDomains:
+    "1":
+      controlPlane: true
+    "2":
+      controlPlane: true
+    "3":
+      controlPlane: true
+EOF
+manifest=${INSTALL_DIR}/cluster-api/02_azure-cluster.yaml
+echo "> Patching manifest $manifest"
+yq4 ea --inplace '. as $item ireduce ({}; . * $item )' \
+    ${manifest} ${INSTALL_DIR}/tmp_patch-02_azure-cluster.yaml
 ```
 
 - Patch control plane to use data disks, decrease the instance/VM type, increase VM generation, and decrease 10x the OSDIsk size:
@@ -184,7 +205,7 @@ EOF
 - Create the cluster:
 
 ```sh
-openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
+./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
 ```
 
 
@@ -223,6 +244,8 @@ version   4.17.0-ec.1   True        False         4m16s   Cluster version is 4.1
 - Check if the etcd was mounted to a data disk for control plane nodes:
 
 ```sh
+oc get clusterversion
+
 for node in $(oc get nodes -l node-role.kubernetes.io/control-plane -o json | jq -r '.items[].metadata.name');
 do
   echo "Checking node $node"
@@ -231,31 +254,28 @@ done
 ```
 
 Expected result:
-
 ```text
-$ for node in $(oc get nodes -l node-role.kubernetes.io/control-plane -o json | jq -r '.items[].metadata.name');
-do
-  echo "Checking node $node"
-  oc debug node/$node --image=quay.io/fedora/fedora:latest -- chroot /host /bin/bash -c "echo -e \"\n>> \$HOSTNAME\"; df -h / /var/lib/etcd" 2>/dev/null
-done
-Checking node azddetcd-02-8t5zf-master-0
+NAME      VERSION       AVAILABLE   PROGRESSING   SINCE   STATUS
+version   4.17.0-rc.0   True        False         73m     Cluster version is 4.17.0-rc.0
 
->> azddetcd-02-8t5zf-master-0
+Checking node azddetcd-06-rnxng-master-0
+
+>> azddetcd-06-rnxng-master-0
 Filesystem      Size  Used Avail Use% Mounted on
-/dev/sdb4       128G   16G  112G  13% /
-/dev/sda         16G  457M   16G   3% /var/lib/etcd
-Checking node azddetcd-02-8t5zf-master-1
+/dev/sdb4       128G   16G  113G  12% /
+/dev/sda         16G  581M   16G   4% /var/lib/etcd
+Checking node azddetcd-06-rnxng-master-1
 
->> azddetcd-02-8t5zf-master-1
+>> azddetcd-06-rnxng-master-1
 Filesystem      Size  Used Avail Use% Mounted on
-/dev/sdb4       128G   15G  113G  12% /
-/dev/sda         16G  455M   16G   3% /var/lib/etcd
-Checking node azddetcd-02-8t5zf-master-2
+/dev/sda4       128G   21G  108G  16% /
+/dev/sdb         16G  584M   16G   4% /var/lib/etcd
+Checking node azddetcd-06-rnxng-master-2
 
->> azddetcd-02-8t5zf-master-2
+>> azddetcd-06-rnxng-master-2
 Filesystem      Size  Used Avail Use% Mounted on
 /dev/sda4       128G   23G  106G  18% /
-/dev/sdb         16G  474M   16G   3% /var/lib/etcd
+/dev/sdb         16G  557M   16G   4% /var/lib/etcd
 ```
 
 ## Refereces
