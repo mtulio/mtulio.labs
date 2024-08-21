@@ -14,7 +14,7 @@ This document incorporate researches with:
 
 ```sh
 $ openshift-install version
-openshift-install 4.17.0-ec.1
+openshift-install 4.17.0-rc.0
 ```
 
 - Create install-config:
@@ -233,11 +233,11 @@ INFO Time elapsed: 1h3m24s
 
 ```
 $ openshift-install version
-openshift-install 4.17.0-ec.1
+openshift-install 4.17.0-rc.0
 
 $ oc get clusterversion
 NAME      VERSION       AVAILABLE   PROGRESSING   SINCE   STATUS
-version   4.17.0-ec.1   True        False         4m16s   Cluster version is 4.17.0-ec.1
+version   4.17.0-rc.0   True        False         4m16s   Cluster version is 4.17.0-rc.0
 
 ```
 
