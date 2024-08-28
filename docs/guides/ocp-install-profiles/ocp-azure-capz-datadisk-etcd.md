@@ -1,7 +1,10 @@
-# OCP on AWS - Using Instance Disks for containers' ephemeral storage
+# OCP on Azure - Using Data Disks on etcd storage
 
-!!! warning "Research/Unfinished document"
-    This document is a research document which is not completed.
+This guide describes how to create an OCP Cluster on Azure isolating
+etcd to a data disk with `PremiumV2_LRS`.
+
+The changes also decreases the size of OS Disk (10x) and VM for Control Planes (2x)
+as the disk performance is no longer required for etcd on OS Disks.
 
 This document incorporate researches with:
 - OpenShift on Azure for CI clusters experiment mounting etcd in data disk
