@@ -115,10 +115,15 @@ extra:
 
 
 nav:
-  - Home:
-    - index.md
-    - tools.md
+#
+# Blog
+#
+  - Blog:
+    - blog/index.md
 
+#
+# Guides
+#
   - Guides:
     - Home: playbooks/README.md
     - OpenShift API:
@@ -141,8 +146,8 @@ nav:
       - Installing on Azure with etcd in Data Disks: playbooks/openshift/ocp-azure-disk-ephemeral.md
       - Installing on Azure with etcd in Data Disks (CAPI): guides/ocp-install-profiles/ocp-azure-capz-datadisk-etcd.md
       - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
-      - Installing on AWS with BYO Public IPv4 Pool: guides/ocp-install-profiles/ocp-install-aws-byo-public-ipv4-pool..md
-      - Installing on AWS with BYO Elastic IPs: guides/ocp-install-profiles/ocp-install-aws-byo-eip.md
+      - Installing on AWS with BYO Public IPv4 Pool: guides/ocp-install-profiles/ocp-install-aws-byo-public-ipv4-pool
+      - Installing on AWS with BYO Elastic IPs: guides/ocp-install-profiles/ocp-install-aws-byo-eip
 
     - OpenShift on AWS with STS:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
@@ -195,9 +200,9 @@ nav:
         - Workshops: learning/workshops.md
         - Trainings: learning/trainings.md
 
-  - Blog:
-    - blog/index.md
-
+#
+# Notes / Drafts
+#
   - Notes/Draft:
     - Home: notes/README.md
     - automation:
@@ -303,3 +308,10 @@ nav:
     - Templates:
       - mkdocs-tabs: notes/templates/mkdocs-tabs.md
       - notes/templates/mkdocs-Admonitions.md
+
+#
+# About
+#
+  - About:
+    - index.md
+    - tools.md
