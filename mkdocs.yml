@@ -141,6 +141,8 @@ nav:
       - Installing on Azure with etcd in Data Disks: playbooks/openshift/ocp-azure-disk-ephemeral.md
       - Installing on Azure with etcd in Data Disks (CAPI): guides/ocp-install-profiles/ocp-azure-capz-datadisk-etcd.md
       - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
+      - Installing on AWS with BYO Public IPv4 Pool: guides/ocp-install-profiles/ocp-install-aws-byo-public-ipv4-pool..md
+      - Installing on AWS with BYO Elastic IPs: guides/ocp-install-profiles/ocp-install-aws-byo-eip.md
 
     - OpenShift on AWS with STS:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
