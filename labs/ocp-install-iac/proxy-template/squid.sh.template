@@ -1,0 +1,6 @@
+#!/bin/bash
+podman run \
+  --entrypoint='["bash", "/squid/proxy.sh"]' \
+  --expose=3128 --publish-all \
+  --net host \
+  --volume /etc/squid:/squid:Z ${PROXY_IMAGE}

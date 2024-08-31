@@ -30,6 +30,22 @@ Parameters:
     Description: CIDR block for Public Subnet
     Type: String
 
+  PublicSubnetCidrIpv6:
+    # # yamllint disable-line rule:line-length
+    # AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
+    # ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
+    Default: ""
+    Description: IPv6 CIDR block for Public Subnet
+    Type: String
+
+  PrivateSubnetCidrIpv6:
+    # # yamllint disable-line rule:line-length
+    # AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
+    # ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
+    Default: ""
+    Description: IPv6 CIDR block for Public Subnet
+    Type: String
+
   PrivateRouteTableId:
     Description: Public Route Table ID to associate the Local Zone subnet
     Type: String
@@ -43,13 +59,26 @@ Parameters:
     Description: CIDR block for Public Subnet
     Type: String
 
+  MapPublicIpOnLaunch:
+    Type: String
+    Default: "True"
+    AllowedValues: ["True", "False"]
+
+Conditions:
+  CreateIpv6OnPublicSubnet: !Not [ !Equals [!Ref "PublicSubnetCidrIpv6", ""]]
+  CreateIpv6OnPrivateSubnet: !Not [ !Equals [!Ref "PrivateSubnetCidrIpv6", ""]]
+
 Resources:
   PublicSubnet:
     Type: "AWS::EC2::Subnet"
+    #Condition: CreateIpv6OnPublicSubnet
     Properties:
       VpcId: !Ref VpcId
-      CidrBlock: !Ref PublicSubnetCidr
       AvailabilityZone: !Ref ZoneName
+      CidrBlock: !Ref PublicSubnetCidr
+      #Ipv6CidrBlock: !If [ CreateIpv6OnPublicSubnet, !Ref PublicSubnetCidrIpv6, !Ref "AWS::NoValue" ]
+      #AssignIpv6AddressOnCreation: !If [ CreateIpv6OnPublicSubnet, True, !Ref "AWS::NoValue" ]
+      MapPublicIpOnLaunch: !Ref MapPublicIpOnLaunch
       Tags:
       - Key: Name
         Value: !Join ['-', [!Ref ClusterName, "public", !Ref ZoneName]]
@@ -64,8 +93,11 @@ Resources:
     Type: "AWS::EC2::Subnet"
     Properties:
       VpcId: !Ref VpcId
-      CidrBlock: !Ref PrivateSubnetCidr
       AvailabilityZone: !Ref ZoneName
+      CidrBlock: !Ref PrivateSubnetCidr
+      #Ipv6CidrBlock: !If [ CreateIpv6OnPrivateSubnet, !Ref PrivateSubnetCidrIpv6, !Ref "AWS::NoValue" ]
+      #AssignIpv6AddressOnCreation: !If [ CreateIpv6OnPrivateSubnet, True, "AWS::NoValue" ]
+      MapPublicIpOnLaunch: False
       Tags:
       - Key: Name
         Value: !Join ['-', [!Ref ClusterName, "private", !Ref ZoneName]]

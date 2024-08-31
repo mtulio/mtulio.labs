@@ -30,7 +30,7 @@ tar xvfz /tmp/k9s.tgz  -C /tmp/ && mv /tmp/k9s ~/bin/k9s
 ### Install OpenShift cluster on AWS (default)
 
 ```sh
-CLUSTER_NAME=aws-as-05
+CLUSTER_NAME=aws-as-06
 INSTALL_DIR=${PWD}/installdir-${CLUSTER_NAME}
 mkdir $INSTALL_DIR
 
