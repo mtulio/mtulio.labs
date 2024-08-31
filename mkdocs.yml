@@ -172,6 +172,7 @@ nav:
           - Option 2 - Installing private OpenShift on AWS with VPC Endpoints (default): guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-01.md
           - Option 3 - Installing private OpenShift on AWS with VPC Endpoints and STS: guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-02-sts.md
       - "Guide 2): BYO VPC with dual-stack IPv6 in public subnets": guides/ocp-aws-private-proxy.md
+      - Diagrams: guides/ocp-aws-private-diagrams.md
 
     - OpenShift on AWS with STS:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
