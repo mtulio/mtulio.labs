@@ -1,0 +1,61 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  labels:
+    machine.openshift.io/cluster-api-cluster: INFRA_ID 
+  name: INFRA_ID-worker-ZONE_NAME 
+  namespace: openshift-machine-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: INFRA_ID 
+      machine.openshift.io/cluster-api-machineset: INFRA_ID-worker-ZONE_NAME 
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: INFRA_ID 
+        machine.openshift.io/cluster-api-machine-role: worker 
+        machine.openshift.io/cluster-api-machine-type: worker 
+        machine.openshift.io/cluster-api-machineset: INFRA_ID-worker-ZONE_NAME 
+    spec:
+      metadata:
+        labels:
+          node-role.kubernetes.io/worker: "" 
+      providerSpec:
+        value:
+          ami:
+            id: ami-046fe691f52a953f9 
+          apiVersion: machine.openshift.io/v1beta1
+          blockDevices:
+            - ebs:
+                iops: 0
+                volumeSize: 120
+                volumeType: gp2
+          credentialsSecret:
+            name: aws-cloud-credentials
+          deviceIndex: 0
+          iamInstanceProfile:
+            id: INFRA_ID-worker-profile 
+          instanceType: m6i.large
+          kind: AWSMachineProviderConfig
+          placement:
+            availabilityZone: ZONE_NAME 
+            region: AWS_REGION
+          securityGroups:
+            - filters:
+                - name: tag:Name
+                  values:
+                    - INFRA_ID-worker-sg 
+          subnet:
+            filters:
+              - name: tag:Name
+                values:
+                  - INFRA_ID-private-ZONE_NAME 
+          tags:
+            - name: kubernetes.io/cluster/INFRA_ID 
+              value: owned
+            - name: <custom_tag_name> 
+              value: <custom_tag_value> 
+          userDataSecret:
+            name: worker-user-data

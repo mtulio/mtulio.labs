@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: csr-approver
+  namespace: karpenter
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: csr-approver
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: csr-approver
+    namespace: karpenter
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: csr-approver
+  name: csr-approver
+  namespace: karpenter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: csr-approver
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: csr-approver
+    spec:
+      serviceAccountName: csr-approver
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: "NoSchedule"
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - |
+          export KUBECONFIG=/tmp/kubeconfig;
+          oc login https://172.30.0.1:443 \
+          --token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) \
+          --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt || true;
+          oc get nodes;
+          while true; do
+            echo "$(date)> Checking CSRs";
+            # TODO: run validations to prevent approving requests from unknonw nodes
+            oc get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' > /tmp/pending-csrs.txt
+            if [[ -s /tmp/pending-csrs.txt ]]; then
+              echo "$(date)> Found CSRs to approve:";
+              cat /tmp/pending-csrs.txt
+              echo "$(date)> Approving CSRs";
+              for csr in $(cat /tmp/pending-csrs.txt); do oc adm certificate approve $csr; done
+            else
+              echo "$(date)> No CSRs to be approved."
+              oc get csr
+            fi
+            sleep 15;
+          done
+        image: quay.io/opct/tools:v0.3.0
+        name: csr-approver
+        resources:
+          limits:
+            cpu: 1
+            memory: 500Mi

@@ -5,11 +5,11 @@
     "controllerClusterId": "${CLUSTER_NAME}",
     "autoScaler": {
       "resourceLimits": {
-        "maxMemoryGib": 256,
-        "maxVCpu": 128
+        "maxMemoryGib": 128,
+        "maxVCpu": 40
       },
       "down": {
-        "maxScaleDownPercentage": 60
+        "maxScaleDownPercentage": 100
       }
     },
     "capacity": {
@@ -32,12 +32,8 @@
         "keyPair": "${KEY_PAR_NAME}",
         "tags": [
           {
-            "tagKey": "Owner",
-            "tagValue": "${TAG_KEY_KUBE}"
-          },
-          {
             "tagKey": "${TAG_KEY_KUBE}",
-            "tagValue": "owned"
+            "tagValue": "shared"
           },
           {
             "tagKey": "Name",
