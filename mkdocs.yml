@@ -149,8 +149,8 @@ nav:
 
     - OpenShift Installing Private on AWS:
       - guides/ocp-aws-private.md
-      - "Solution 0): Automatic deploy for BYO VPC with Proxy": guides/ocp-aws-private-one-time-deploy.md
-      - "Solution 1): BYO VPC with Proxy":
+      - "Guide 0): OpenShift Private Hacking | one-page deployment BYO VPC": guides/ocp-aws-private-one-time-deploy.md
+      - "Guide 1): BYO VPC with Proxy":
         - Prerequisites:
           - Sync CloudFormation Templates to deploy Nested Stacks: guides/ocp-aws-private-01_00-pre.md
           - "Optional: Build Squid Proxy container image": guides/ocp-aws-private-01_01-build-image-squid-proxy.md
@@ -171,7 +171,7 @@ nav:
           - Option 1 - Installing private OpenShift using regional endpoints: guides/ocp-aws-private-04-cluster-install-00-proxy-bastion.md
           - Option 2 - Installing private OpenShift on AWS with VPC Endpoints (default): guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-01.md
           - Option 3 - Installing private OpenShift on AWS with VPC Endpoints and STS: guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-02-sts.md
-      - "Solution 2): BYO VPC with dual-stack IPv6 in public subnets": guides/ocp-aws-private-proxy.md
+      - "Guide 2): BYO VPC with dual-stack IPv6 in public subnets": guides/ocp-aws-private-proxy.md
 
     - OpenShift on AWS with STS:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
