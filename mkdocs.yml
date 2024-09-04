@@ -181,6 +181,7 @@ nav:
       - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
       - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
       - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
+      - Multi-tenant solution for OpenID Connect URL (WIP): playbooks/openshift/ocp-cco-multi-tenant.md
 
     - OpenShift hybrid cloud deployments on AWS:
       - Articles: guides/ocp-aws-local-zones.md
