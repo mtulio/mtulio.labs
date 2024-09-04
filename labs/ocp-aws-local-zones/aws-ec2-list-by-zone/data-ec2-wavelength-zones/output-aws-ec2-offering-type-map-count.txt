@@ -1,0 +1,6 @@
+2023-08-08 19:00:39.278646>> EC2 Offerings summary (total zones)
+Total items: 4
+t3.xlarge: 30
+r5.2xlarge: 30
+t3.medium: 30
+g4dn.2xlarge: 30

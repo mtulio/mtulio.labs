@@ -1,0 +1,18 @@
+FROM golang:1.18.1-alpine3.14 as builder
+
+WORKDIR /go/src/app
+COPY . .
+
+RUN go get -d -v ./...
+RUN CGO_ENABLED=0 \
+    GOOS=linux \
+    go build \
+    -a -installsuffix cgo \
+    -o ocp-oci-sample *.go
+
+FROM alpine:3.14
+RUN apk --no-cache add ca-certificates
+WORKDIR /app
+COPY --from=builder /go/src/app/ocp-oci-sample /app/
+RUN chmod +x ./ocp-oci-sample
+CMD [ "./ocp-oci-sample" ]

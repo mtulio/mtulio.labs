@@ -1,0 +1,56 @@
+{
+  "cluster": {
+    "region": "${CLUSTER_REGION}",
+    "name": "${CLUSTER_NAME}",
+    "controllerClusterId": "${CLUSTER_NAME}",
+    "autoScaler": {
+      "resourceLimits": {
+        "maxMemoryGib": 128,
+        "maxVCpu": 40
+      },
+      "down": {
+        "maxScaleDownPercentage": 100
+      }
+    },
+    "capacity": {
+      "minimum": 0,
+      "maximum": 20,
+      "target": 0
+    },
+    "compute": {
+      "subnetIds": $SUBNETS,
+      "instanceTypes": {
+        "whitelist": ${COMPUTE_INSTANCE_TYPES_WHITELIST}
+      },
+      "launchSpecification": {
+        "imageId": "${IMAGE_ID}",
+        "userData": "${USER_DATA}",
+        "securityGroupIds": [ "${SECURITY_GROUP_ID}" ],
+        "iamInstanceProfile": {
+          "arn": "${INSTANCE_PROFILE_ARN}"
+        },
+        "keyPair": "${KEY_PAR_NAME}",
+        "tags": [
+          {
+            "tagKey": "${TAG_KEY_KUBE}",
+            "tagValue": "shared"
+          },
+          {
+            "tagKey": "Name",
+            "tagValue": "${TAG_NAME}"
+          }
+        ],
+        "associatePublicIpAddress": false
+      }
+    },
+    "scheduling": {},
+    "strategy": {
+      "utilizeReservedInstances": true,
+      "fallbackToOd": true,
+      "spotPercentage": 100,
+      "gracePeriod": 600,
+      "drainingTimeout": 60,
+      "utilizeCommitments": false
+    }
+  }
+}

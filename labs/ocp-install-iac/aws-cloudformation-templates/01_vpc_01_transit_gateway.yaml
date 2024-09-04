@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create Transit Gateway and default route.
+
+Parameters:
+  NamePrefix:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    AllowedPattern: ".+"
+    ConstraintDescription: ClusterName parameter must be specified.
+
+Resources:
+  TransitGateway:
+    Type: "AWS::EC2::TransitGateway"
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Join ['-', [!Ref NamePrefix, "tgw"]]
+
+  # TODO: Default route table are created automatically, to retrieve it it requires
+  # to use custom resource to retrieve this information (lambda).
+  # TransitGatewayRouteTable:
+  #   Type: "AWS::EC2::TransitGatewayRouteTable"
+  #   Properties:
+  #     TransitGatewayId: !Ref TransitGateway
+  #     Tags:
+  #     - Key: Name
+  #       Value: !Join ['-', [!Ref NamePrefix, "tgw-table"]]
+
+Outputs:
+  TransitGatewayId:
+    Description: Transit Gateway ID
+    Value: !Ref TransitGateway
+  # TransitGatewayRouteTableId:
+  #   Description: Transit Gateway Route Table ID
+  #   Value: !Ref TransitGatewayRouteTable

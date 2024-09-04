@@ -1,10 +1,10 @@
-site_name: "@mtulio labs | notes"
-site_url: https://mtulio.net
+site_name: "@mtulio labs | blog | notes"
+site_url: https://mtulio.dev
 site_author: 'Marco Braga'
 site_description: >-
   Marco Braga | Playground
 repo_url: https://github.com/mtulio/mtulio.labs
-edit_uri: edit/main/docs/
+edit_uri: edit/master/docs/
 docs_dir: docs
 dev_addr: 127.0.0.1:8080
 
@@ -14,15 +14,11 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: slate
-      # primary: red
-      # accent: red
       toggle:
         icon: material/lightbulb-outline
         name: Switch to light mode
     - media: "(prefers-color-scheme: dark)"
       scheme: default
-      # primary: indigo
-      # accent: indigo
       toggle:
         icon: material/lightbulb
         name: Switch to dark mode
@@ -32,7 +28,7 @@ theme:
     - navigation.tabs.sticky
     #- navigation.sections
     - navigation.top
-    #- navigation.indexes
+    - navigation.indexes
 
     # integrate menus
     #- toc.integrate
@@ -40,15 +36,36 @@ theme:
     - search.share
     - search.suggest
     - content.tabs.link
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
 
   font:
     text: Roboto
     code: Roboto Mono
 
 plugins:
+  - search:
+      lang:
+      - en
+      - pt
   - diagrams:
       file_extension: ".diagram.py"
       max_workers: 5
+  # https://squidfunk.github.io/mkdocs-material/plugins/blog/#config.post_url_format-blog2024
+  # https://squidfunk.github.io/mkdocs-material/plugins/blog/
+  # https://squidfunk.github.io/mkdocs-material/setup/setting-up-a-blog/
+  - tags
+  - blog:
+      post_date_format: long
+      # post_url_date_format: yyyy/MM/dd
+      blog_toc: true
+      #post_readtime_words_per_minute: 265
+      categories_toc: true
+      #authors_profiles: true
+      post_url_max_categories: 6
+      archive_url_date_format: yyyy/MM
+      archive_toc: true
 
 markdown_extensions:
   # - toc:
@@ -65,17 +82,26 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
+  # Copy code block config: https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+
 extra:
   analytics:
       provider: google
       property: G-HR0NQWHH1T
-  # consent:
-  #     title: Cookie consent
-  #     description: >
-  #         We use cookies to recognize your repeated visits and preferences, as well
-  #         as to measure the effectiveness of our documentation and whether users
-  #         find what they're searching for. With your consent, you're helping us to
-  #         make our documentation better.
+  consent:
+      title: Cookie consent
+      description: >
+          We use cookies to recognize your repeated visits and preferences, as well
+          as to measure the effectiveness of our documentation and whether users
+          find what they're searching for. With your consent, you're helping us to
+          make our documentation better.
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/mtulio
@@ -87,46 +113,130 @@ extra:
       link: https://linkedin.com/in/mtuliorbraga/
 
 nav:
-  - Home:
-    - index.md
-    # - about.md
-    # - tools.md
+#
+# Blog
+#
+  - Blog:
+    - blog/index.md
+
+#
+# Guides
+#
   - Guides:
-      - Home: playbooks/README.md
-      - OpenShift API:
-        - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
+    - Home: playbooks/README.md
+    - OpenShift API:
+      - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
 
-      - OpenShift Node/Machine operations:
-        - Machine resize: playbooks/openshift/resize-machines.md
-        - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
-        - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
-        - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
+    - OpenShift Node/Machine operations:
+      - Machine resize: playbooks/openshift/resize-machines.md
+      - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
+      - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
+      - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
+      - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
+      - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
 
-      - OpenShift Installing:
-        - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
-        - Installing OpenShift on Alibaba Cloud in existing VPC: playbooks/openshift/ocp-installing-alibabacloud.md
-        - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
-        - Installing Hypershift on AWS with STS (draft/unfinished): playbooks/openshift/hypershift-install-sts.md
-        - Installing single node (SNO) on AWS [draft]: playbooks/openshift/ocp-aws-sno-install.md
+    - OpenShift Installing:
+      - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
+      - Installing OpenShift on Alibaba Cloud in existing VPC: playbooks/openshift/ocp-installing-alibabacloud.md
+      - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
+      - Installing Hypershift on AWS with STS (draft/unfinished): playbooks/openshift/hypershift-install-sts.md
+      - Installing single node (SNO) on AWS [draft]: playbooks/openshift/ocp-aws-sno-install.md
+      - Installing on Azure with etcd in Data Disks: playbooks/openshift/ocp-azure-disk-ephemeral.md
+      - Installing on Azure with etcd in Data Disks (CAPI): guides/ocp-install-profiles/ocp-azure-capz-datadisk-etcd.md
+      - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
+      - Installing on AWS with BYO Public IPv4 Pool: guides/ocp-install-profiles/ocp-install-aws-byo-public-ipv4-pool.md
+      - Installing on AWS with BYO Elastic IPs: guides/ocp-install-profiles/ocp-install-aws-byo-eip.md
 
-      - OpenShift on AWS with STS:
-        - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
-        - Hacking CCO manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
-        - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
-        - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
-        - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
-        - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
-        - Multi-tenant solution for OpenID Connect URL (WIP): playbooks/openshift/ocp-cco-multi-tenant.md
+    - OpenShift Installing Private on AWS:
+      - guides/ocp-aws-private.md
+      - "Guide 0): OpenShift Private Hacking | one-page deployment BYO VPC": guides/ocp-aws-private-one-time-deploy.md
+      - "Guide 1): BYO VPC with Proxy":
+        - Prerequisites:
+          - Sync CloudFormation Templates to deploy Nested Stacks: guides/ocp-aws-private-01_00-pre.md
+          - "Optional: Build Squid Proxy container image": guides/ocp-aws-private-01_01-build-image-squid-proxy.md
+          - "Optional: Build AWS SSM Agent container image": guides/ocp-aws-private-01_01-build-image-ssm.md
+        - Step 1 - Create VPC:
+          - Option 1 - Create Blackhole private subnets with single-stack IPv4 VPC: guides/ocp-aws-private-02-vpc-ipv4-pub-blackhole.md
+        - Step 2 - Create Proxy service:
+          - 2.1 option 1 - Create Proxy service with TLS: guides/ocp-aws-private-03_00_proxy-01-config-TLS.md
+          - 2.1 option 2 - Create Proxy service without TLS (not recommended): guides/ocp-aws-private-03_00_proxy-01-config.md
+          - 2.2 - Create standalone Proxy service: guides/ocp-aws-private-03_00_proxy-02-deploy-dedicated.md
+          - 2.3 - Create HA Proxy service (HA/LB/ASG): guides/ocp-aws-private-03_00_proxy-03_00-deploy-cluster.md
+          - 2.4/TBD - Share the Proxy service between AWS Accounts with custom VPC Endpoint/PrivateLink: guides/ocp-aws-private-03_00_proxy-03_01-deploy-cluster-vpce.md
+        - Step 3 - Create Bastion host:
+          - Abount bastion host on AWS: guides/ocp-aws-private-03_bastion-00-about.md
+          - 3.1 - Create bastion host configuration: guides/ocp-aws-private-03_bastion-01-config.md
+          - 3.2 - Deploy bastion host in private subnet: guides/ocp-aws-private-03_bastion-02-deploy.md
+        - Step 5 - Install OpenShift cluster:
+          - Option 1 - Installing private OpenShift using regional endpoints: guides/ocp-aws-private-04-cluster-install-00-proxy-bastion.md
+          - Option 2 - Installing private OpenShift on AWS with VPC Endpoints (default): guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-01.md
+          - Option 3 - Installing private OpenShift on AWS with VPC Endpoints and STS: guides/ocp-aws-private-04-cluster-install-01-proxy-bastion-vpce-02-sts.md
+      - "Guide 2): BYO VPC with dual-stack IPv6 in public subnets": guides/ocp-aws-private-proxy.md
+      - Diagrams: guides/ocp-aws-private-diagrams.md
 
-      - OpenShift Dev:
-        - Build components: playbooks/openshift/dev-build-components.md
-        - Create custom release: playbooks/openshift/dev-custom-release.md
-        - Get Credentials with CI Registry: playbooks/openshift/install-credentials-with-ci.md
-        - Extract openshift-tests utility: playbooks/openshift/dev-extract-openshift-tests.md
+    - OpenShift on AWS with STS:
+      - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
+      - Hacking CCO manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
+      - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
+      - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
+      - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
+      - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
+      - Multi-tenant solution for OpenID Connect URL (WIP): playbooks/openshift/ocp-cco-multi-tenant.md
 
-      #- OpenShift in AWS:
+    - OpenShift hybrid cloud deployments on AWS:
+      - Articles: guides/ocp-aws-local-zones.md
+      - Extending OCP to AWS Local Zones (Day-2): ocp-aws-local-zones-day-2.md
+      - Installing OCP on AWS extending to Local Zones (Day-0): ocp-aws-local-zones-day-0.md
+      - oc Plugin to install OCP on AWS extending to Local Zones (Day-0): articles/ocp-aws-local-zones-day-0-plugin.md
+      - Patch MTU on Installed clusters with Local Zones: guides/ocp-aws-local-zones-day-2-patch-mtu.md
+      - OCP + AWS Local Zones demo script: guides/ocp-aws-local-zones-demo.md
+      - Blog - Installing with Local Zone nodes with full automation (4.14+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-414.md
+      - Blog demo - Installing with Local Zone nodes with full automation (4.14+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-414-demo.md
+      - Blog - Installing Local Zone nodes in Existing VPC (4.13+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413.md
+      - Blog demo - Installing with Local Zone nodes in Existing VPC (4.13+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413-script.md
+      - Hands-on Local Zones (verbose draft) : guides/ocp-aws-local-zones-hands-on.md
+      - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelength-zones-hands-on.md
+      - Installing on AWS extending compute nodes to AWS Outposts in Day-2: guides/ocp-aws-outposts.md
+      - Installing on AWS BYO VPC with Multi CDIR: guides/ocp-install-profiles/ocp-aws-byo-vpc-multi-cidr.md
 
-  - Notes:
+    - OpenShift scaling labs:
+      - OpenShift on AWS using Karpenter: guides/ocp-lab-scaling-setup-karpenter.md
+      - OpenShift on AWS using Autoscaler: guides/ocp-lab-scaling-aws-autoscaler.md
+      - OpenShift on AWS using Ocean Spot by NetApp: guides/ocp-lab-scaling-setup-spotio-ocean.md
+      - Lab scaling and test: guides/ocp-lab-scaling-aws-autoscaling.md
+      - Draft/Spot interruption with FIS with CCO: guides/ocp-aws-spot-interrupt-CCO.md
+
+    - OpenShift Dev:
+      - Build components: playbooks/openshift/dev-build-components.md
+      - Create custom release: playbooks/openshift/dev-custom-release.md
+      - Get Credentials with CI Registry: playbooks/openshift/install-credentials-with-ci.md
+      - Extract openshift-tests utility: playbooks/openshift/dev-extract-openshift-tests.md
+      - Explore OpenShift cluster metrics with Grafana Dashboard from CI jobs: guides/ocp-dev-monit-grafana.md
+
+    - OpenShift Tests:
+      - OPCT - Running Kubernetes e2e in OCP: guides/opct-running-native-kube-e2e.md
+
+    - Articles:
+      - Home: articles/README.md
+      - OpenShift OIDC:
+        - Deep Dive into OpenShift IdP OIDC: articles/ocp-idp-aws-oidc.md
+        - Use CloudFront for public URL of OIDC on OpenShift: articles/ocp-idp-aws-oidc-s3-pvt-cfn.md
+      - OpenShift and AWS Local Zones:
+        - "Day-2: Extend OpenShift to the edge with AWS Local Zones": articles/ocp-aws-local-zones-day-2.md
+        - "Day-0: Install OpenShift with compute on the edge using AWS Local Zones": articles/ocp-aws-local-zones-day-0.md
+        - Use oc plugin to install OpenShift with compute on the edge using AWS Local Zones: articles/ocp-aws-local-zones-day-0-plugin.md
+        - guides/ocp-aws-local-zones-hands-on.md
+      - OpenShift Ingress:
+        - WIP|Using multiple AWS ALB Operator on OpenShift: articles/ocp-aws-local-zones-app-alb.md
+
+    - Open Learning:
+        - Home: learning/README.md
+        - Workshops: learning/workshops.md
+        - Trainings: learning/trainings.md
+#
+# Notes / Drafts
+#
+  - Notes/Draft:
     - Home: notes/README.md
     - automation:
       - ansible: notes/automation/ansible.md
@@ -232,13 +342,9 @@ nav:
       - mkdocs-tabs: notes/templates/mkdocs-tabs.md
       - notes/templates/mkdocs-Admonitions.md
 
-  - Articles:
-    - Home: articles/README.md
-    - OpenShift OIDC:
-      - Deep Dive into OpenShift IdP OIDC: articles/ocp-idp-aws-oidc.md
-      - Use CloudFront for public URL of OIDC on OpenShift: articles/ocp-idp-aws-oidc-s3-pvt-cfn.md
-
-  - Open Learning:
-      - Home: learning/README.md
-      - Workshops: learning/workshops.md
-      - Trainings: learning/trainings.md
+#
+# About
+#
+  - About:
+    - index.md
+    - tools.md

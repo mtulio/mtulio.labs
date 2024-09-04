@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template for creating Egress-Only Internet Gateway.
+
+Parameters:
+  VpcId:
+    Description: VPC ID to associate the Carrier Gateway.
+    Type: String
+    AllowedPattern: ^(?:(?:vpc)(?:-[a-zA-Z0-9]+)?\b|(?:[0-9]{1,3}\.){3}[0-9]{1,3})$
+    ConstraintDescription: VPC ID must be with valid name, starting with vpc-.*.
+
+Resources:
+  Gateway:
+    Type: "AWS::EC2::EgressOnlyInternetGateway"
+    Properties:
+      VpcId: !Ref VpcId
+
+Outputs:
+  Id:
+    Description: Egress-Only Internet Gateway ID.
+    Value: !Ref Gateway

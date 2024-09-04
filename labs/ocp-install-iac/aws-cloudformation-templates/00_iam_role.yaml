@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template for create IAM Role
+
+Parameters:
+  NamePrefix:
+    Description: Cluster Name or Prefix name to prepend the tag Name for each subnet.
+    Type: String
+    AllowedPattern: ".+"
+    ConstraintDescription: ClusterName parameter must be specified.
+  ManagedPolicyArns:
+    Type: String
+    Default: ""
+    Description: Comma sepparated list of Managed IAM Policy Arns.
+  CustomPolicyArns:
+    Type: String
+    Default: ""
+    Description: Comma sepparated list of Custom IAM Policy Arns.
+
+Conditions:
+  HasManagedPolicies: !Not [ !Equals [!Ref "ManagedPolicyArns", ""]]
+  HasCustomPolicies: !Not [ !Equals [!Ref "CustomPolicyArns", ""]]
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: ""
+      Parameters:
+      - NamePrefix
+    ParameterLabels:
+      NamePrefix:
+        default: "Prefix for Resource Name"
+
+Resources:
+  IamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+            - "ec2.amazonaws.com"
+          Action:
+          - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns: !If [ HasManagedPolicies, !Split [",", !Ref ManagedPolicyArns], !Ref "AWS::NoValue"]
+      Policies: !If [ HasCustomPolicies, !Split [",", !Ref CustomPolicyArns], !Ref "AWS::NoValue"]
+
+Outputs:
+  IamRoleArn:
+    Description: The IAM Role ARN.
+    Value: !Ref IamRole
+  # IamRoleName:
+  #   Description: The IAM Role ARN.
+  #   Value: !GetAtt 'IamRole.Name'

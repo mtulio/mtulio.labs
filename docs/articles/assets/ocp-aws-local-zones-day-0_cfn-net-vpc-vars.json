@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "awslz"
+  },
+  {
+    "ParameterKey": "ClusterInfraId",
+    "ParameterValue": "unmanaged"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "AvailabilityZoneCount",
+    "ParameterValue": "3"
+  },
+  {
+    "ParameterKey": "SubnetBits",
+    "ParameterValue": "12"
+  }
+]

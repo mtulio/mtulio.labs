@@ -1,0 +1,26 @@
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "awslz"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-0d148201af1c02290"
+  },
+  {
+    "ParameterKey": "LocalZoneName",
+    "ParameterValue": "us-east-1-nyc-1a"
+  },
+  {
+    "ParameterKey": "LocalZoneNameShort",
+    "ParameterValue": "nyc1"
+  },
+  {
+    "ParameterKey": "PublicRouteTableId",
+    "ParameterValue": "rtb-0c80dfd2b8d03c7d8"
+  },
+  {
+    "ParameterKey": "PublicSubnetCidr",
+    "ParameterValue": "10.0.128.0/20"
+  }
+]

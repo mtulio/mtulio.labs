@@ -1,0 +1,101 @@
+2023-08-08 19:00:39.278646>> Zones by Family
+
+
+                             g4dn.2xlarge
+zone                                     
+ap-northeast-1-wl1-kix-wlz-1            X
+ap-northeast-1-wl1-nrt-wlz-1            X
+ap-northeast-2-wl1-cjj-wlz-1            X
+ap-northeast-2-wl1-sel-wlz-1            X
+ca-central-1-wl1-yto-wlz-1              X
+eu-central-1-wl1-ber-wlz-1              X
+eu-central-1-wl1-dtm-wlz-1              X
+eu-central-1-wl1-muc-wlz-1              X
+eu-west-2-wl1-lon-wlz-1                 X
+eu-west-2-wl1-man-wlz-1                 X
+eu-west-2-wl2-man-wlz-1                 X
+us-east-1-wl1-atl-wlz-1                 X
+us-east-1-wl1-bna-wlz-1                 X
+us-east-1-wl1-bos-wlz-1                 X
+us-east-1-wl1-chi-wlz-1                 X
+us-east-1-wl1-clt-wlz-1                 X
+us-east-1-wl1-dfw-wlz-1                 X
+us-east-1-wl1-dtw-wlz-1                 X
+us-east-1-wl1-iah-wlz-1                 X
+us-east-1-wl1-mia-wlz-1                 X
+us-east-1-wl1-msp-wlz-1                 X
+us-east-1-wl1-nyc-wlz-1                 X
+us-east-1-wl1-tpa-wlz-1                 X
+us-east-1-wl1-was-wlz-1                 X
+us-west-2-wl1-den-wlz-1                 X
+us-west-2-wl1-las-wlz-1                 X
+us-west-2-wl1-lax-wlz-1                 X
+us-west-2-wl1-phx-wlz-1                 X
+us-west-2-wl1-sea-wlz-1                 X
+us-west-2-wl1-sfo-wlz-1                 X
+
+                             r5.2xlarge
+zone                                   
+ap-northeast-1-wl1-kix-wlz-1          X
+ap-northeast-1-wl1-nrt-wlz-1          X
+ap-northeast-2-wl1-cjj-wlz-1          X
+ap-northeast-2-wl1-sel-wlz-1          X
+ca-central-1-wl1-yto-wlz-1            X
+eu-central-1-wl1-ber-wlz-1            X
+eu-central-1-wl1-dtm-wlz-1            X
+eu-central-1-wl1-muc-wlz-1            X
+eu-west-2-wl1-lon-wlz-1               X
+eu-west-2-wl1-man-wlz-1               X
+eu-west-2-wl2-man-wlz-1               X
+us-east-1-wl1-atl-wlz-1               X
+us-east-1-wl1-bna-wlz-1               X
+us-east-1-wl1-bos-wlz-1               X
+us-east-1-wl1-chi-wlz-1               X
+us-east-1-wl1-clt-wlz-1               X
+us-east-1-wl1-dfw-wlz-1               X
+us-east-1-wl1-dtw-wlz-1               X
+us-east-1-wl1-iah-wlz-1               X
+us-east-1-wl1-mia-wlz-1               X
+us-east-1-wl1-msp-wlz-1               X
+us-east-1-wl1-nyc-wlz-1               X
+us-east-1-wl1-tpa-wlz-1               X
+us-east-1-wl1-was-wlz-1               X
+us-west-2-wl1-den-wlz-1               X
+us-west-2-wl1-las-wlz-1               X
+us-west-2-wl1-lax-wlz-1               X
+us-west-2-wl1-phx-wlz-1               X
+us-west-2-wl1-sea-wlz-1               X
+us-west-2-wl1-sfo-wlz-1               X
+
+                             t3.medium t3.xlarge
+zone                                            
+ap-northeast-1-wl1-kix-wlz-1         X         X
+ap-northeast-1-wl1-nrt-wlz-1         X         X
+ap-northeast-2-wl1-cjj-wlz-1         X         X
+ap-northeast-2-wl1-sel-wlz-1         X         X
+ca-central-1-wl1-yto-wlz-1           X         X
+eu-central-1-wl1-ber-wlz-1           X         X
+eu-central-1-wl1-dtm-wlz-1           X         X
+eu-central-1-wl1-muc-wlz-1           X         X
+eu-west-2-wl1-lon-wlz-1              X         X
+eu-west-2-wl1-man-wlz-1              X         X
+eu-west-2-wl2-man-wlz-1              X         X
+us-east-1-wl1-atl-wlz-1              X         X
+us-east-1-wl1-bna-wlz-1              X         X
+us-east-1-wl1-bos-wlz-1              X         X
+us-east-1-wl1-chi-wlz-1              X         X
+us-east-1-wl1-clt-wlz-1              X         X
+us-east-1-wl1-dfw-wlz-1              X         X
+us-east-1-wl1-dtw-wlz-1              X         X
+us-east-1-wl1-iah-wlz-1              X         X
+us-east-1-wl1-mia-wlz-1              X         X
+us-east-1-wl1-msp-wlz-1              X         X
+us-east-1-wl1-nyc-wlz-1              X         X
+us-east-1-wl1-tpa-wlz-1              X         X
+us-east-1-wl1-was-wlz-1              X         X
+us-west-2-wl1-den-wlz-1              X         X
+us-west-2-wl1-las-wlz-1              X         X
+us-west-2-wl1-lax-wlz-1              X         X
+us-west-2-wl1-phx-wlz-1              X         X
+us-west-2-wl1-sea-wlz-1              X         X
+us-west-2-wl1-sfo-wlz-1              X         X

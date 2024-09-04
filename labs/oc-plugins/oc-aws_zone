@@ -1,0 +1,723 @@
+#!/usr/bin/env bash
+
+#
+# Resize OpenShift Machines
+# https://github.com/mtulio/oc-plugin-machine-resize
+#
+
+set -o pipefail
+set -o nounset
+set -o errexit
+
+# ####################
+# Install dependencies
+# ####################
+
+check_clients() {
+    export NEED_BIN_CLIENTS=false
+    BIN_INSTALLER="${CLIENT_INSTALLER:-./openshift-install}"
+    BIN_OC="${CLIENT_OC:-./oc}"
+    if [[ ! -x "${BIN_INSTALLER}" ]] || [[ ! -x "${BIN_OC}" ]]; then
+        NEED_BIN_CLIENTS=true
+    fi
+}
+
+preflight_install() {
+    if [[ -z "${PULL_SECRET_FILE:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: PULL_SECRET_FILE
+# It's used to extract the clients and create the install-config.yaml
+# Example:
+export PULL_SECRET_FILE=\${HOME}/.openshift/pull-secret-latest.json"
+        exit 1
+    fi
+}
+
+cmd_install_clients() {
+    echo "#INFO: Starting install_clients"
+    preflight_install
+    check_clients
+    if [[ ${NEED_BIN_CLIENTS} != true ]]; then
+        return
+    fi
+
+    if [[ -z "${VERSION:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: VERSION
+# Example:
+export VERSION=4.11.2"
+        exit 1
+    fi
+
+    local image="quay.io/openshift-release-dev/ocp-release:${VERSION}-x86_64"
+    echo "#INFO [${NEED_BIN_CLIENTS}]: Extracting OpenShift clients from image ${image}"
+    oc adm release extract \
+        --tools "${image}" \
+        -a "${PULL_SECRET_FILE}"
+
+    tar xvfz "openshift-client-linux-${VERSION}.tar.gz"
+    tar xvfz "openshift-install-linux-${VERSION}.tar.gz"
+}
+
+# ##################
+# Dependencies Check
+# ##################
+
+cmd_preflight_net_stack() {
+    # Check subnet opt-in status
+    ZONE_GROUP_OPT_IN_STATUS=$(REGION=${CLUSTER_REGION} aws ec2 describe-availability-zones \
+        --filters Name=region-name,Values="${CLUSTER_REGION}" Name=zone-name,Values="${ZONE_GROUP_NAME}" \
+        --query 'AvailabilityZones[].OptInStatus' \
+        --all-availability-zones \
+        --output text)
+
+    if [[ -z "${ZONE_GROUP_OPT_IN_STATUS}" ]]; then
+        echo "#> ERROR: Zone Group [${ZONE_GROUP_NAME}] does not returned a valid status [${ZONE_GROUP_OPT_IN_STATUS}].
+# Check if it is included on the valid list of zones in the region ${CLUSTER_REGION}:
+aws ec2 describe-availability-zones \
+    --filters Name=region-name,Values=${CLUSTER_REGION} \
+    --query 'AvailabilityZones[].ZoneName' \
+    --all-availability-zones
+"
+        exit 1
+    fi
+
+    if [[ "${ZONE_GROUP_OPT_IN_STATUS}" != "opted-in" ]]; then
+        echo "#> ERROR: Zone Group [${ZONE_GROUP_NAME}] is not opted-in. Current status [${ZONE_GROUP_OPT_IN_STATUS}].
+# You should enable it by running:
+aws ec2 modify-availability-zone-group \
+    --group-name \"${ZONE_GROUP_NAME}\" \
+    --opt-in-status opted-in"
+        exit 1
+    fi
+}
+
+
+# #############
+# cmd=preflight
+# #############
+cmd_prefilght() {
+    if [[ ! -x "$(command -v oc)" ]]; then
+        echo "#> ERROR: oc client is not found on your system (PATH). Please install it"
+        exit 1
+    fi
+    if [[ ! -x "$(command -v aws)" ]]; then
+        echo "#> ERROR: oc client is not found on your system. Please install it"
+        exit 1
+    fi
+    if [[ -z "${CLUSTER_REGION:-}" ]]; then
+    echo "#> ERROR: Environment variable is not set: CLUSTER_REGION
+# Example:
+export CLUSTER_REGION=us-east-1"
+        exit 1
+    fi
+    if [[ -z "${ZONE_GROUP_NAME:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: ZONE_GROUP_NAME
+# Used to enable Zone Group.
+# Example using 'US East (New York)':
+export ZONE_GROUP_NAME=${CLUSTER_REGION}-nyc-1a"
+        exit 1
+    fi
+    if [[ -z "${CLUSTER_NAME:-}" ]]; then
+    echo "#> ERROR: Environment variable is not set: CLUSTER_NAME
+# Example:
+export CLUSTER_NAME=lzdemo"
+        exit 1
+    fi
+}
+
+check_dep_install_config() {
+    if [[ -z "${SSH_PUB_KEY_FILE:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: SSH_PUB_KEY_FILE
+# It's used on install-config.yaml
+# Example:
+export SSH_PUB_KEY_FILE=\${HOME}/.ssh/id_rsa.pub"
+        exit 1
+    fi
+    if [[ -z "${BASE_DOMAIN:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: BASE_DOMAIN
+# It's used to extract the clients and create the install-config.yaml
+# Example:
+export BASE_DOMAIN=\"devcluster.example.com\""
+        exit 1
+    fi
+}
+
+# ########################
+# cmd_stack_vpc_create
+# ########################
+check_dep_create_vpc() {
+    cmd_preflight_net_stack
+    if [[ -z "${VPC_CIDR:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: VPC_CIDR
+export VPC_CIDR=\"10.0.0.0/16\""
+        exit 1
+    fi
+}
+
+set_vars_stack_net() {
+    export TPL_BASE_URL="https://raw.githubusercontent.com/mtulio/mtulio.labs/article-ocp-aws-lz/docs/articles/assets"
+    export STACK_VPC=${CLUSTER_NAME}-vpc
+}
+
+stack_wait_for_complete() {
+    local stack_name=$1
+    local stack_status
+    echo -e " > Start waiter for the stack [${stack_name}] to report as CREATE_COMPLETE..."
+    while true; do
+        stack_status=$(aws cloudformation describe-stacks \
+            --stack-name "${stack_name}" \
+            | jq -r '.Stacks[0].StackStatus' )
+        if [[ ${stack_status} == "CREATE_COMPLETE" ]]; then
+            echo " >> Stack report ${stack_status}, continuing...";
+            return
+        fi
+        echo " >> Stack reported undesired status: [${stack_status}] != [CREATE_COMPLETE]. Waiting 15s to the next check...";
+        sleep 15
+    done
+}
+
+create_net_stack_vpc() {
+    set_vars_stack_net
+    local stack_net_var="./stack-vpc-vars.json"
+    local cnf_tpl_file
+    
+    echo "#> Creating network stack var file: ${stack_net_var}"
+    cat <<EOF | envsubst > ${stack_net_var}
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "${CLUSTER_NAME}"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "${VPC_CIDR}"
+  },
+  {
+    "ParameterKey": "AvailabilityZoneCount",
+    "ParameterValue": "3"
+  },
+  {
+    "ParameterKey": "SubnetBits",
+    "ParameterValue": "12"
+  }
+]
+EOF
+
+    cnf_tpl_file="ocp-aws-local-zones-day-0_cfn-net-vpc.yaml"
+    if [[ ! -f "${cnf_tpl_file}" ]]; then
+        echo "#>> Downloading CloudFormation Template from ${TPL_BASE_URL}/${cnf_tpl_file}"
+        curl -s "${TPL_BASE_URL}/${cnf_tpl_file}" > ${cnf_tpl_file}
+    fi
+
+    STACK_VPC_TPL="${PWD}/${cnf_tpl_file}"
+    STACK_VPC_VARS="${PWD}/stack-vpc-vars.json"
+    echo "#> Creating network vpc stack ${STACK_VPC}"
+    aws cloudformation create-stack \
+        --stack-name "${STACK_VPC}" \
+        --template-body "file://${STACK_VPC_TPL}" \
+        --parameters "file://${STACK_VPC_VARS}"
+}
+
+cmd_stack_vpc_create() {
+    check_dep_create_vpc
+    create_net_stack_vpc
+}
+
+cmd_stack_vpc_wait() {
+    check_dep_create_vpc
+    stack_wait_for_complete "${STACK_VPC}"
+}
+
+cmd_stack_vpc_check() {
+    set_vars_stack_net
+    aws cloudformation describe-stacks --stack-name "${STACK_VPC}"
+}
+
+cmd_stack_vpc_delete() {
+    set_vars_stack_net
+    aws cloudformation delete-stack --stack-name "${STACK_VPC}"
+}
+
+# ##############
+# cmd_stack_zone
+# ##############
+check_dep_create_zone() {
+    cmd_preflight_net_stack
+    if [[ -z "${ZONE_CIDR:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: ZONE_CIDR
+export ZONE_CIDR=\"10.0.128.0/20\""
+        exit 1
+    fi
+    if [[ -z "${ZONE_GROUP_NAME:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: ZONE_GROUP_NAME
+export ZONE_GROUP_NAME=\"us-east-1-nyc-1a\""
+        exit 1
+    fi
+}
+
+set_vars_stack_zone() {
+    set_vars_stack_net
+    export ZONE_GROUP_SHORTNAME=${ZONE_GROUP_NAME/${CLUSTER_REGION}-/}
+    export STACK_ZONE="${CLUSTER_NAME}-zone-${ZONE_GROUP_SHORTNAME}"
+}
+
+create_net_stack_zone() {
+    local stack_net_var
+    local cnf_tpl_file
+    local vpc_id
+    local vpc_rtb_pub
+    set_vars_stack_zone
+
+    stack_net_var="./stack-lz-vars-${ZONE_GROUP_SHORTNAME}.json"
+    cnf_tpl_file="ocp-aws-local-zones-day-0_cfn-net-lz.yaml"
+    vpc_id=$(aws cloudformation describe-stacks \
+        --stack-name "${STACK_VPC}" \
+        | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="VpcId").OutputValue' )
+    vpc_rtb_pub=$(aws cloudformation describe-stacks \
+        --stack-name "${STACK_VPC}" \
+        | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="PublicRouteTableId").OutputValue' )
+
+    if [[ -z "${vpc_id:-}" ]]; then
+        echo "#> ERROR Unable to retrieve the VPC ID from VPC Stack [${vpc_id}]."
+        exit 1
+    fi
+    if [[ -z "${vpc_rtb_pub:-}" ]]; then
+        echo "#> ERROR Unable to retrieve the Public Route table from VPC Stack [${vpc_rtb_pub}]."
+        exit 1
+    fi
+
+    echo "#> Creating network Zone Group stack var file: ${stack_net_var}"
+    cat <<EOF | envsubst > "${stack_net_var}"
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "${CLUSTER_NAME}"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "${vpc_id}"
+  },
+  {
+    "ParameterKey": "PublicRouteTableId",
+    "ParameterValue": "${vpc_rtb_pub}"
+  },
+  {
+    "ParameterKey": "LocalZoneName",
+    "ParameterValue": "${ZONE_GROUP_NAME}"
+  },
+  {
+    "ParameterKey": "LocalZoneNameShort",
+    "ParameterValue": "${ZONE_GROUP_SHORTNAME}"
+  },
+  {
+    "ParameterKey": "PublicSubnetCidr",
+    "ParameterValue": "${ZONE_CIDR}"
+  }
+]
+EOF
+
+    if [[ ! -f "${cnf_tpl_file}" ]]; then
+        echo "#>> Downloading CloudFormation Template from ${TPL_BASE_URL}/${cnf_tpl_file}"
+        curl -s "${TPL_BASE_URL}/${cnf_tpl_file}" > ${cnf_tpl_file}
+    fi
+
+    echo "#> Creating network zone stack ${STACK_ZONE}"
+    aws cloudformation create-stack \
+        --stack-name "${STACK_ZONE}" \
+        --template-body file://"${PWD}/${cnf_tpl_file}" \
+        --parameters file://"${PWD}/${stack_net_var}"
+}
+
+cmd_stack_zone_wait() {
+    check_dep_create_vpc
+    stack_wait_for_complete "${STACK_ZONE}"
+}
+
+cmd_stack_zone_create() {
+    check_dep_create_zone
+    create_net_stack_zone
+}
+
+cmd_stack_zone_check() {
+    set_vars_stack_zone
+    aws cloudformation describe-stacks --stack-name "${STACK_ZONE}"
+}
+
+cmd_stack_zone_delete() {
+    set_vars_stack_zone
+    aws cloudformation delete-stack --stack-name "${STACK_ZONE}"
+}
+
+# ##################
+# cmd_install_config
+# ##################
+cmd_install_config() {
+
+    local install_config
+    preflight_install
+    check_dep_install_config
+    set_vars_stack_zone
+    install_config="${PWD}/install-config.yaml"
+
+    if [[ -f "${install_config}" ]]; then
+        echo "# ERROR: install-config.yaml already exists [${install_config}]. Remove it and try again."
+        exit 1
+    fi
+
+   # Parent region (main) subnets only: Public and Private
+    echo "#> Discoverying subnet IDs from VPC stack ${STACK_VPC}"
+    mapfile -t subnets < <(aws cloudformation describe-stacks \
+        --stack-name "${STACK_VPC}" \
+        | jq -r '.Stacks[0].Outputs[0].OutputValue' | tr ',' '\n')
+    mapfile -t -O "${#subnets[@]}" subnets < <(aws cloudformation describe-stacks \
+        --stack-name "${STACK_VPC}" \
+        | jq -r '.Stacks[0].Outputs[1].OutputValue' | tr ',' '\n')
+
+    if [[ ${#subnets[@]} -eq 0 ]]; then
+        echo "#>> ERROR Unable to find subnets from CloudFormation Stack ${STACK_VPC}. Found=[${subnets[*]}]."
+        exit 1
+    fi
+    echo "#>> Found ${#subnets[@]} subnets."
+
+    echo "#> Creating install-config.yaml on the current directory"
+    cat <<EOF > "${install_config}"
+apiVersion: v1
+publish: External
+baseDomain: ${BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME}"
+platform:
+  aws:
+    region: ${CLUSTER_REGION}
+    subnets:
+$(for SB in ${subnets[*]}; do echo "    - $SB"; done)
+pullSecret: '$(awk -v ORS= -v OFS= '{$1=$1}1' "${PULL_SECRET_FILE}")'
+sshKey: |
+  $(cat ${SSH_PUB_KEY_FILE})
+EOF
+
+    echo ">>> install-config.yaml START"
+    cat "${install_config}"
+    echo "<<< install-config.yaml END"
+
+    echo "#> Creating a copy of install-config..."
+    cp -v "${install_config}" "${PWD}"/install-config-copy.yaml
+}
+
+# #####################
+# cmd_install_manifests
+# #####################
+check_dep_install_manifests() {
+    if [[ -z "${ZONE_GROUP_NAME:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: SSH_PUB_KEY_FILE
+# It's used on install-config.yaml
+# Example:
+export SSH_PUB_KEY_FILE=\${HOME}/.ssh/id_rsa.pub"
+        exit 1
+    fi
+}
+
+cmd_install_manifests() {
+
+    if [[ -z "${INSTANCE_TYPE:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: INSTANCE_TYPE
+# You can check available instance type in the Zone by running:
+aws ec2 describe-instance-type-offerings \
+    --location-type availability-zone \
+    --filters Name=location,Values=${ZONE_GROUP_NAME} \
+    --region ${CLUSTER_REGION}
+# You should set the environment variable:
+export INSTANCE_TYPE=c5d.2xlarge"
+        exit 1
+    fi
+
+    local cluster_id
+    local ami_id
+    local subnet_id
+    local manifest_machineset
+    set_vars_stack_zone
+    check_dep_install_manifests
+
+    echo "#> Creating installer manifests..."
+    ${CLIENT_INSTALLER:-./openshift-install} create manifests  \
+        --log-level="${INSTALL_LOGLEVEL:-info}" \
+        --dir "${INSTALL_DIR:-${PWD}}"
+
+    cluster_id="$(awk '/infrastructureName: / {print $2}' manifests/cluster-infrastructure-02-config.yml)"
+    echo "#> cluster_id discovered: ${cluster_id}"
+
+    ami_id=$(grep ami \
+        openshift/99_openshift-cluster-api_worker-machineset-0.yaml \
+        | tail -n1 | awk '{print$2}')
+    if [[ -z "${ami_id:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: ami_id
+# Unable to extract value of spec.template.spec.providerSpec.values.ami.id from the MachineSet maanifest:
+# openshift/99_openshift-cluster-api_worker-machineset-0.yaml"
+        exit 1
+    fi
+
+    subnet_id=$(aws cloudformation describe-stacks \
+        --stack-name "${STACK_ZONE}" \
+        | jq -r .Stacks[0].Outputs[0].OutputValue)
+    if [[ -z "${subnet_id:-}" ]]; then
+        echo "#> ERROR: Environment variable is not set: subnet_id
+# Unable to discovery the Subnet ID from CloudFormation stack [$STACK_ZONE]"
+        exit 1
+    fi
+
+    manifest_machineset="openshift/99_openshift-cluster-api_worker-machineset-${ZONE_GROUP_SHORTNAME}.yaml"
+    echo "#> Creating the MachineSet manifest ${manifest_machineset}"
+    cat <<EOF > "${manifest_machineset}"
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  labels:
+    machine.openshift.io/cluster-api-cluster: ${cluster_id}
+  name: ${cluster_id}-edge-${ZONE_GROUP_NAME}
+  namespace: openshift-machine-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: ${cluster_id}
+      machine.openshift.io/cluster-api-machineset: ${cluster_id}-edge-${ZONE_GROUP_NAME}
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: ${cluster_id}
+        machine.openshift.io/cluster-api-machine-role: edge
+        machine.openshift.io/cluster-api-machine-type: edge
+        machine.openshift.io/cluster-api-machineset: ${cluster_id}-edge-${ZONE_GROUP_NAME}
+    spec:
+      lifecycleHooks: {}
+      metadata:
+        labels:
+          location: local-zone
+          zone_group: ${ZONE_GROUP_NAME::-1}
+          node-role.kubernetes.io/edge: ""
+      taints:
+        - key: node-role.kubernetes.io/edge
+          effect: NoSchedule
+      providerSpec:
+        value:
+          ami:
+            id: ${ami_id}
+          apiVersion: machine.openshift.io/v1beta1
+          blockDevices:
+          - ebs:
+              volumeSize: 120
+              volumeType: gp2
+          credentialsSecret:
+            name: aws-cloud-credentials
+          deviceIndex: 0
+          iamInstanceProfile:
+            id: ${cluster_id}-worker-profile
+          instanceType: ${INSTANCE_TYPE}
+          kind: AWSMachineProviderConfig
+          placement:
+            availabilityZone: ${ZONE_GROUP_NAME}
+            region: ${CLUSTER_REGION}
+          securityGroups:
+          - filters:
+            - name: tag:Name
+              values:
+              - ${cluster_id}-worker-sg
+          subnet:
+            id: ${subnet_id}
+          publicIp: true
+          tags:
+          - name: kubernetes.io/cluster/${cluster_id}
+            value: owned
+          userDataSecret:
+            name: worker-user-data
+EOF
+    echo "#> Show content of MachineSet manifest ${manifest_machineset}"
+    cat "${manifest_machineset}"
+}
+
+# ##########################
+# cmd_install_create_cluster
+# ##########################
+cmd_install_create_cluster() {
+    ${CLIENT_INSTALLER:-./openshift-install} create cluster \
+        --log-level="${INSTALL_LOGLEVEL:-info}" \
+        --dir="${INSTALL_DIR:-${PWD}}"
+}
+
+cmd_check_cluster() {
+    export KUBECONFIG=${PWD}/auth/kubeconfig
+    ${CLIENT_OC:-./oc} get co
+    ${CLIENT_OC:-./oc} get nodes
+    ${CLIENT_OC:-./oc} get machines -n openshift-machine-api
+    echo "# Listing ClusterOperators by 'Available' status: "
+    ${CLIENT_OC:-./oc} get co -o json \
+        | jq -r ".items[].status.conditions[] | select(.type==\"Available\").status" \
+        | sort |uniq -c
+    echo "# Listing ClusterOperators by 'Degraded' status: "
+    ${CLIENT_OC:-./oc} get co -o json \
+        | jq -r ".items[].status.conditions[] | select(.type==\"Degraded\").status" \
+        | sort |uniq -c
+    echo "# Check nodes on Local Zone location: "
+    ${CLIENT_OC:-./oc} get nodes -l location=local-zone
+}
+
+# ###########################
+# cmd_install_destroy_cluster
+# ###########################
+cmd_destroy_cluster() {
+    set_vars_stack_zone
+    echo "# Running Cluster destroy..."
+    ${CLIENT_INSTALLER:-./openshift-install} destroy cluster \
+        --log-level="${INSTALL_LOGLEVEL:-info}" \
+        --dir="${INSTALL_DIR:-${PWD}}" || true
+
+    rm -rvf "${INSTALL_DIR:-${PWD}}"/{terraform,auth}
+}
+
+cmd_destroy_all() {
+    set_vars_stack_zone
+    cmd_destroy_cluster
+
+    echo "# Removing ZONE network stack [${STACK_ZONE}]..."
+    aws cloudformation delete-stack --stack-name "${STACK_ZONE}"
+
+    echo "# Removing VPC network stack [${STACK_VPC}]..."
+    aws cloudformation delete-stack --stack-name "${STACK_VPC}"
+}
+
+# ##############
+# cmd_create_all
+# ##############
+check_dep_create_all() {
+    check_dep_create_vpc
+    check_dep_create_zone
+    preflight_install
+    check_dep_install_config
+}
+
+cmd_create_all() {
+    check_dep_create_all
+    cmd_stack_vpc_create
+    cmd_stack_vpc_wait
+    cmd_stack_zone_create
+    cmd_stack_zone_wait
+    cmd_install_clients
+    cmd_install_config
+    cmd_install_manifests
+    cmd_install_create_cluster
+    cmd_check_cluster
+}
+
+cmd_create_all_manifests() {
+    check_dep_create_all
+    cmd_stack_vpc_create
+    cmd_stack_vpc_wait
+    cmd_stack_zone_create
+    cmd_stack_zone_wait
+    cmd_install_clients
+    cmd_install_config
+    cmd_install_manifests
+}
+
+##########
+# Helper
+helpme() {
+    cat <<-EOF
+Usage: ${0} command
+
+Available commands:
+    "preflight"         : Run Preflight test to check if you are missing required dependencies.
+    "install-clients"   : Install OpenShift clients oc and openshift-install
+    "create-stack-vpc"  : Create a CloudFormation stack to setup VPC
+    "check-stack-vpc"   : Check current CloudFormation VPC stack
+    "delete-stack-vpc"  : Remove the CloudFormation VPC stack
+    "create-stack-zone" : Create a CloudFormation stack to setup the subnet on edge Zone
+    "check-stack-zone"  : Check current CloudFormation Zone stack
+    "delete-stack-zone" : Remove the CloudFormation Zone stack
+    "install-config"    : Create the install-config.yaml
+    "install-manifests" : Create the manifests based on the install-config.yaml
+    "create-cluster"    : Create the OCP cluster
+    "destroy-cluster"   : Destroy the OCP cluster
+    "check-cluster"     : Check the existing OCP cluster
+    "create-all"        : Create the VPC, Subnet on edge zone, then the OCP cluster in existing VPC approach
+    "create-manifests"  : Create the VPC, Subnet on edge zone, then the Installer manifests
+
+Available environment variables (ToDo description):
+    VERSION             : Target OCP Version to install the clients (oc and openshift-install)
+    CLIENT_OC           : Path of OC client to skip the install. Default: ./openshift-install
+    CLIENT_INSTALLER    : Path of openshift-install utility to skip the install. Default: ./openshift-install
+    INSTALL_LOGLEVEL    : Log level for openshift-install. Default: info
+    INSTALL_DIR         : Path of install dir. Default: ./
+
+    CLUSTER_NAME        : Cluster Name
+    CLUSTER_REGION      : AWS Region to install the cluster
+    BASE_DOMAIN         : BaseDomain used on install-config.yaml
+    SSH_PUB_KEY_FILE    : public SSH keys to be added to install-config.yaml
+    PULL_SECRET_FILE    : pull secret file to be used on install-config.yaml
+
+    INSTANCE_TYPE       : Instance type used on MachineSet on the new zone
+    ZONE_GROUP_NAME     : Zone Group Name
+    VPC_CIDR            : VPC CIDR IP Block
+    ZONE_CIDR           : Subnet CIDR IP Block
+
+Examples:
+    # Generic
+    CLUSTER_NAME=lzdemo \\
+        VERSION=4.11.2 \\
+        CLUSTER_REGION=us-east-1 \\
+        ZONE_GROUP_NAME=us-east-1-nyc-1a \\
+        VPC_CIDR='10.0.0.0/16' \\
+        ZONE_CIDR='10.0.128.0/20' \\
+        BASE_DOMAIN='devcluster.openshift.com' \\
+        PULL_SECRET_FILE=\${HOME}/.openshift/pull-secret-latest.json \\
+        SSH_PUB_KEY_FILE=\${HOME}/.ssh/id_rsa.pub \\
+        INSTANCE_TYPE=c5d.2xlarge \\
+        oc aws-zone <command>
+
+    # Example: create-all
+    CLUSTER_NAME=lzdemo \\
+        VERSION=4.11.2 \\
+        CLUSTER_REGION=us-east-1 \\
+        ZONE_GROUP_NAME=us-east-1-nyc-1a \\
+        VPC_CIDR='10.0.0.0/16' \\
+        ZONE_CIDR='10.0.128.0/20' \\
+        BASE_DOMAIN='devcluster.openshift.com' \\
+        INSTANCE_TYPE=c5d.2xlarge \\
+        PULL_SECRET_FILE=\${HOME}/.openshift/pull-secret-latest.json \\
+        SSH_PUB_KEY_FILE=\${HOME}/.ssh/id_rsa.pub \\
+        oc aws-zone create-all
+
+    # Example: destroy a cluster and network stack
+    CLUSTER_NAME=lzdemo \\
+        CLUSTER_REGION=us-east-1 \\
+        ZONE_GROUP_NAME=us-east-1-nyc-1a \\
+        oc aws-zone destroy-all
+EOF
+    exit 0
+}
+
+main() {
+    case "${1:-}" in
+        "preflight"         ) CMD="cmd_prefilght" ;;
+        "install-clients"   ) CMD="cmd_install_clients" ;;
+        "create-stack-vpc"  ) CMD="cmd_stack_vpc_create" ;;
+        "check-stack-vpc"   ) CMD="cmd_stack_vpc_check" ;;
+        "delete-stack-vpc"  ) CMD="cmd_stack_vpc_delete" ;;
+        "create-stack-zone" ) CMD="cmd_stack_zone_create" ;;
+        "check-stack-zone"  ) CMD="cmd_stack_zone_check" ;;
+        "delete-stack-zone" ) CMD="cmd_stack_zone_delete" ;;
+        "install-config"    ) CMD="cmd_install_config" ;;
+        "install-manifests" ) CMD="cmd_install_manifests" ;;
+        "create-cluster"    ) CMD="cmd_install_create_cluster" ;;
+        "destroy-cluster"   ) CMD="cmd_destroy_cluster" ;;
+        "check-cluster"     ) CMD="cmd_check_cluster" ;;
+        "create-all"        ) CMD="cmd_create_all" ;;
+        "destroy-all"       ) CMD="cmd_destroy_all" ;;
+        "create-manifests"  ) CMD="cmd_create_all_manifests" ;;
+        *) helpme ;;
+    esac
+
+    cmd_prefilght
+    ${CMD}
+}
+
+main "$@"

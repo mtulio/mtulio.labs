@@ -1,0 +1,1342 @@
+2023-07-25 18:09:06.213413>> Zones by Family
+
+
+                             c5.12xlarge c5.18xlarge c5.24xlarge c5.2xlarge  \
+zone                                                                          
+af-south-1-los-1a                      X          --          --          X   
+ap-northeast-1-tpe-1a                  X          --          --          X   
+ap-northeast-1-wl1-kix-wlz-1          --          --          --         --   
+ap-northeast-1-wl1-nrt-wlz-1          --          --          --         --   
+ap-northeast-2-wl1-cjj-wlz-1          --          --          --         --   
+ap-northeast-2-wl1-sel-wlz-1          --          --          --         --   
+ap-south-1-ccu-1a                      X          --          --          X   
+ap-south-1-del-1a                      X          --          --          X   
+ap-southeast-1-bkk-1a                  X          --          --          X   
+ap-southeast-1-mnl-1a                  X          --           X          X   
+ap-southeast-2-akl-1a                  X          --          --          X   
+ap-southeast-2-per-1a                  X          --          --          X   
+ca-central-1-wl1-yto-wlz-1            --          --          --         --   
+eu-central-1-ham-1a                    X          --          --          X   
+eu-central-1-waw-1a                    X          --           X          X   
+eu-central-1-wl1-ber-wlz-1            --          --          --         --   
+eu-central-1-wl1-dtm-wlz-1            --          --          --         --   
+eu-central-1-wl1-muc-wlz-1            --          --          --         --   
+eu-north-1-cph-1a                      X          --          --          X   
+eu-north-1-hel-1a                      X          --          --          X   
+eu-west-2-wl1-lon-wlz-1               --          --          --         --   
+eu-west-2-wl1-man-wlz-1               --          --          --         --   
+eu-west-2-wl2-man-wlz-1               --          --          --         --   
+me-south-1-mct-1a                      X          --          --          X   
+us-east-1-atl-1a                      --          --          --         --   
+us-east-1-bos-1a                      --          --          --         --   
+us-east-1-bue-1a                       X          --          --          X   
+us-east-1-chi-1a                      --          --          --         --   
+us-east-1-dfw-1a                      --          --          --         --   
+us-east-1-iah-1a                      --          --          --         --   
+us-east-1-lim-1a                       X          --          --          X   
+us-east-1-mci-1a                      --          --          --         --   
+us-east-1-mia-1a                      --          --          --         --   
+us-east-1-msp-1a                      --          --          --         --   
+us-east-1-nyc-1a                      --          --          --         --   
+us-east-1-phl-1a                      --          --          --         --   
+us-east-1-qro-1a                       X          --           X          X   
+us-east-1-scl-1a                       X          --           X          X   
+us-east-1-wl1-atl-wlz-1               --          --          --         --   
+us-east-1-wl1-bna-wlz-1               --          --          --         --   
+us-east-1-wl1-bos-wlz-1               --          --          --         --   
+us-east-1-wl1-chi-wlz-1               --          --          --         --   
+us-east-1-wl1-clt-wlz-1               --          --          --         --   
+us-east-1-wl1-dfw-wlz-1               --          --          --         --   
+us-east-1-wl1-dtw-wlz-1               --          --          --         --   
+us-east-1-wl1-iah-wlz-1               --          --          --         --   
+us-east-1-wl1-mia-wlz-1               --          --          --         --   
+us-east-1-wl1-msp-wlz-1               --          --          --         --   
+us-east-1-wl1-nyc-wlz-1               --          --          --         --   
+us-east-1-wl1-tpa-wlz-1               --          --          --         --   
+us-east-1-wl1-was-wlz-1               --          --          --         --   
+us-west-2-den-1a                      --          --          --         --   
+us-west-2-las-1a                      --          --          --         --   
+us-west-2-lax-1a                       X           X           X          X   
+us-west-2-lax-1b                       X           X           X          X   
+us-west-2-pdx-1a                      --          --          --         --   
+us-west-2-phx-1a                      --          --          --         --   
+us-west-2-sea-1a                      --          --          --         --   
+us-west-2-wl1-den-wlz-1               --          --          --         --   
+us-west-2-wl1-las-wlz-1               --          --          --         --   
+us-west-2-wl1-lax-wlz-1               --          --          --         --   
+us-west-2-wl1-phx-wlz-1               --          --          --         --   
+us-west-2-wl1-sea-wlz-1               --          --          --         --   
+us-west-2-wl1-sfo-wlz-1               --          --          --         --   
+
+                             c5.4xlarge c5.9xlarge c5.large c5.metal  \
+zone                                                                   
+af-south-1-los-1a                    --         --       --       --   
+ap-northeast-1-tpe-1a                --         --       --       --   
+ap-northeast-1-wl1-kix-wlz-1         --         --       --       --   
+ap-northeast-1-wl1-nrt-wlz-1         --         --       --       --   
+ap-northeast-2-wl1-cjj-wlz-1         --         --       --       --   
+ap-northeast-2-wl1-sel-wlz-1         --         --       --       --   
+ap-south-1-ccu-1a                    --         --       --       --   
+ap-south-1-del-1a                    --         --       --       --   
+ap-southeast-1-bkk-1a                --         --       --       --   
+ap-southeast-1-mnl-1a                 X         --       --       --   
+ap-southeast-2-akl-1a                --         --       --       --   
+ap-southeast-2-per-1a                --         --       --       --   
+ca-central-1-wl1-yto-wlz-1           --         --       --       --   
+eu-central-1-ham-1a                  --         --       --       --   
+eu-central-1-waw-1a                   X         --       --       --   
+eu-central-1-wl1-ber-wlz-1           --         --       --       --   
+eu-central-1-wl1-dtm-wlz-1           --         --       --       --   
+eu-central-1-wl1-muc-wlz-1           --         --       --       --   
+eu-north-1-cph-1a                    --         --       --       --   
+eu-north-1-hel-1a                    --         --       --       --   
+eu-west-2-wl1-lon-wlz-1              --         --       --       --   
+eu-west-2-wl1-man-wlz-1              --         --       --       --   
+eu-west-2-wl2-man-wlz-1              --         --       --       --   
+me-south-1-mct-1a                    --         --       --       --   
+us-east-1-atl-1a                     --         --       --       --   
+us-east-1-bos-1a                     --         --       --       --   
+us-east-1-bue-1a                      X         --       --       --   
+us-east-1-chi-1a                     --         --       --       --   
+us-east-1-dfw-1a                     --         --       --       --   
+us-east-1-iah-1a                     --         --       --       --   
+us-east-1-lim-1a                     --         --       --       --   
+us-east-1-mci-1a                     --         --       --       --   
+us-east-1-mia-1a                     --         --       --       --   
+us-east-1-msp-1a                     --         --       --       --   
+us-east-1-nyc-1a                     --         --       --       --   
+us-east-1-phl-1a                     --         --       --       --   
+us-east-1-qro-1a                      X         --       --       --   
+us-east-1-scl-1a                      X         --       --       --   
+us-east-1-wl1-atl-wlz-1              --         --       --       --   
+us-east-1-wl1-bna-wlz-1              --         --       --       --   
+us-east-1-wl1-bos-wlz-1              --         --       --       --   
+us-east-1-wl1-chi-wlz-1              --         --       --       --   
+us-east-1-wl1-clt-wlz-1              --         --       --       --   
+us-east-1-wl1-dfw-wlz-1              --         --       --       --   
+us-east-1-wl1-dtw-wlz-1              --         --       --       --   
+us-east-1-wl1-iah-wlz-1              --         --       --       --   
+us-east-1-wl1-mia-wlz-1              --         --       --       --   
+us-east-1-wl1-msp-wlz-1              --         --       --       --   
+us-east-1-wl1-nyc-wlz-1              --         --       --       --   
+us-east-1-wl1-tpa-wlz-1              --         --       --       --   
+us-east-1-wl1-was-wlz-1              --         --       --       --   
+us-west-2-den-1a                     --         --       --       --   
+us-west-2-las-1a                     --         --       --       --   
+us-west-2-lax-1a                      X          X        X        X   
+us-west-2-lax-1b                      X          X        X        X   
+us-west-2-pdx-1a                     --         --       --       --   
+us-west-2-phx-1a                     --         --       --       --   
+us-west-2-sea-1a                     --         --       --       --   
+us-west-2-wl1-den-wlz-1              --         --       --       --   
+us-west-2-wl1-las-wlz-1              --         --       --       --   
+us-west-2-wl1-lax-wlz-1              --         --       --       --   
+us-west-2-wl1-phx-wlz-1              --         --       --       --   
+us-west-2-wl1-sea-wlz-1              --         --       --       --   
+us-west-2-wl1-sfo-wlz-1              --         --       --       --   
+
+                             c5.xlarge c5d.12xlarge c5d.2xlarge c5d.4xlarge  
+zone                                                                         
+af-south-1-los-1a                   --           --          --          --  
+ap-northeast-1-tpe-1a               --           --          --          --  
+ap-northeast-1-wl1-kix-wlz-1        --           --          --          --  
+ap-northeast-1-wl1-nrt-wlz-1        --           --          --          --  
+ap-northeast-2-wl1-cjj-wlz-1        --           --          --          --  
+ap-northeast-2-wl1-sel-wlz-1        --           --          --          --  
+ap-south-1-ccu-1a                   --           --          --          --  
+ap-south-1-del-1a                   --           --          --          --  
+ap-southeast-1-bkk-1a               --           --          --          --  
+ap-southeast-1-mnl-1a               --           --          --          --  
+ap-southeast-2-akl-1a               --           --          --          --  
+ap-southeast-2-per-1a               --           --          --          --  
+ca-central-1-wl1-yto-wlz-1          --           --          --          --  
+eu-central-1-ham-1a                 --           --          --          --  
+eu-central-1-waw-1a                 --           --          --          --  
+eu-central-1-wl1-ber-wlz-1          --           --          --          --  
+eu-central-1-wl1-dtm-wlz-1          --           --          --          --  
+eu-central-1-wl1-muc-wlz-1          --           --          --          --  
+eu-north-1-cph-1a                   --           --          --          --  
+eu-north-1-hel-1a                   --           --          --          --  
+eu-west-2-wl1-lon-wlz-1             --           --          --          --  
+eu-west-2-wl1-man-wlz-1             --           --          --          --  
+eu-west-2-wl2-man-wlz-1             --           --          --          --  
+me-south-1-mct-1a                   --           --          --          --  
+us-east-1-atl-1a                    --            X           X           X  
+us-east-1-bos-1a                    --            X           X           X  
+us-east-1-bue-1a                    --           --          --          --  
+us-east-1-chi-1a                    --           --           X          --  
+us-east-1-dfw-1a                    --            X           X           X  
+us-east-1-iah-1a                    --           --           X          --  
+us-east-1-lim-1a                    --           --          --          --  
+us-east-1-mci-1a                    --            X           X           X  
+us-east-1-mia-1a                    --           --           X          --  
+us-east-1-msp-1a                    --            X           X           X  
+us-east-1-nyc-1a                    --            X           X           X  
+us-east-1-phl-1a                    --            X           X           X  
+us-east-1-qro-1a                    --           --          --          --  
+us-east-1-scl-1a                    --           --          --          --  
+us-east-1-wl1-atl-wlz-1             --           --          --          --  
+us-east-1-wl1-bna-wlz-1             --           --          --          --  
+us-east-1-wl1-bos-wlz-1             --           --          --          --  
+us-east-1-wl1-chi-wlz-1             --           --          --          --  
+us-east-1-wl1-clt-wlz-1             --           --          --          --  
+us-east-1-wl1-dfw-wlz-1             --           --          --          --  
+us-east-1-wl1-dtw-wlz-1             --           --          --          --  
+us-east-1-wl1-iah-wlz-1             --           --          --          --  
+us-east-1-wl1-mia-wlz-1             --           --          --          --  
+us-east-1-wl1-msp-wlz-1             --           --          --          --  
+us-east-1-wl1-nyc-wlz-1             --           --          --          --  
+us-east-1-wl1-tpa-wlz-1             --           --          --          --  
+us-east-1-wl1-was-wlz-1             --           --          --          --  
+us-west-2-den-1a                    --            X           X           X  
+us-west-2-las-1a                    --            X           X           X  
+us-west-2-lax-1a                     X           --          --          --  
+us-west-2-lax-1b                     X           --          --          --  
+us-west-2-pdx-1a                    --            X           X           X  
+us-west-2-phx-1a                    --           --           X          --  
+us-west-2-sea-1a                    --            X           X           X  
+us-west-2-wl1-den-wlz-1             --           --          --          --  
+us-west-2-wl1-las-wlz-1             --           --          --          --  
+us-west-2-wl1-lax-wlz-1             --           --          --          --  
+us-west-2-wl1-phx-wlz-1             --           --          --          --  
+us-west-2-wl1-sea-wlz-1             --           --          --          --  
+us-west-2-wl1-sfo-wlz-1             --           --          --          --  
+
+                             g4dn.12xlarge g4dn.16xlarge g4dn.2xlarge  \
+zone                                                                    
+af-south-1-los-1a                       --            --            X   
+ap-northeast-1-tpe-1a                   --            --            X   
+ap-northeast-1-wl1-kix-wlz-1            --            --           --   
+ap-northeast-1-wl1-nrt-wlz-1            --            --           --   
+ap-northeast-2-wl1-cjj-wlz-1            --            --           --   
+ap-northeast-2-wl1-sel-wlz-1            --            --           --   
+ap-south-1-ccu-1a                       --            --            X   
+ap-south-1-del-1a                       --            --            X   
+ap-southeast-1-bkk-1a                   --            --            X   
+ap-southeast-1-mnl-1a                   --            --            X   
+ap-southeast-2-akl-1a                   --            --            X   
+ap-southeast-2-per-1a                   --            --            X   
+ca-central-1-wl1-yto-wlz-1              --            --           --   
+eu-central-1-ham-1a                     --            --            X   
+eu-central-1-waw-1a                     --            --            X   
+eu-central-1-wl1-ber-wlz-1              --            --           --   
+eu-central-1-wl1-dtm-wlz-1              --            --           --   
+eu-central-1-wl1-muc-wlz-1              --            --           --   
+eu-north-1-cph-1a                       --            --            X   
+eu-north-1-hel-1a                       --            --            X   
+eu-west-2-wl1-lon-wlz-1                 --            --           --   
+eu-west-2-wl1-man-wlz-1                 --            --           --   
+eu-west-2-wl2-man-wlz-1                 --            --           --   
+me-south-1-mct-1a                       --            --            X   
+us-east-1-atl-1a                        --            --            X   
+us-east-1-bos-1a                        --            --            X   
+us-east-1-bue-1a                        --            --            X   
+us-east-1-chi-1a                        --            --            X   
+us-east-1-dfw-1a                        --            --            X   
+us-east-1-iah-1a                        --            --            X   
+us-east-1-lim-1a                        --            --            X   
+us-east-1-mci-1a                        --            --            X   
+us-east-1-mia-1a                        --            --            X   
+us-east-1-msp-1a                        --            --            X   
+us-east-1-nyc-1a                        --            --            X   
+us-east-1-phl-1a                        --            --            X   
+us-east-1-qro-1a                        --            --            X   
+us-east-1-scl-1a                        --            --            X   
+us-east-1-wl1-atl-wlz-1                 --            --            X   
+us-east-1-wl1-bna-wlz-1                 --            --            X   
+us-east-1-wl1-bos-wlz-1                 --            --            X   
+us-east-1-wl1-chi-wlz-1                 --            --            X   
+us-east-1-wl1-clt-wlz-1                 --            --            X   
+us-east-1-wl1-dfw-wlz-1                 --            --            X   
+us-east-1-wl1-dtw-wlz-1                 --            --            X   
+us-east-1-wl1-iah-wlz-1                 --            --            X   
+us-east-1-wl1-mia-wlz-1                 --            --            X   
+us-east-1-wl1-msp-wlz-1                 --            --            X   
+us-east-1-wl1-nyc-wlz-1                 --            --            X   
+us-east-1-wl1-tpa-wlz-1                 --            --            X   
+us-east-1-wl1-was-wlz-1                 --            --            X   
+us-west-2-den-1a                        --            --            X   
+us-west-2-las-1a                        --            --            X   
+us-west-2-lax-1a                         X             X            X   
+us-west-2-lax-1b                         X             X            X   
+us-west-2-pdx-1a                        --            --            X   
+us-west-2-phx-1a                        --            --            X   
+us-west-2-sea-1a                        --            --            X   
+us-west-2-wl1-den-wlz-1                 --            --           --   
+us-west-2-wl1-las-wlz-1                 --            --           --   
+us-west-2-wl1-lax-wlz-1                 --            --           --   
+us-west-2-wl1-phx-wlz-1                 --            --           --   
+us-west-2-wl1-sea-wlz-1                 --            --           --   
+us-west-2-wl1-sfo-wlz-1                 --            --           --   
+
+                             g4dn.4xlarge g4dn.8xlarge g4dn.metal g4dn.xlarge  \
+zone                                                                            
+af-south-1-los-1a                      --           --         --          --   
+ap-northeast-1-tpe-1a                  --           --         --          --   
+ap-northeast-1-wl1-kix-wlz-1           --           --         --          --   
+ap-northeast-1-wl1-nrt-wlz-1           --           --         --          --   
+ap-northeast-2-wl1-cjj-wlz-1           --           --         --          --   
+ap-northeast-2-wl1-sel-wlz-1           --           --         --          --   
+ap-south-1-ccu-1a                      --           --         --          --   
+ap-south-1-del-1a                      --           --         --          --   
+ap-southeast-1-bkk-1a                  --           --         --          --   
+ap-southeast-1-mnl-1a                  --           --         --          --   
+ap-southeast-2-akl-1a                  --           --         --          --   
+ap-southeast-2-per-1a                  --           --         --          --   
+ca-central-1-wl1-yto-wlz-1             --           --         --          --   
+eu-central-1-ham-1a                    --           --         --          --   
+eu-central-1-waw-1a                    --           --         --          --   
+eu-central-1-wl1-ber-wlz-1             --           --         --          --   
+eu-central-1-wl1-dtm-wlz-1             --           --         --          --   
+eu-central-1-wl1-muc-wlz-1             --           --         --          --   
+eu-north-1-cph-1a                      --           --         --          --   
+eu-north-1-hel-1a                      --           --         --          --   
+eu-west-2-wl1-lon-wlz-1                --           --         --          --   
+eu-west-2-wl1-man-wlz-1                --           --         --          --   
+eu-west-2-wl2-man-wlz-1                --           --         --          --   
+me-south-1-mct-1a                      --           --         --          --   
+us-east-1-atl-1a                       --           --         --          --   
+us-east-1-bos-1a                        X           --         --          --   
+us-east-1-bue-1a                       --           --         --          --   
+us-east-1-chi-1a                        X           --         --          --   
+us-east-1-dfw-1a                        X           --         --          --   
+us-east-1-iah-1a                        X           --         --          --   
+us-east-1-lim-1a                       --           --         --          --   
+us-east-1-mci-1a                       --           --         --          --   
+us-east-1-mia-1a                       --           --         --          --   
+us-east-1-msp-1a                       --           --         --          --   
+us-east-1-nyc-1a                        X           --         --          --   
+us-east-1-phl-1a                        X           --         --          --   
+us-east-1-qro-1a                        X           --         --          --   
+us-east-1-scl-1a                       --           --         --          --   
+us-east-1-wl1-atl-wlz-1                --           --         --          --   
+us-east-1-wl1-bna-wlz-1                --           --         --          --   
+us-east-1-wl1-bos-wlz-1                --           --         --          --   
+us-east-1-wl1-chi-wlz-1                --           --         --          --   
+us-east-1-wl1-clt-wlz-1                --           --         --          --   
+us-east-1-wl1-dfw-wlz-1                --           --         --          --   
+us-east-1-wl1-dtw-wlz-1                --           --         --          --   
+us-east-1-wl1-iah-wlz-1                --           --         --          --   
+us-east-1-wl1-mia-wlz-1                --           --         --          --   
+us-east-1-wl1-msp-wlz-1                --           --         --          --   
+us-east-1-wl1-nyc-wlz-1                --           --         --          --   
+us-east-1-wl1-tpa-wlz-1                --           --         --          --   
+us-east-1-wl1-was-wlz-1                --           --         --          --   
+us-west-2-den-1a                        X           --         --          --   
+us-west-2-las-1a                       --           --         --          --   
+us-west-2-lax-1a                        X            X          X           X   
+us-west-2-lax-1b                        X            X          X           X   
+us-west-2-pdx-1a                       --           --         --          --   
+us-west-2-phx-1a                        X           --         --          --   
+us-west-2-sea-1a                       --           --         --          --   
+us-west-2-wl1-den-wlz-1                --           --         --          --   
+us-west-2-wl1-las-wlz-1                --           --         --          --   
+us-west-2-wl1-lax-wlz-1                --           --         --          --   
+us-west-2-wl1-phx-wlz-1                --           --         --          --   
+us-west-2-wl1-sea-wlz-1                --           --         --          --   
+us-west-2-wl1-sfo-wlz-1                --           --         --          --   
+
+                             g5.4xlarge g5.8xlarge  
+zone                                                
+af-south-1-los-1a                    --         --  
+ap-northeast-1-tpe-1a                --         --  
+ap-northeast-1-wl1-kix-wlz-1         --         --  
+ap-northeast-1-wl1-nrt-wlz-1         --         --  
+ap-northeast-2-wl1-cjj-wlz-1         --         --  
+ap-northeast-2-wl1-sel-wlz-1         --         --  
+ap-south-1-ccu-1a                    --         --  
+ap-south-1-del-1a                    --         --  
+ap-southeast-1-bkk-1a                --         --  
+ap-southeast-1-mnl-1a                --         --  
+ap-southeast-2-akl-1a                --         --  
+ap-southeast-2-per-1a                --         --  
+ca-central-1-wl1-yto-wlz-1           --         --  
+eu-central-1-ham-1a                  --         --  
+eu-central-1-waw-1a                  --         --  
+eu-central-1-wl1-ber-wlz-1           --         --  
+eu-central-1-wl1-dtm-wlz-1           --         --  
+eu-central-1-wl1-muc-wlz-1           --         --  
+eu-north-1-cph-1a                    --         --  
+eu-north-1-hel-1a                    --         --  
+eu-west-2-wl1-lon-wlz-1              --         --  
+eu-west-2-wl1-man-wlz-1              --         --  
+eu-west-2-wl2-man-wlz-1              --         --  
+me-south-1-mct-1a                    --         --  
+us-east-1-atl-1a                     --         --  
+us-east-1-bos-1a                     --         --  
+us-east-1-bue-1a                     --         --  
+us-east-1-chi-1a                     --         --  
+us-east-1-dfw-1a                     --         --  
+us-east-1-iah-1a                     --         --  
+us-east-1-lim-1a                     --         --  
+us-east-1-mci-1a                     --         --  
+us-east-1-mia-1a                     --         --  
+us-east-1-msp-1a                     --         --  
+us-east-1-nyc-1a                     --         --  
+us-east-1-phl-1a                     --         --  
+us-east-1-qro-1a                     --         --  
+us-east-1-scl-1a                     --         --  
+us-east-1-wl1-atl-wlz-1              --         --  
+us-east-1-wl1-bna-wlz-1              --         --  
+us-east-1-wl1-bos-wlz-1              --         --  
+us-east-1-wl1-chi-wlz-1              --         --  
+us-east-1-wl1-clt-wlz-1              --         --  
+us-east-1-wl1-dfw-wlz-1              --         --  
+us-east-1-wl1-dtw-wlz-1              --         --  
+us-east-1-wl1-iah-wlz-1              --         --  
+us-east-1-wl1-mia-wlz-1              --         --  
+us-east-1-wl1-msp-wlz-1              --         --  
+us-east-1-wl1-nyc-wlz-1              --         --  
+us-east-1-wl1-tpa-wlz-1              --         --  
+us-east-1-wl1-was-wlz-1              --         --  
+us-west-2-den-1a                     --         --  
+us-west-2-las-1a                     --         --  
+us-west-2-lax-1a                      X          X  
+us-west-2-lax-1b                     --         --  
+us-west-2-pdx-1a                     --         --  
+us-west-2-phx-1a                     --         --  
+us-west-2-sea-1a                     --         --  
+us-west-2-wl1-den-wlz-1              --         --  
+us-west-2-wl1-las-wlz-1              --         --  
+us-west-2-wl1-lax-wlz-1              --         --  
+us-west-2-wl1-phx-wlz-1              --         --  
+us-west-2-wl1-sea-wlz-1              --         --  
+us-west-2-wl1-sfo-wlz-1              --         --  
+
+                             i3en.12xlarge i3en.24xlarge i3en.2xlarge  \
+zone                                                                    
+af-south-1-los-1a                       --            --           --   
+ap-northeast-1-tpe-1a                   --            --           --   
+ap-northeast-1-wl1-kix-wlz-1            --            --           --   
+ap-northeast-1-wl1-nrt-wlz-1            --            --           --   
+ap-northeast-2-wl1-cjj-wlz-1            --            --           --   
+ap-northeast-2-wl1-sel-wlz-1            --            --           --   
+ap-south-1-ccu-1a                       --            --           --   
+ap-south-1-del-1a                       --            --           --   
+ap-southeast-1-bkk-1a                   --            --           --   
+ap-southeast-1-mnl-1a                   --            --           --   
+ap-southeast-2-akl-1a                   --            --           --   
+ap-southeast-2-per-1a                   --            --           --   
+ca-central-1-wl1-yto-wlz-1              --            --           --   
+eu-central-1-ham-1a                     --            --           --   
+eu-central-1-waw-1a                     --            --           --   
+eu-central-1-wl1-ber-wlz-1              --            --           --   
+eu-central-1-wl1-dtm-wlz-1              --            --           --   
+eu-central-1-wl1-muc-wlz-1              --            --           --   
+eu-north-1-cph-1a                       --            --           --   
+eu-north-1-hel-1a                       --            --           --   
+eu-west-2-wl1-lon-wlz-1                 --            --           --   
+eu-west-2-wl1-man-wlz-1                 --            --           --   
+eu-west-2-wl2-man-wlz-1                 --            --           --   
+me-south-1-mct-1a                       --            --           --   
+us-east-1-atl-1a                        --            --           --   
+us-east-1-bos-1a                        --            --           --   
+us-east-1-bue-1a                        --            --           --   
+us-east-1-chi-1a                        --            --           --   
+us-east-1-dfw-1a                        --            --           --   
+us-east-1-iah-1a                        --            --           --   
+us-east-1-lim-1a                        --            --           --   
+us-east-1-mci-1a                        --            --           --   
+us-east-1-mia-1a                        --            --           --   
+us-east-1-msp-1a                        --            --           --   
+us-east-1-nyc-1a                        --            --           --   
+us-east-1-phl-1a                        --            --           --   
+us-east-1-qro-1a                        --            --           --   
+us-east-1-scl-1a                        --            --           --   
+us-east-1-wl1-atl-wlz-1                 --            --           --   
+us-east-1-wl1-bna-wlz-1                 --            --           --   
+us-east-1-wl1-bos-wlz-1                 --            --           --   
+us-east-1-wl1-chi-wlz-1                 --            --           --   
+us-east-1-wl1-clt-wlz-1                 --            --           --   
+us-east-1-wl1-dfw-wlz-1                 --            --           --   
+us-east-1-wl1-dtw-wlz-1                 --            --           --   
+us-east-1-wl1-iah-wlz-1                 --            --           --   
+us-east-1-wl1-mia-wlz-1                 --            --           --   
+us-east-1-wl1-msp-wlz-1                 --            --           --   
+us-east-1-wl1-nyc-wlz-1                 --            --           --   
+us-east-1-wl1-tpa-wlz-1                 --            --           --   
+us-east-1-wl1-was-wlz-1                 --            --           --   
+us-west-2-den-1a                        --            --           --   
+us-west-2-las-1a                        --            --           --   
+us-west-2-lax-1a                         X             X            X   
+us-west-2-lax-1b                         X             X            X   
+us-west-2-pdx-1a                        --            --           --   
+us-west-2-phx-1a                        --            --           --   
+us-west-2-sea-1a                        --            --           --   
+us-west-2-wl1-den-wlz-1                 --            --           --   
+us-west-2-wl1-las-wlz-1                 --            --           --   
+us-west-2-wl1-lax-wlz-1                 --            --           --   
+us-west-2-wl1-phx-wlz-1                 --            --           --   
+us-west-2-wl1-sea-wlz-1                 --            --           --   
+us-west-2-wl1-sfo-wlz-1                 --            --           --   
+
+                             i3en.3xlarge i3en.6xlarge i3en.large i3en.metal  \
+zone                                                                           
+af-south-1-los-1a                      --           --         --         --   
+ap-northeast-1-tpe-1a                  --           --         --         --   
+ap-northeast-1-wl1-kix-wlz-1           --           --         --         --   
+ap-northeast-1-wl1-nrt-wlz-1           --           --         --         --   
+ap-northeast-2-wl1-cjj-wlz-1           --           --         --         --   
+ap-northeast-2-wl1-sel-wlz-1           --           --         --         --   
+ap-south-1-ccu-1a                      --           --         --         --   
+ap-south-1-del-1a                      --           --         --         --   
+ap-southeast-1-bkk-1a                  --           --         --         --   
+ap-southeast-1-mnl-1a                  --           --         --         --   
+ap-southeast-2-akl-1a                  --           --         --         --   
+ap-southeast-2-per-1a                  --           --         --         --   
+ca-central-1-wl1-yto-wlz-1             --           --         --         --   
+eu-central-1-ham-1a                    --           --         --         --   
+eu-central-1-waw-1a                    --           --         --         --   
+eu-central-1-wl1-ber-wlz-1             --           --         --         --   
+eu-central-1-wl1-dtm-wlz-1             --           --         --         --   
+eu-central-1-wl1-muc-wlz-1             --           --         --         --   
+eu-north-1-cph-1a                      --           --         --         --   
+eu-north-1-hel-1a                      --           --         --         --   
+eu-west-2-wl1-lon-wlz-1                --           --         --         --   
+eu-west-2-wl1-man-wlz-1                --           --         --         --   
+eu-west-2-wl2-man-wlz-1                --           --         --         --   
+me-south-1-mct-1a                      --           --         --         --   
+us-east-1-atl-1a                       --           --         --         --   
+us-east-1-bos-1a                       --           --         --         --   
+us-east-1-bue-1a                       --           --         --         --   
+us-east-1-chi-1a                       --           --         --         --   
+us-east-1-dfw-1a                       --           --         --         --   
+us-east-1-iah-1a                       --           --         --         --   
+us-east-1-lim-1a                       --           --         --         --   
+us-east-1-mci-1a                       --           --         --         --   
+us-east-1-mia-1a                       --           --         --         --   
+us-east-1-msp-1a                       --           --         --         --   
+us-east-1-nyc-1a                       --           --         --         --   
+us-east-1-phl-1a                       --           --         --         --   
+us-east-1-qro-1a                       --           --         --         --   
+us-east-1-scl-1a                       --           --         --         --   
+us-east-1-wl1-atl-wlz-1                --           --         --         --   
+us-east-1-wl1-bna-wlz-1                --           --         --         --   
+us-east-1-wl1-bos-wlz-1                --           --         --         --   
+us-east-1-wl1-chi-wlz-1                --           --         --         --   
+us-east-1-wl1-clt-wlz-1                --           --         --         --   
+us-east-1-wl1-dfw-wlz-1                --           --         --         --   
+us-east-1-wl1-dtw-wlz-1                --           --         --         --   
+us-east-1-wl1-iah-wlz-1                --           --         --         --   
+us-east-1-wl1-mia-wlz-1                --           --         --         --   
+us-east-1-wl1-msp-wlz-1                --           --         --         --   
+us-east-1-wl1-nyc-wlz-1                --           --         --         --   
+us-east-1-wl1-tpa-wlz-1                --           --         --         --   
+us-east-1-wl1-was-wlz-1                --           --         --         --   
+us-west-2-den-1a                       --           --         --         --   
+us-west-2-las-1a                       --           --         --         --   
+us-west-2-lax-1a                        X            X          X          X   
+us-west-2-lax-1b                        X            X          X          X   
+us-west-2-pdx-1a                       --           --         --         --   
+us-west-2-phx-1a                       --           --         --         --   
+us-west-2-sea-1a                       --           --         --         --   
+us-west-2-wl1-den-wlz-1                --           --         --         --   
+us-west-2-wl1-las-wlz-1                --           --         --         --   
+us-west-2-wl1-lax-wlz-1                --           --         --         --   
+us-west-2-wl1-phx-wlz-1                --           --         --         --   
+us-west-2-wl1-sea-wlz-1                --           --         --         --   
+us-west-2-wl1-sfo-wlz-1                --           --         --         --   
+
+                             i3en.xlarge  
+zone                                      
+af-south-1-los-1a                     --  
+ap-northeast-1-tpe-1a                 --  
+ap-northeast-1-wl1-kix-wlz-1          --  
+ap-northeast-1-wl1-nrt-wlz-1          --  
+ap-northeast-2-wl1-cjj-wlz-1          --  
+ap-northeast-2-wl1-sel-wlz-1          --  
+ap-south-1-ccu-1a                     --  
+ap-south-1-del-1a                     --  
+ap-southeast-1-bkk-1a                 --  
+ap-southeast-1-mnl-1a                 --  
+ap-southeast-2-akl-1a                 --  
+ap-southeast-2-per-1a                 --  
+ca-central-1-wl1-yto-wlz-1            --  
+eu-central-1-ham-1a                   --  
+eu-central-1-waw-1a                   --  
+eu-central-1-wl1-ber-wlz-1            --  
+eu-central-1-wl1-dtm-wlz-1            --  
+eu-central-1-wl1-muc-wlz-1            --  
+eu-north-1-cph-1a                     --  
+eu-north-1-hel-1a                     --  
+eu-west-2-wl1-lon-wlz-1               --  
+eu-west-2-wl1-man-wlz-1               --  
+eu-west-2-wl2-man-wlz-1               --  
+me-south-1-mct-1a                     --  
+us-east-1-atl-1a                      --  
+us-east-1-bos-1a                      --  
+us-east-1-bue-1a                      --  
+us-east-1-chi-1a                      --  
+us-east-1-dfw-1a                      --  
+us-east-1-iah-1a                      --  
+us-east-1-lim-1a                      --  
+us-east-1-mci-1a                      --  
+us-east-1-mia-1a                      --  
+us-east-1-msp-1a                      --  
+us-east-1-nyc-1a                      --  
+us-east-1-phl-1a                      --  
+us-east-1-qro-1a                      --  
+us-east-1-scl-1a                      --  
+us-east-1-wl1-atl-wlz-1               --  
+us-east-1-wl1-bna-wlz-1               --  
+us-east-1-wl1-bos-wlz-1               --  
+us-east-1-wl1-chi-wlz-1               --  
+us-east-1-wl1-clt-wlz-1               --  
+us-east-1-wl1-dfw-wlz-1               --  
+us-east-1-wl1-dtw-wlz-1               --  
+us-east-1-wl1-iah-wlz-1               --  
+us-east-1-wl1-mia-wlz-1               --  
+us-east-1-wl1-msp-wlz-1               --  
+us-east-1-wl1-nyc-wlz-1               --  
+us-east-1-wl1-tpa-wlz-1               --  
+us-east-1-wl1-was-wlz-1               --  
+us-west-2-den-1a                      --  
+us-west-2-las-1a                      --  
+us-west-2-lax-1a                       X  
+us-west-2-lax-1b                       X  
+us-west-2-pdx-1a                      --  
+us-west-2-phx-1a                      --  
+us-west-2-sea-1a                      --  
+us-west-2-wl1-den-wlz-1               --  
+us-west-2-wl1-las-wlz-1               --  
+us-west-2-wl1-lax-wlz-1               --  
+us-west-2-wl1-phx-wlz-1               --  
+us-west-2-wl1-sea-wlz-1               --  
+us-west-2-wl1-sfo-wlz-1               --  
+
+                             m4.10xlarge m4.16xlarge m4.2xlarge m4.4xlarge  \
+zone                                                                         
+af-south-1-los-1a                     --          --         --         --   
+ap-northeast-1-tpe-1a                 --          --         --         --   
+ap-northeast-1-wl1-kix-wlz-1          --          --         --         --   
+ap-northeast-1-wl1-nrt-wlz-1          --          --         --         --   
+ap-northeast-2-wl1-cjj-wlz-1          --          --         --         --   
+ap-northeast-2-wl1-sel-wlz-1          --          --         --         --   
+ap-south-1-ccu-1a                      X           X          X          X   
+ap-south-1-del-1a                      X           X          X          X   
+ap-southeast-1-bkk-1a                 --          --         --         --   
+ap-southeast-1-mnl-1a                 --          --         --         --   
+ap-southeast-2-akl-1a                 --          --         --         --   
+ap-southeast-2-per-1a                 --          --         --         --   
+ca-central-1-wl1-yto-wlz-1            --          --         --         --   
+eu-central-1-ham-1a                   --          --         --         --   
+eu-central-1-waw-1a                   --          --         --         --   
+eu-central-1-wl1-ber-wlz-1            --          --         --         --   
+eu-central-1-wl1-dtm-wlz-1            --          --         --         --   
+eu-central-1-wl1-muc-wlz-1            --          --         --         --   
+eu-north-1-cph-1a                     --          --         --         --   
+eu-north-1-hel-1a                     --          --         --         --   
+eu-west-2-wl1-lon-wlz-1               --          --         --         --   
+eu-west-2-wl1-man-wlz-1               --          --         --         --   
+eu-west-2-wl2-man-wlz-1               --          --         --         --   
+me-south-1-mct-1a                     --          --         --         --   
+us-east-1-atl-1a                      --          --         --         --   
+us-east-1-bos-1a                      --          --         --         --   
+us-east-1-bue-1a                      --          --         --         --   
+us-east-1-chi-1a                      --          --         --         --   
+us-east-1-dfw-1a                      --          --         --         --   
+us-east-1-iah-1a                      --          --         --         --   
+us-east-1-lim-1a                      --          --         --         --   
+us-east-1-mci-1a                      --          --         --         --   
+us-east-1-mia-1a                      --          --         --         --   
+us-east-1-msp-1a                      --          --         --         --   
+us-east-1-nyc-1a                      --          --         --         --   
+us-east-1-phl-1a                      --          --         --         --   
+us-east-1-qro-1a                      --          --         --         --   
+us-east-1-scl-1a                      --          --         --         --   
+us-east-1-wl1-atl-wlz-1               --          --         --         --   
+us-east-1-wl1-bna-wlz-1               --          --         --         --   
+us-east-1-wl1-bos-wlz-1               --          --         --         --   
+us-east-1-wl1-chi-wlz-1               --          --         --         --   
+us-east-1-wl1-clt-wlz-1               --          --         --         --   
+us-east-1-wl1-dfw-wlz-1               --          --         --         --   
+us-east-1-wl1-dtw-wlz-1               --          --         --         --   
+us-east-1-wl1-iah-wlz-1               --          --         --         --   
+us-east-1-wl1-mia-wlz-1               --          --         --         --   
+us-east-1-wl1-msp-wlz-1               --          --         --         --   
+us-east-1-wl1-nyc-wlz-1               --          --         --         --   
+us-east-1-wl1-tpa-wlz-1               --          --         --         --   
+us-east-1-wl1-was-wlz-1               --          --         --         --   
+us-west-2-den-1a                      --          --         --         --   
+us-west-2-las-1a                      --          --         --         --   
+us-west-2-lax-1a                      --          --         --         --   
+us-west-2-lax-1b                      --          --         --         --   
+us-west-2-pdx-1a                      --          --         --         --   
+us-west-2-phx-1a                      --          --         --         --   
+us-west-2-sea-1a                      --          --         --         --   
+us-west-2-wl1-den-wlz-1               --          --         --         --   
+us-west-2-wl1-las-wlz-1               --          --         --         --   
+us-west-2-wl1-lax-wlz-1               --          --         --         --   
+us-west-2-wl1-phx-wlz-1               --          --         --         --   
+us-west-2-wl1-sea-wlz-1               --          --         --         --   
+us-west-2-wl1-sfo-wlz-1               --          --         --         --   
+
+                             m4.large m4.xlarge m5.12xlarge m5.16xlarge  \
+zone                                                                      
+af-south-1-los-1a                  --        --          --          --   
+ap-northeast-1-tpe-1a              --        --          --          --   
+ap-northeast-1-wl1-kix-wlz-1       --        --          --          --   
+ap-northeast-1-wl1-nrt-wlz-1       --        --          --          --   
+ap-northeast-2-wl1-cjj-wlz-1       --        --          --          --   
+ap-northeast-2-wl1-sel-wlz-1       --        --          --          --   
+ap-south-1-ccu-1a                   X         X          --          --   
+ap-south-1-del-1a                   X         X          --          --   
+ap-southeast-1-bkk-1a              --        --          --          --   
+ap-southeast-1-mnl-1a              --        --          --          --   
+ap-southeast-2-akl-1a              --        --          --          --   
+ap-southeast-2-per-1a              --        --          --          --   
+ca-central-1-wl1-yto-wlz-1         --        --          --          --   
+eu-central-1-ham-1a                --        --          --          --   
+eu-central-1-waw-1a                --        --          --          --   
+eu-central-1-wl1-ber-wlz-1         --        --          --          --   
+eu-central-1-wl1-dtm-wlz-1         --        --          --          --   
+eu-central-1-wl1-muc-wlz-1         --        --          --          --   
+eu-north-1-cph-1a                  --        --          --          --   
+eu-north-1-hel-1a                  --        --          --          --   
+eu-west-2-wl1-lon-wlz-1            --        --          --          --   
+eu-west-2-wl1-man-wlz-1            --        --          --          --   
+eu-west-2-wl2-man-wlz-1            --        --          --          --   
+me-south-1-mct-1a                  --        --          --          --   
+us-east-1-atl-1a                   --        --          --          --   
+us-east-1-bos-1a                   --        --          --          --   
+us-east-1-bue-1a                   --        --          --          --   
+us-east-1-chi-1a                   --        --          --          --   
+us-east-1-dfw-1a                   --        --          --          --   
+us-east-1-iah-1a                   --        --          --          --   
+us-east-1-lim-1a                   --        --          --          --   
+us-east-1-mci-1a                   --        --          --          --   
+us-east-1-mia-1a                   --        --          --          --   
+us-east-1-msp-1a                   --        --          --          --   
+us-east-1-nyc-1a                   --        --          --          --   
+us-east-1-phl-1a                   --        --          --          --   
+us-east-1-qro-1a                   --        --          --          --   
+us-east-1-scl-1a                   --        --          --          --   
+us-east-1-wl1-atl-wlz-1            --        --          --          --   
+us-east-1-wl1-bna-wlz-1            --        --          --          --   
+us-east-1-wl1-bos-wlz-1            --        --          --          --   
+us-east-1-wl1-chi-wlz-1            --        --          --          --   
+us-east-1-wl1-clt-wlz-1            --        --          --          --   
+us-east-1-wl1-dfw-wlz-1            --        --          --          --   
+us-east-1-wl1-dtw-wlz-1            --        --          --          --   
+us-east-1-wl1-iah-wlz-1            --        --          --          --   
+us-east-1-wl1-mia-wlz-1            --        --          --          --   
+us-east-1-wl1-msp-wlz-1            --        --          --          --   
+us-east-1-wl1-nyc-wlz-1            --        --          --          --   
+us-east-1-wl1-tpa-wlz-1            --        --          --          --   
+us-east-1-wl1-was-wlz-1            --        --          --          --   
+us-west-2-den-1a                   --        --           X          --   
+us-west-2-las-1a                   --        --          --          --   
+us-west-2-lax-1a                   --        --           X           X   
+us-west-2-lax-1b                   --        --           X           X   
+us-west-2-pdx-1a                   --        --          --          --   
+us-west-2-phx-1a                   --        --          --          --   
+us-west-2-sea-1a                   --        --          --          --   
+us-west-2-wl1-den-wlz-1            --        --          --          --   
+us-west-2-wl1-las-wlz-1            --        --          --          --   
+us-west-2-wl1-lax-wlz-1            --        --          --          --   
+us-west-2-wl1-phx-wlz-1            --        --          --          --   
+us-west-2-wl1-sea-wlz-1            --        --          --          --   
+us-west-2-wl1-sfo-wlz-1            --        --          --          --   
+
+                             m5.24xlarge m5.2xlarge m5.4xlarge m5.8xlarge  \
+zone                                                                        
+af-south-1-los-1a                     --          X         --         --   
+ap-northeast-1-tpe-1a                 --          X         --         --   
+ap-northeast-1-wl1-kix-wlz-1          --         --         --         --   
+ap-northeast-1-wl1-nrt-wlz-1          --         --         --         --   
+ap-northeast-2-wl1-cjj-wlz-1          --         --         --         --   
+ap-northeast-2-wl1-sel-wlz-1          --         --         --         --   
+ap-south-1-ccu-1a                     --          X         --         --   
+ap-south-1-del-1a                     --          X         --         --   
+ap-southeast-1-bkk-1a                 --          X         --         --   
+ap-southeast-1-mnl-1a                 --          X         --         --   
+ap-southeast-2-akl-1a                 --          X         --         --   
+ap-southeast-2-per-1a                 --          X         --         --   
+ca-central-1-wl1-yto-wlz-1            --         --         --         --   
+eu-central-1-ham-1a                   --          X         --         --   
+eu-central-1-waw-1a                   --          X         --         --   
+eu-central-1-wl1-ber-wlz-1            --         --         --         --   
+eu-central-1-wl1-dtm-wlz-1            --         --         --         --   
+eu-central-1-wl1-muc-wlz-1            --         --         --         --   
+eu-north-1-cph-1a                     --          X         --         --   
+eu-north-1-hel-1a                     --          X         --         --   
+eu-west-2-wl1-lon-wlz-1               --         --         --         --   
+eu-west-2-wl1-man-wlz-1               --         --         --         --   
+eu-west-2-wl2-man-wlz-1               --         --         --         --   
+me-south-1-mct-1a                     --          X         --         --   
+us-east-1-atl-1a                      --         --         --         --   
+us-east-1-bos-1a                      --         --         --         --   
+us-east-1-bue-1a                      --          X         --         --   
+us-east-1-chi-1a                      --         --         --         --   
+us-east-1-dfw-1a                      --         --         --         --   
+us-east-1-iah-1a                      --         --         --         --   
+us-east-1-lim-1a                      --          X         --         --   
+us-east-1-mci-1a                      --         --         --         --   
+us-east-1-mia-1a                      --         --         --         --   
+us-east-1-msp-1a                      --         --         --         --   
+us-east-1-nyc-1a                      --         --         --         --   
+us-east-1-phl-1a                      --         --         --         --   
+us-east-1-qro-1a                      --          X         --         --   
+us-east-1-scl-1a                      --          X         --         --   
+us-east-1-wl1-atl-wlz-1               --         --         --         --   
+us-east-1-wl1-bna-wlz-1               --         --         --         --   
+us-east-1-wl1-bos-wlz-1               --         --         --         --   
+us-east-1-wl1-chi-wlz-1               --         --         --         --   
+us-east-1-wl1-clt-wlz-1               --         --         --         --   
+us-east-1-wl1-dfw-wlz-1               --         --         --         --   
+us-east-1-wl1-dtw-wlz-1               --         --         --         --   
+us-east-1-wl1-iah-wlz-1               --         --         --         --   
+us-east-1-wl1-mia-wlz-1               --         --         --         --   
+us-east-1-wl1-msp-wlz-1               --         --         --         --   
+us-east-1-wl1-nyc-wlz-1               --         --         --         --   
+us-east-1-wl1-tpa-wlz-1               --         --         --         --   
+us-east-1-wl1-was-wlz-1               --         --         --         --   
+us-west-2-den-1a                      --         --         --         --   
+us-west-2-las-1a                      --         --         --         --   
+us-west-2-lax-1a                       X          X          X          X   
+us-west-2-lax-1b                       X          X          X          X   
+us-west-2-pdx-1a                      --         --         --         --   
+us-west-2-phx-1a                      --         --         --         --   
+us-west-2-sea-1a                      --         --         --         --   
+us-west-2-wl1-den-wlz-1               --         --         --         --   
+us-west-2-wl1-las-wlz-1               --         --         --         --   
+us-west-2-wl1-lax-wlz-1               --         --         --         --   
+us-west-2-wl1-phx-wlz-1               --         --         --         --   
+us-west-2-wl1-sea-wlz-1               --         --         --         --   
+us-west-2-wl1-sfo-wlz-1               --         --         --         --   
+
+                             m5.large m5.metal m5.xlarge  
+zone                                                      
+af-south-1-los-1a                  --       --        --  
+ap-northeast-1-tpe-1a              --       --        --  
+ap-northeast-1-wl1-kix-wlz-1       --       --        --  
+ap-northeast-1-wl1-nrt-wlz-1       --       --        --  
+ap-northeast-2-wl1-cjj-wlz-1       --       --        --  
+ap-northeast-2-wl1-sel-wlz-1       --       --        --  
+ap-south-1-ccu-1a                  --       --        --  
+ap-south-1-del-1a                  --       --        --  
+ap-southeast-1-bkk-1a              --       --        --  
+ap-southeast-1-mnl-1a              --       --        --  
+ap-southeast-2-akl-1a              --       --        --  
+ap-southeast-2-per-1a              --       --        --  
+ca-central-1-wl1-yto-wlz-1         --       --        --  
+eu-central-1-ham-1a                --       --        --  
+eu-central-1-waw-1a                --       --        --  
+eu-central-1-wl1-ber-wlz-1         --       --        --  
+eu-central-1-wl1-dtm-wlz-1         --       --        --  
+eu-central-1-wl1-muc-wlz-1         --       --        --  
+eu-north-1-cph-1a                  --       --        --  
+eu-north-1-hel-1a                  --       --        --  
+eu-west-2-wl1-lon-wlz-1            --       --        --  
+eu-west-2-wl1-man-wlz-1            --       --        --  
+eu-west-2-wl2-man-wlz-1            --       --        --  
+me-south-1-mct-1a                  --       --        --  
+us-east-1-atl-1a                   --       --        --  
+us-east-1-bos-1a                   --       --        --  
+us-east-1-bue-1a                   --       --        --  
+us-east-1-chi-1a                   --       --        --  
+us-east-1-dfw-1a                   --       --        --  
+us-east-1-iah-1a                   --       --        --  
+us-east-1-lim-1a                   --       --        --  
+us-east-1-mci-1a                   --       --        --  
+us-east-1-mia-1a                   --       --         X  
+us-east-1-msp-1a                   --       --        --  
+us-east-1-nyc-1a                   --       --        --  
+us-east-1-phl-1a                   --       --        --  
+us-east-1-qro-1a                   --       --        --  
+us-east-1-scl-1a                   --       --        --  
+us-east-1-wl1-atl-wlz-1            --       --        --  
+us-east-1-wl1-bna-wlz-1            --       --        --  
+us-east-1-wl1-bos-wlz-1            --       --        --  
+us-east-1-wl1-chi-wlz-1            --       --        --  
+us-east-1-wl1-clt-wlz-1            --       --        --  
+us-east-1-wl1-dfw-wlz-1            --       --        --  
+us-east-1-wl1-dtw-wlz-1            --       --        --  
+us-east-1-wl1-iah-wlz-1            --       --        --  
+us-east-1-wl1-mia-wlz-1            --       --        --  
+us-east-1-wl1-msp-wlz-1            --       --        --  
+us-east-1-wl1-nyc-wlz-1            --       --        --  
+us-east-1-wl1-tpa-wlz-1            --       --        --  
+us-east-1-wl1-was-wlz-1            --       --        --  
+us-west-2-den-1a                   --       --        --  
+us-west-2-las-1a                   --       --        --  
+us-west-2-lax-1a                    X        X         X  
+us-west-2-lax-1b                    X        X         X  
+us-west-2-pdx-1a                   --       --        --  
+us-west-2-phx-1a                   --       --        --  
+us-west-2-sea-1a                   --       --        --  
+us-west-2-wl1-den-wlz-1            --       --        --  
+us-west-2-wl1-las-wlz-1            --       --        --  
+us-west-2-wl1-lax-wlz-1            --       --        --  
+us-west-2-wl1-phx-wlz-1            --       --        --  
+us-west-2-wl1-sea-wlz-1            --       --        --  
+us-west-2-wl1-sfo-wlz-1            --       --        --  
+
+                             r5.12xlarge r5.16xlarge r5.24xlarge r5.2xlarge  \
+zone                                                                          
+af-south-1-los-1a                     --          --          --          X   
+ap-northeast-1-tpe-1a                 --          --          --          X   
+ap-northeast-1-wl1-kix-wlz-1          --          --          --         --   
+ap-northeast-1-wl1-nrt-wlz-1          --          --          --         --   
+ap-northeast-2-wl1-cjj-wlz-1          --          --          --         --   
+ap-northeast-2-wl1-sel-wlz-1          --          --          --         --   
+ap-south-1-ccu-1a                     --          --          --          X   
+ap-south-1-del-1a                     --          --          --          X   
+ap-southeast-1-bkk-1a                 --          --          --          X   
+ap-southeast-1-mnl-1a                 --          --          --          X   
+ap-southeast-2-akl-1a                 --          --          --          X   
+ap-southeast-2-per-1a                 --          --          --          X   
+ca-central-1-wl1-yto-wlz-1            --          --          --         --   
+eu-central-1-ham-1a                   --          --          --          X   
+eu-central-1-waw-1a                   --          --          --          X   
+eu-central-1-wl1-ber-wlz-1            --          --          --         --   
+eu-central-1-wl1-dtm-wlz-1            --          --          --         --   
+eu-central-1-wl1-muc-wlz-1            --          --          --         --   
+eu-north-1-cph-1a                     --          --          --          X   
+eu-north-1-hel-1a                     --          --          --          X   
+eu-west-2-wl1-lon-wlz-1               --          --          --         --   
+eu-west-2-wl1-man-wlz-1               --          --          --         --   
+eu-west-2-wl2-man-wlz-1               --          --          --         --   
+me-south-1-mct-1a                     --          --          --          X   
+us-east-1-atl-1a                      --          --          --         --   
+us-east-1-bos-1a                      --          --          --         --   
+us-east-1-bue-1a                      --          --          --          X   
+us-east-1-chi-1a                      --          --          --         --   
+us-east-1-dfw-1a                      --          --          --         --   
+us-east-1-iah-1a                      --          --          --         --   
+us-east-1-lim-1a                      --          --          --          X   
+us-east-1-mci-1a                      --          --          --         --   
+us-east-1-mia-1a                      --          --          --         --   
+us-east-1-msp-1a                      --          --          --         --   
+us-east-1-nyc-1a                      --          --          --         --   
+us-east-1-phl-1a                      --          --          --         --   
+us-east-1-qro-1a                      --          --          --          X   
+us-east-1-scl-1a                      --          --          --          X   
+us-east-1-wl1-atl-wlz-1               --          --          --          X   
+us-east-1-wl1-bna-wlz-1               --          --          --          X   
+us-east-1-wl1-bos-wlz-1               --          --          --          X   
+us-east-1-wl1-chi-wlz-1               --          --          --          X   
+us-east-1-wl1-clt-wlz-1               --          --          --          X   
+us-east-1-wl1-dfw-wlz-1               --          --          --          X   
+us-east-1-wl1-dtw-wlz-1               --          --          --          X   
+us-east-1-wl1-iah-wlz-1               --          --          --          X   
+us-east-1-wl1-mia-wlz-1               --          --          --          X   
+us-east-1-wl1-msp-wlz-1               --          --          --          X   
+us-east-1-wl1-nyc-wlz-1               --          --          --          X   
+us-east-1-wl1-tpa-wlz-1               --          --          --          X   
+us-east-1-wl1-was-wlz-1               --          --          --          X   
+us-west-2-den-1a                      --          --          --         --   
+us-west-2-las-1a                      --          --          --         --   
+us-west-2-lax-1a                       X           X           X          X   
+us-west-2-lax-1b                       X           X           X          X   
+us-west-2-pdx-1a                      --          --          --         --   
+us-west-2-phx-1a                      --          --          --         --   
+us-west-2-sea-1a                      --          --          --         --   
+us-west-2-wl1-den-wlz-1               --          --          --         --   
+us-west-2-wl1-las-wlz-1               --          --          --         --   
+us-west-2-wl1-lax-wlz-1               --          --          --         --   
+us-west-2-wl1-phx-wlz-1               --          --          --         --   
+us-west-2-wl1-sea-wlz-1               --          --          --         --   
+us-west-2-wl1-sfo-wlz-1               --          --          --         --   
+
+                             r5.4xlarge r5.8xlarge r5.large r5.metal  \
+zone                                                                   
+af-south-1-los-1a                    --         --       --       --   
+ap-northeast-1-tpe-1a                --         --       --       --   
+ap-northeast-1-wl1-kix-wlz-1         --         --       --       --   
+ap-northeast-1-wl1-nrt-wlz-1         --         --       --       --   
+ap-northeast-2-wl1-cjj-wlz-1         --         --       --       --   
+ap-northeast-2-wl1-sel-wlz-1         --         --       --       --   
+ap-south-1-ccu-1a                    --         --       --       --   
+ap-south-1-del-1a                    --         --       --       --   
+ap-southeast-1-bkk-1a                --         --       --       --   
+ap-southeast-1-mnl-1a                --         --       --       --   
+ap-southeast-2-akl-1a                --         --       --       --   
+ap-southeast-2-per-1a                --         --       --       --   
+ca-central-1-wl1-yto-wlz-1           --         --       --       --   
+eu-central-1-ham-1a                  --         --       --       --   
+eu-central-1-waw-1a                  --         --       --       --   
+eu-central-1-wl1-ber-wlz-1           --         --       --       --   
+eu-central-1-wl1-dtm-wlz-1           --         --       --       --   
+eu-central-1-wl1-muc-wlz-1           --         --       --       --   
+eu-north-1-cph-1a                    --         --       --       --   
+eu-north-1-hel-1a                    --         --       --       --   
+eu-west-2-wl1-lon-wlz-1              --         --       --       --   
+eu-west-2-wl1-man-wlz-1              --         --       --       --   
+eu-west-2-wl2-man-wlz-1              --         --       --       --   
+me-south-1-mct-1a                    --         --       --       --   
+us-east-1-atl-1a                     --         --       --       --   
+us-east-1-bos-1a                     --         --       --       --   
+us-east-1-bue-1a                     --         --       --       --   
+us-east-1-chi-1a                     --         --       --       --   
+us-east-1-dfw-1a                     --         --       --       --   
+us-east-1-iah-1a                     --         --       --       --   
+us-east-1-lim-1a                     --         --       --       --   
+us-east-1-mci-1a                     --         --       --       --   
+us-east-1-mia-1a                     --         --       --       --   
+us-east-1-msp-1a                     --         --       --       --   
+us-east-1-nyc-1a                     --         --       --       --   
+us-east-1-phl-1a                     --         --       --       --   
+us-east-1-qro-1a                     --         --       --       --   
+us-east-1-scl-1a                     --         --       --       --   
+us-east-1-wl1-atl-wlz-1              --         --       --       --   
+us-east-1-wl1-bna-wlz-1              --         --       --       --   
+us-east-1-wl1-bos-wlz-1              --         --       --       --   
+us-east-1-wl1-chi-wlz-1              --         --       --       --   
+us-east-1-wl1-clt-wlz-1              --         --       --       --   
+us-east-1-wl1-dfw-wlz-1              --         --       --       --   
+us-east-1-wl1-dtw-wlz-1              --         --       --       --   
+us-east-1-wl1-iah-wlz-1              --         --       --       --   
+us-east-1-wl1-mia-wlz-1              --         --       --       --   
+us-east-1-wl1-msp-wlz-1              --         --       --       --   
+us-east-1-wl1-nyc-wlz-1              --         --       --       --   
+us-east-1-wl1-tpa-wlz-1              --         --       --       --   
+us-east-1-wl1-was-wlz-1              --         --       --       --   
+us-west-2-den-1a                     --         --       --       --   
+us-west-2-las-1a                     --         --       --       --   
+us-west-2-lax-1a                      X          X        X        X   
+us-west-2-lax-1b                      X          X        X        X   
+us-west-2-pdx-1a                     --         --       --       --   
+us-west-2-phx-1a                     --         --       --       --   
+us-west-2-sea-1a                     --         --       --       --   
+us-west-2-wl1-den-wlz-1              --         --       --       --   
+us-west-2-wl1-las-wlz-1              --         --       --       --   
+us-west-2-wl1-lax-wlz-1              --         --       --       --   
+us-west-2-wl1-phx-wlz-1              --         --       --       --   
+us-west-2-wl1-sea-wlz-1              --         --       --       --   
+us-west-2-wl1-sfo-wlz-1              --         --       --       --   
+
+                             r5.xlarge r5d.12xlarge r5d.16xlarge r5d.24xlarge  \
+zone                                                                            
+af-south-1-los-1a                   --           --           --           --   
+ap-northeast-1-tpe-1a               --           --           --           --   
+ap-northeast-1-wl1-kix-wlz-1        --           --           --           --   
+ap-northeast-1-wl1-nrt-wlz-1        --           --           --           --   
+ap-northeast-2-wl1-cjj-wlz-1        --           --           --           --   
+ap-northeast-2-wl1-sel-wlz-1        --           --           --           --   
+ap-south-1-ccu-1a                   --           --           --           --   
+ap-south-1-del-1a                   --           --           --           --   
+ap-southeast-1-bkk-1a               --           --           --           --   
+ap-southeast-1-mnl-1a               --           --           --           --   
+ap-southeast-2-akl-1a               --           --           --           --   
+ap-southeast-2-per-1a               --           --           --           --   
+ca-central-1-wl1-yto-wlz-1          --           --           --           --   
+eu-central-1-ham-1a                 --           --           --           --   
+eu-central-1-waw-1a                 --           --           --           --   
+eu-central-1-wl1-ber-wlz-1          --           --           --           --   
+eu-central-1-wl1-dtm-wlz-1          --           --           --           --   
+eu-central-1-wl1-muc-wlz-1          --           --           --           --   
+eu-north-1-cph-1a                   --           --           --           --   
+eu-north-1-hel-1a                   --           --           --           --   
+eu-west-2-wl1-lon-wlz-1             --           --           --           --   
+eu-west-2-wl1-man-wlz-1             --           --           --           --   
+eu-west-2-wl2-man-wlz-1             --           --           --           --   
+me-south-1-mct-1a                   --           --           --           --   
+us-east-1-atl-1a                    --           --           --           --   
+us-east-1-bos-1a                    --           --           --           --   
+us-east-1-bue-1a                    --           --           --           --   
+us-east-1-chi-1a                    --           --           --           --   
+us-east-1-dfw-1a                    --           --           --           --   
+us-east-1-iah-1a                    --           --           --           --   
+us-east-1-lim-1a                    --           --           --           --   
+us-east-1-mci-1a                    --           --           --           --   
+us-east-1-mia-1a                    --           --           --           --   
+us-east-1-msp-1a                    --           --           --           --   
+us-east-1-nyc-1a                    --           --           --           --   
+us-east-1-phl-1a                    --           --           --           --   
+us-east-1-qro-1a                    --           --           --           --   
+us-east-1-scl-1a                    --           --           --           --   
+us-east-1-wl1-atl-wlz-1             --           --           --           --   
+us-east-1-wl1-bna-wlz-1             --           --           --           --   
+us-east-1-wl1-bos-wlz-1             --           --           --           --   
+us-east-1-wl1-chi-wlz-1             --           --           --           --   
+us-east-1-wl1-clt-wlz-1             --           --           --           --   
+us-east-1-wl1-dfw-wlz-1             --           --           --           --   
+us-east-1-wl1-dtw-wlz-1             --           --           --           --   
+us-east-1-wl1-iah-wlz-1             --           --           --           --   
+us-east-1-wl1-mia-wlz-1             --           --           --           --   
+us-east-1-wl1-msp-wlz-1             --           --           --           --   
+us-east-1-wl1-nyc-wlz-1             --           --           --           --   
+us-east-1-wl1-tpa-wlz-1             --           --           --           --   
+us-east-1-wl1-was-wlz-1             --           --           --           --   
+us-west-2-den-1a                    --           --           --           --   
+us-west-2-las-1a                    --           --           --           --   
+us-west-2-lax-1a                     X            X            X            X   
+us-west-2-lax-1b                     X            X            X            X   
+us-west-2-pdx-1a                    --           --           --           --   
+us-west-2-phx-1a                    --           --           --           --   
+us-west-2-sea-1a                    --           --           --           --   
+us-west-2-wl1-den-wlz-1             --           --           --           --   
+us-west-2-wl1-las-wlz-1             --           --           --           --   
+us-west-2-wl1-lax-wlz-1             --           --           --           --   
+us-west-2-wl1-phx-wlz-1             --           --           --           --   
+us-west-2-wl1-sea-wlz-1             --           --           --           --   
+us-west-2-wl1-sfo-wlz-1             --           --           --           --   
+
+                             r5d.2xlarge r5d.4xlarge r5d.8xlarge r5d.large  \
+zone                                                                         
+af-south-1-los-1a                     --          --          --        --   
+ap-northeast-1-tpe-1a                 --          --          --        --   
+ap-northeast-1-wl1-kix-wlz-1          --          --          --        --   
+ap-northeast-1-wl1-nrt-wlz-1          --          --          --        --   
+ap-northeast-2-wl1-cjj-wlz-1          --          --          --        --   
+ap-northeast-2-wl1-sel-wlz-1          --          --          --        --   
+ap-south-1-ccu-1a                     --          --          --        --   
+ap-south-1-del-1a                     --          --          --        --   
+ap-southeast-1-bkk-1a                 --          --          --        --   
+ap-southeast-1-mnl-1a                 --          --          --        --   
+ap-southeast-2-akl-1a                 --          --          --        --   
+ap-southeast-2-per-1a                 --          --          --        --   
+ca-central-1-wl1-yto-wlz-1            --          --          --        --   
+eu-central-1-ham-1a                   --          --          --        --   
+eu-central-1-waw-1a                   --          --          --        --   
+eu-central-1-wl1-ber-wlz-1            --          --          --        --   
+eu-central-1-wl1-dtm-wlz-1            --          --          --        --   
+eu-central-1-wl1-muc-wlz-1            --          --          --        --   
+eu-north-1-cph-1a                     --          --          --        --   
+eu-north-1-hel-1a                     --          --          --        --   
+eu-west-2-wl1-lon-wlz-1               --          --          --        --   
+eu-west-2-wl1-man-wlz-1               --          --          --        --   
+eu-west-2-wl2-man-wlz-1               --          --          --        --   
+me-south-1-mct-1a                     --          --          --        --   
+us-east-1-atl-1a                       X           X           X        --   
+us-east-1-bos-1a                       X           X           X        --   
+us-east-1-bue-1a                      --          --          --        --   
+us-east-1-chi-1a                       X           X           X        --   
+us-east-1-dfw-1a                       X           X           X        --   
+us-east-1-iah-1a                       X          --          --        --   
+us-east-1-lim-1a                      --          --          --        --   
+us-east-1-mci-1a                       X          --          --        --   
+us-east-1-mia-1a                       X          --          --        --   
+us-east-1-msp-1a                       X          --          --        --   
+us-east-1-nyc-1a                       X          --          --        --   
+us-east-1-phl-1a                       X           X           X        --   
+us-east-1-qro-1a                      --          --          --        --   
+us-east-1-scl-1a                      --          --          --        --   
+us-east-1-wl1-atl-wlz-1               --          --          --        --   
+us-east-1-wl1-bna-wlz-1               --          --          --        --   
+us-east-1-wl1-bos-wlz-1               --          --          --        --   
+us-east-1-wl1-chi-wlz-1               --          --          --        --   
+us-east-1-wl1-clt-wlz-1               --          --          --        --   
+us-east-1-wl1-dfw-wlz-1               --          --          --        --   
+us-east-1-wl1-dtw-wlz-1               --          --          --        --   
+us-east-1-wl1-iah-wlz-1               --          --          --        --   
+us-east-1-wl1-mia-wlz-1               --          --          --        --   
+us-east-1-wl1-msp-wlz-1               --          --          --        --   
+us-east-1-wl1-nyc-wlz-1               --          --          --        --   
+us-east-1-wl1-tpa-wlz-1               --          --          --        --   
+us-east-1-wl1-was-wlz-1               --          --          --        --   
+us-west-2-den-1a                       X           X           X        --   
+us-west-2-las-1a                       X          --          --        --   
+us-west-2-lax-1a                       X           X           X         X   
+us-west-2-lax-1b                       X           X           X         X   
+us-west-2-pdx-1a                       X          --          --        --   
+us-west-2-phx-1a                       X           X           X        --   
+us-west-2-sea-1a                       X          --          --        --   
+us-west-2-wl1-den-wlz-1               --          --          --        --   
+us-west-2-wl1-las-wlz-1               --          --          --        --   
+us-west-2-wl1-lax-wlz-1               --          --          --        --   
+us-west-2-wl1-phx-wlz-1               --          --          --        --   
+us-west-2-wl1-sea-wlz-1               --          --          --        --   
+us-west-2-wl1-sfo-wlz-1               --          --          --        --   
+
+                             r5d.metal r5d.xlarge  
+zone                                               
+af-south-1-los-1a                   --         --  
+ap-northeast-1-tpe-1a               --         --  
+ap-northeast-1-wl1-kix-wlz-1        --         --  
+ap-northeast-1-wl1-nrt-wlz-1        --         --  
+ap-northeast-2-wl1-cjj-wlz-1        --         --  
+ap-northeast-2-wl1-sel-wlz-1        --         --  
+ap-south-1-ccu-1a                   --         --  
+ap-south-1-del-1a                   --         --  
+ap-southeast-1-bkk-1a               --         --  
+ap-southeast-1-mnl-1a               --         --  
+ap-southeast-2-akl-1a               --         --  
+ap-southeast-2-per-1a               --         --  
+ca-central-1-wl1-yto-wlz-1          --         --  
+eu-central-1-ham-1a                 --         --  
+eu-central-1-waw-1a                 --         --  
+eu-central-1-wl1-ber-wlz-1          --         --  
+eu-central-1-wl1-dtm-wlz-1          --         --  
+eu-central-1-wl1-muc-wlz-1          --         --  
+eu-north-1-cph-1a                   --         --  
+eu-north-1-hel-1a                   --         --  
+eu-west-2-wl1-lon-wlz-1             --         --  
+eu-west-2-wl1-man-wlz-1             --         --  
+eu-west-2-wl2-man-wlz-1             --         --  
+me-south-1-mct-1a                   --         --  
+us-east-1-atl-1a                    --          X  
+us-east-1-bos-1a                    --          X  
+us-east-1-bue-1a                    --         --  
+us-east-1-chi-1a                    --          X  
+us-east-1-dfw-1a                    --          X  
+us-east-1-iah-1a                    --         --  
+us-east-1-lim-1a                    --         --  
+us-east-1-mci-1a                    --         --  
+us-east-1-mia-1a                    --         --  
+us-east-1-msp-1a                    --         --  
+us-east-1-nyc-1a                    --         --  
+us-east-1-phl-1a                    --          X  
+us-east-1-qro-1a                    --         --  
+us-east-1-scl-1a                    --         --  
+us-east-1-wl1-atl-wlz-1             --         --  
+us-east-1-wl1-bna-wlz-1             --         --  
+us-east-1-wl1-bos-wlz-1             --         --  
+us-east-1-wl1-chi-wlz-1             --         --  
+us-east-1-wl1-clt-wlz-1             --         --  
+us-east-1-wl1-dfw-wlz-1             --         --  
+us-east-1-wl1-dtw-wlz-1             --         --  
+us-east-1-wl1-iah-wlz-1             --         --  
+us-east-1-wl1-mia-wlz-1             --         --  
+us-east-1-wl1-msp-wlz-1             --         --  
+us-east-1-wl1-nyc-wlz-1             --         --  
+us-east-1-wl1-tpa-wlz-1             --         --  
+us-east-1-wl1-was-wlz-1             --         --  
+us-west-2-den-1a                    --          X  
+us-west-2-las-1a                    --         --  
+us-west-2-lax-1a                     X          X  
+us-west-2-lax-1b                     X          X  
+us-west-2-pdx-1a                    --         --  
+us-west-2-phx-1a                    --          X  
+us-west-2-sea-1a                    --         --  
+us-west-2-wl1-den-wlz-1             --         --  
+us-west-2-wl1-las-wlz-1             --         --  
+us-west-2-wl1-lax-wlz-1             --         --  
+us-west-2-wl1-phx-wlz-1             --         --  
+us-west-2-wl1-sea-wlz-1             --         --  
+us-west-2-wl1-sfo-wlz-1             --         --  
+
+                             t3.2xlarge t3.large t3.medium t3.micro t3.nano  \
+zone                                                                          
+af-south-1-los-1a                    --       --        --       --      --   
+ap-northeast-1-tpe-1a                --       --         X       --      --   
+ap-northeast-1-wl1-kix-wlz-1         --       --        --       --      --   
+ap-northeast-1-wl1-nrt-wlz-1         --       --        --       --      --   
+ap-northeast-2-wl1-cjj-wlz-1         --       --        --       --      --   
+ap-northeast-2-wl1-sel-wlz-1         --       --        --       --      --   
+ap-south-1-ccu-1a                    --       --         X       --      --   
+ap-south-1-del-1a                    --       --         X       --      --   
+ap-southeast-1-bkk-1a                --       --         X       --      --   
+ap-southeast-1-mnl-1a                --       --         X       --      --   
+ap-southeast-2-akl-1a                --       --         X       --      --   
+ap-southeast-2-per-1a                --       --         X       --      --   
+ca-central-1-wl1-yto-wlz-1           --       --        --       --      --   
+eu-central-1-ham-1a                  --       --         X       --      --   
+eu-central-1-waw-1a                  --       --         X       --      --   
+eu-central-1-wl1-ber-wlz-1           --       --        --       --      --   
+eu-central-1-wl1-dtm-wlz-1           --       --        --       --      --   
+eu-central-1-wl1-muc-wlz-1           --       --        --       --      --   
+eu-north-1-cph-1a                    --       --         X       --      --   
+eu-north-1-hel-1a                    --       --         X       --      --   
+eu-west-2-wl1-lon-wlz-1              --       --        --       --      --   
+eu-west-2-wl1-man-wlz-1              --       --        --       --      --   
+eu-west-2-wl2-man-wlz-1              --       --        --       --      --   
+me-south-1-mct-1a                    --       --         X       --      --   
+us-east-1-atl-1a                     --       --         X       --      --   
+us-east-1-bos-1a                     --       --         X       --      --   
+us-east-1-bue-1a                     --       --         X       --      --   
+us-east-1-chi-1a                     --       --         X       --      --   
+us-east-1-dfw-1a                     --       --         X       --      --   
+us-east-1-iah-1a                     --       --         X       --      --   
+us-east-1-lim-1a                     --       --         X       --      --   
+us-east-1-mci-1a                     --       --         X       --      --   
+us-east-1-mia-1a                     --       --         X       --      --   
+us-east-1-msp-1a                     --       --         X       --      --   
+us-east-1-nyc-1a                     --       --         X       --      --   
+us-east-1-phl-1a                     --       --         X       --      --   
+us-east-1-qro-1a                     --       --         X       --      --   
+us-east-1-scl-1a                     --       --         X       --      --   
+us-east-1-wl1-atl-wlz-1              --       --         X       --      --   
+us-east-1-wl1-bna-wlz-1              --       --         X       --      --   
+us-east-1-wl1-bos-wlz-1              --       --         X       --      --   
+us-east-1-wl1-chi-wlz-1              --       --         X       --      --   
+us-east-1-wl1-clt-wlz-1              --       --         X       --      --   
+us-east-1-wl1-dfw-wlz-1              --       --         X       --      --   
+us-east-1-wl1-dtw-wlz-1              --       --         X       --      --   
+us-east-1-wl1-iah-wlz-1              --       --         X       --      --   
+us-east-1-wl1-mia-wlz-1              --       --         X       --      --   
+us-east-1-wl1-msp-wlz-1              --       --         X       --      --   
+us-east-1-wl1-nyc-wlz-1              --       --         X       --      --   
+us-east-1-wl1-tpa-wlz-1              --       --         X       --      --   
+us-east-1-wl1-was-wlz-1              --       --         X       --      --   
+us-west-2-den-1a                     --       --         X       --      --   
+us-west-2-las-1a                     --       --         X       --      --   
+us-west-2-lax-1a                      X        X         X        X       X   
+us-west-2-lax-1b                      X        X         X        X       X   
+us-west-2-pdx-1a                     --       --         X       --      --   
+us-west-2-phx-1a                     --       --         X       --      --   
+us-west-2-sea-1a                     --       --         X       --      --   
+us-west-2-wl1-den-wlz-1              --       --        --       --      --   
+us-west-2-wl1-las-wlz-1              --       --        --       --      --   
+us-west-2-wl1-lax-wlz-1              --       --        --       --      --   
+us-west-2-wl1-phx-wlz-1              --       --        --       --      --   
+us-west-2-wl1-sea-wlz-1              --       --        --       --      --   
+us-west-2-wl1-sfo-wlz-1              --       --        --       --      --   
+
+                             t3.small t3.xlarge  
+zone                                             
+af-south-1-los-1a                  --         X  
+ap-northeast-1-tpe-1a              --         X  
+ap-northeast-1-wl1-kix-wlz-1       --        --  
+ap-northeast-1-wl1-nrt-wlz-1       --        --  
+ap-northeast-2-wl1-cjj-wlz-1       --        --  
+ap-northeast-2-wl1-sel-wlz-1       --        --  
+ap-south-1-ccu-1a                  --         X  
+ap-south-1-del-1a                  --         X  
+ap-southeast-1-bkk-1a              --         X  
+ap-southeast-1-mnl-1a              --         X  
+ap-southeast-2-akl-1a              --         X  
+ap-southeast-2-per-1a              --         X  
+ca-central-1-wl1-yto-wlz-1         --        --  
+eu-central-1-ham-1a                --         X  
+eu-central-1-waw-1a                --         X  
+eu-central-1-wl1-ber-wlz-1         --        --  
+eu-central-1-wl1-dtm-wlz-1         --        --  
+eu-central-1-wl1-muc-wlz-1         --        --  
+eu-north-1-cph-1a                  --         X  
+eu-north-1-hel-1a                  --         X  
+eu-west-2-wl1-lon-wlz-1            --        --  
+eu-west-2-wl1-man-wlz-1            --        --  
+eu-west-2-wl2-man-wlz-1            --        --  
+me-south-1-mct-1a                  --         X  
+us-east-1-atl-1a                   --         X  
+us-east-1-bos-1a                   --         X  
+us-east-1-bue-1a                   --         X  
+us-east-1-chi-1a                   --         X  
+us-east-1-dfw-1a                   --         X  
+us-east-1-iah-1a                   --         X  
+us-east-1-lim-1a                   --         X  
+us-east-1-mci-1a                   --         X  
+us-east-1-mia-1a                   --         X  
+us-east-1-msp-1a                   --         X  
+us-east-1-nyc-1a                   --         X  
+us-east-1-phl-1a                   --         X  
+us-east-1-qro-1a                   --         X  
+us-east-1-scl-1a                   --         X  
+us-east-1-wl1-atl-wlz-1            --         X  
+us-east-1-wl1-bna-wlz-1            --         X  
+us-east-1-wl1-bos-wlz-1            --         X  
+us-east-1-wl1-chi-wlz-1            --         X  
+us-east-1-wl1-clt-wlz-1            --         X  
+us-east-1-wl1-dfw-wlz-1            --         X  
+us-east-1-wl1-dtw-wlz-1            --         X  
+us-east-1-wl1-iah-wlz-1            --         X  
+us-east-1-wl1-mia-wlz-1            --         X  
+us-east-1-wl1-msp-wlz-1            --         X  
+us-east-1-wl1-nyc-wlz-1            --         X  
+us-east-1-wl1-tpa-wlz-1            --         X  
+us-east-1-wl1-was-wlz-1            --         X  
+us-west-2-den-1a                   --         X  
+us-west-2-las-1a                   --         X  
+us-west-2-lax-1a                    X         X  
+us-west-2-lax-1b                    X         X  
+us-west-2-pdx-1a                   --         X  
+us-west-2-phx-1a                   --         X  
+us-west-2-sea-1a                   --         X  
+us-west-2-wl1-den-wlz-1            --        --  
+us-west-2-wl1-las-wlz-1            --        --  
+us-west-2-wl1-lax-wlz-1            --        --  
+us-west-2-wl1-phx-wlz-1            --        --  
+us-west-2-wl1-sea-wlz-1            --        --  
+us-west-2-wl1-sfo-wlz-1            --        --  
