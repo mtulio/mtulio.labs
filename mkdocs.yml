@@ -174,13 +174,15 @@ nav:
       - "Guide 2): BYO VPC with dual-stack IPv6 in public subnets": guides/ocp-aws-private-proxy.md
       - Diagrams: guides/ocp-aws-private-diagrams.md
 
-    - OpenShift on AWS with STS:
+    - OpenShift Cloud Identity/Credentials Guides:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
       - Hacking CCO manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
       - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
       - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
       - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
       - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
+      - "OCP on AWS | Experiment | Explore Cloud permissions requested and required": guides/ocp-perms-track-aws-cloudtrail.md
+      - "OCP on Azure | Experiment | Explore Cloud permissions requested and required": guides/ocp-perms-track-azure-monitor.md
 
     - OpenShift hybrid cloud deployments on AWS:
       - Articles: guides/ocp-aws-local-zones.md
