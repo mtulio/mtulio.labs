@@ -285,6 +285,58 @@ oc adm release extract \
     --from=${RELEASE}
 ```
 
+## Extract requested permissions by installer
+
+> Requires [PR #8704](https://github.com/openshift/installer/pull/8704) built and binary saved with path/name: `./openshift-installer-devel`
+
+```sh
+./openshift-install-devel create permissions --dir=${INSTALL_DIR}
+```
+
+## Compare the permissions
+
+Extract and parse the evens collected by the CloudTrail:
+
+```sh
+./cci --command extract --events-path all/events/ --output all/output/ \
+    --filters principal-name=lab-trail-installer,principal-prefix=lab-trail-lxqrw
+```
+
+Process CredentialsRequests versus required (API calls):
+
+> --installer-
+
+```sh
+./cci --command compare --events-path all/output/events.json --output all/output/ \
+    --credentials-requests-path all/credRequests-AWS \
+    --installer-requests-file ${INSTALL_DIR}/aws-permissions-policy-mint-creds.json \
+    --installer-user-name ${INSTALL_USER} \
+    --filters cluster-name=lab-trail
+```
+
+___
+
+
+## Extractiong data from CI jobs
+
+```sh
+# Choose the deta to download
+AWS_PROFILE=ci-openshift aws s3 sync s3://cloud-trail-test-clayton/AWSLogs/460538899914/CloudTrail/us-east-1/2024/09/20/ events-ci/
+
+# Parse logs based in the cluster name
+$(which time) -v ./cci  --command extract --events-path events-ci/ --output events-ci-output --filters principal-name=origin-ci-robot-provision,principal-prefix=ci-op-jbv9hvb4
+
+# Process diff
+./cci --command compare --events-path events-ci-output/events.json --output events-ci-output/ \
+    --credentials-requests-path all/credRequests-AWS \
+    --installer-requests-file ${INSTALL_DIR}/aws-permissions-policy-mint-creds.json \
+    --installer-user-name origin-ci-robot-provision \
+    --filters cluster-name=ci-op-jbv9hvb4
+```
+
+___
+
+
 ## Extract insights
 
 Extract the API calls for each stage, considering the IAM Identity name would have the prefix of `$CLUSTER_NAME`
@@ -406,7 +458,6 @@ diff events-compiled-install-only.json events-compiled-install-destroy.json
 ```
 
 
-
 ## Conclusion
 
 This guide explores how to check required AWS permissions by looking
@@ -434,9 +485,7 @@ Process CredentialsRequests versus required (API calls):
 ```sh
 ./cci --command compare --events-path all/output/events.json --output all/output/ \
     --credentials-requests-path all/credRequests-AWS \
+    --installer-requests-file ${INSTALL_DIR}/aws-permissions-policy-mint-creds.json \
+    --installer-user-name ${INSTALL_USER} \
     --filters cluster-name=lab-trail
 ```
-
-TODOs:
-- read CredentialsRequests
-- compare with events
