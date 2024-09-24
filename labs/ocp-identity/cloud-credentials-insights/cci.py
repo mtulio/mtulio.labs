@@ -6,6 +6,16 @@ import glob
 import gzip
 import yaml
 
+# Events not recoginized as permissions by IAM Policy
+SKIP_EVENTS=[
+    "s3:HeadObject",
+    "tagging:GetResource"
+]
+
+# Permissions that must exists in the installer user
+MUST_EXISTS_INSTALLER=[
+    "elasticloadbalancing:AddTags"
+]
 
 class Events(object):
     """
@@ -309,7 +319,7 @@ class CloudCredentialsRequests(CloudCredentialsReport):
                 self.credentials_requests[args.installer_user_name] = data
         return
 
-    def compare(self):
+    def compare(self, opts):
         for principal_id in self.events.iam_events:
             # Check if cluster-name filter has been added, otherwise skip.
             if 'cluster-name' not in self.filters:
@@ -323,7 +333,25 @@ class CloudCredentialsRequests(CloudCredentialsReport):
 
             # Check if the principal_id is the installer user.
             # 'installer user' is an IAM user ending with '-installer'
-            if principal_id.endswith('-installer'):
+            if principal_id.endswith('-installer') or principal_id.startswith(opts.installer_user_name):
+                #
+                # Fixes
+                #
+                ## log the 'requiredSkipped' only if it is in 'required'
+                self.compiled_users['users'][principal_id]['requiredSkipped'] = list(set(self.compiled_users['users'][principal_id]['required']) & set(SKIP_EVENTS))
+
+                ## rewrite the 'required' to satisfy skip list
+                self.compiled_users['users'][principal_id]['required'] = list(set(self.compiled_users['users'][principal_id]['required']) - set(SKIP_EVENTS))
+
+                ## Permissions that must exists in the installer user
+                for action in MUST_EXISTS_INSTALLER:
+                    if action not in self.compiled_users['users'][principal_id]['required']:
+                        self.compiled_users['users'][principal_id]['required'].append(action)
+                        if 'requiredInjected' not in self.compiled_users['users'][principal_id]:
+                            self.compiled_users['users'][principal_id]['requiredInjected'] = []
+                        self.compiled_users['users'][principal_id]['requiredInjected'].append(action)
+
+                # Calculate diff
                 if principal_id not in self.credentials_requests:
                     self.compiled_users['users'][principal_id]['msg'] = f"no requests file has been found to installer user {principal_id}"
                     self.compiled_users['users'][principal_id]['requested'] = []
@@ -458,7 +486,7 @@ def main():
             report = CloudCredentialsRequests(args.output, args.credentials_requests_path, filters=args.filters)
             report.load_events(args.events_path)
             report.load_credentials_requests(args)
-            report.compare()
+            report.compare(args)
             report.save()
             # compare_credentialsrequests(args)
         else:
