@@ -1,4 +1,4 @@
-site_name: "@mtulio labs | blog | notes"
+site_name: "@mtulio labs | notes"
 site_url: https://mtulio.dev
 site_author: 'Marco Braga'
 site_description: >-
@@ -124,18 +124,8 @@ nav:
 #
   - Guides:
     - Home: playbooks/README.md
-    - OpenShift API:
-      - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
 
-    - OpenShift Node/Machine operations:
-      - Machine resize: playbooks/openshift/resize-machines.md
-      - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
-      - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
-      - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
-      - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
-      - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
-
-    - OpenShift Installing:
+    - OpenShift Installing Hacking Huides:
       - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
       - Installing OpenShift on Alibaba Cloud in existing VPC: playbooks/openshift/ocp-installing-alibabacloud.md
       - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
@@ -146,6 +136,17 @@ nav:
       - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
       - Installing on AWS with BYO Public IPv4 Pool: guides/ocp-install-profiles/ocp-install-aws-byo-public-ipv4-pool..md
       - Installing on AWS with BYO Elastic IPs: guides/ocp-install-profiles/ocp-install-aws-byo-eip.md
+
+    - OpenShift Control Plane operations:
+      - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
+
+    - OpenShift on AWS with STS hacking guides:
+      - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
+      - Hacking CCO manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
+      - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
+      - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
+      - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
+      - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
 
     - OpenShift Installing Private on AWS:
       - guides/ocp-aws-private.md
@@ -174,14 +175,6 @@ nav:
       - "Guide 2): BYO VPC with dual-stack IPv6 in public subnets": guides/ocp-aws-private-proxy.md
       - Diagrams: guides/ocp-aws-private-diagrams.md
 
-    - OpenShift on AWS with STS:
-      - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
-      - Hacking CCO manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
-      - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
-      - Troubleshooting RunInstance Error: playbooks/openshift/ocp-aws-cco-sts-runinstance-error-kcs.md
-      - Troubleshooting InvalidIdentityToken: playbooks/openshift/ocp-installing-aws-sts-oidc-private-bucket.md
-      - Review CredentialsRequests provided by CCO: playbooks/openshift/ocp-cco-review-sts-secrets.md
-
     - OpenShift hybrid cloud deployments on AWS:
       - Articles: guides/ocp-aws-local-zones.md
       - Extending OCP to AWS Local Zones (Day-2): ocp-aws-local-zones-day-2.md
@@ -197,6 +190,18 @@ nav:
       - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelength-zones-hands-on.md
       - Installing on AWS extending compute nodes to AWS Outposts in Day-2: guides/ocp-aws-outposts.md
       - Installing on AWS BYO VPC with Multi CDIR: guides/ocp-install-profiles/ocp-aws-byo-vpc-multi-cidr.md
+
+    - OpenShift Node/Machine operations:
+      - Machine resize: playbooks/openshift/resize-machines.md
+      - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
+      - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
+      - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
+      - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
+      - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
+
+    - OpenShift and Karpenter | Day-2 guides:
+      - Deploy Karpenter with OpenShift (standalone) on AWS | Day-2: guides/ocp-deploy-karpenter-aws.md
+      - Deploy Karpenter with OpenShift Hosted-cluster (Hypershift) on AWS | Day-2: guides/ocp-deploy-karpenter-aws-hcp.md
 
     - OpenShift scaling labs:
       - OpenShift on AWS using Karpenter: guides/ocp-lab-scaling-setup-karpenter.md
