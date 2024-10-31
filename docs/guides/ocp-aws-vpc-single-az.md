@@ -2421,3 +2421,86 @@ $ curl -w "%{http_code}\n" -sk https://console-openshift-console.apps.byonetd2c-
 ```
 
 Success, the Classic Load Balancer is also using the same subnet discovery, and the workaround can be used to fix it.
+
+
+## Additional testing old OCP and CCM
+
+Goal: install a cluster before the fix https://github.com/kubernetes/kubernetes/pull/97431
+is added to CCM on kube v1.21 / OCP 4.7.
+
+The steps describes how to install a cluster on [4.6.47][4.6.47] (delivering kube [1.19.4][1.19.4]), which don't enhance [subnet discovery][ccm-bug] on CCM.
+
+[4.6.47]: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.6.47/release.txt
+[1.19.4]: https://github.com/kubernetes/kubernetes/blob/v1.19.4/staging/src/k8s.io/legacy-cloud-providers/aws/aws.go#L3367-L3372
+[ccm-bug]: https://github.com/kubernetes/kubernetes/pull/97431/files#diff-11c60006672cf4b249812f26ae37e955a397c253cd4fbbdb42de141a6128bb13R3397-R3398
+
+### Steps
+
+Download OCP 4.6 (can't use 4.7 as kube has been patched):
+
+```sh
+VERSION=4.6.47
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/$VERSION/openshift-install-linux.tar.gz
+tar xfz openshift-install-linux.tar.gz
+```
+
+Intall a cluster and select subnets:
+
+```sh
+export PUBLIC_SUBNET_ID=${PUBLIC_SUBNETS[1]}
+export PRIVATE_SUBNET_ID=${PRIVATE_SUBNETS[1]}
+
+export ZONE_NAME=$(aws ec2 describe-subnets --filter --subnet-ids ${PUBLIC_SUBNET_ID} ${PRIVATE_SUBNET_ID} | jq -r '.Subnets[0].AvailabilityZone')
+
+export CLUSTER_NAME=${VPC_NAME}b
+export BASE_DOMAIN=devcluster.openshift.com
+export SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
+
+INSTALL_DIR=${CLUSTER_NAME}
+mkdir $INSTALL_DIR
+
+cat <<EOF > ${INSTALL_DIR}/install-config.yaml
+apiVersion: v1
+publish: External
+baseDomain: ${BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME}"
+platform:
+  aws:
+    region: ${CLUSTER_REGION}
+    subnets:
+    - ${PUBLIC_SUBNET_ID}
+    - ${PRIVATE_SUBNET_ID}
+pullSecret: '$(cat ${PULL_SECRET_FILE} |awk -v ORS= -v OFS= '{$1=$1}1')'
+sshKey: |
+  $(cat ${SSH_PUB_KEY_FILE})
+EOF
+```
+
+Check the LB's subnets
+
+```sh
+ROUTER_LB_HOSTNAME=$(oc get svc -n openshift-ingress -o json | jq -r '.items[] | select (.spec.type=="LoadBalancer").status.loadBalancer.ingress[0].hostname')
+
+aws elb describe-load-balancers | jq -r ".LoadBalancerDescriptions[] | select (.DNSName==\"${ROUTER_LB_HOSTNAME}\") | [.DNSName, .AvailabilityZones]"
+```
+
+Results:
+
+```sh
+$ oc version
+Client Version: 4.17.0-ec.1
+Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
+Server Version: 4.6.47
+Kubernetes Version: v1.19.0+d5ed12c
+
+$ ROUTER_LB_HOSTNAME=$(oc get svc -n openshift-ingress -o json | jq -r '.items[] | select (.spec.type=="LoadBalancer").status.loadBalancer.ingress[0].hostname')
+
+aws elb describe-load-balancers | jq -r ".LoadBalancerDescriptions[] | select (.DNSName==\"${ROUTER_LB_HOSTNAME}\") | [.DNSName, .AvailabilityZones]"
+[
+  "a507a5cb19e9d45d5a71fb695f6d9ed9-1367466236.us-east-1.elb.amazonaws.com",
+  [
+    "us-east-1b"
+  ]
+]
+```
