@@ -2503,4 +2503,13 @@ aws elb describe-load-balancers | jq -r ".LoadBalancerDescriptions[] | select (.
     "us-east-1b"
   ]
 ]
+
+$ aws ec2 describe-subnets --filter Name=vpc-id,Values=$VPC_ID | jq -cr '.Subnets[] | [.AvailabilityZone, .SubnetId ] '
+["us-east-1b","subnet-08f37567ee719f785"]
+["us-east-1a","subnet-0e92c454918cfc4fb"]
+["us-east-1a","subnet-075266befbb06f42a"]
+["us-east-1c","subnet-0786a0b7f631b3744"]
+["us-east-1c","subnet-0efbaee9e3c07cd86"]
+["us-east-1b","subnet-070a9d0eeeb5ebb70"]
+
 ```
