@@ -127,18 +127,8 @@ nav:
     - OpenShift API:
       - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
 
-    - OpenShift Node/Machine operations:
-      - Machine resize: playbooks/openshift/resize-machines.md
-      - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
-      - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
-      - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
-      - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
-      - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
-
     - OpenShift Installing:
       - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
-      - Installing OpenShift on Alibaba Cloud in existing VPC: playbooks/openshift/ocp-installing-alibabacloud.md
-      - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
       - Installing Hypershift on AWS with STS (draft/unfinished): playbooks/openshift/hypershift-install-sts.md
       - Installing single node (SNO) on AWS [draft]: playbooks/openshift/ocp-aws-sno-install.md
       - Installing on Azure with etcd in Data Disks: playbooks/openshift/ocp-azure-disk-ephemeral.md
@@ -146,6 +136,11 @@ nav:
       - Installing on AWS using Hub/Spoke with Transit Gateway: guides/ocp-aws-transit-gateway.md
       - Installing on AWS with BYO Public IPv4 Pool: guides/ocp-install-profiles/ocp-install-aws-byo-public-ipv4-pool.md
       - Installing on AWS with BYO Elastic IPs: guides/ocp-install-profiles/ocp-install-aws-byo-eip.md
+      - Alibaba Cloud:
+        - Installing OpenShift on Alibaba Cloud in existing VPC: playbooks/openshift/ocp-installing-alibabacloud.md
+        - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
+      - Oracle Cloud:
+        - Experimental | Installing OCP on OCI provisioning network with CAPOCI: guides/ocp-oci-capoci-exploration-net.md
 
     - OpenShift Installing Private on AWS:
       - guides/ocp-aws-private.md
@@ -204,6 +199,14 @@ nav:
       - OpenShift on AWS using Ocean Spot by NetApp: guides/ocp-lab-scaling-setup-spotio-ocean.md
       - Lab scaling and test: guides/ocp-lab-scaling-aws-autoscaling.md
       - Draft/Spot interruption with FIS with CCO: guides/ocp-aws-spot-interrupt-CCO.md
+
+    - OpenShift Node/Machine operations:
+      - Machine resize: playbooks/openshift/resize-machines.md
+      - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
+      - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
+      - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
+      - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
+      - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
 
     - OpenShift Dev:
       - Build components: playbooks/openshift/dev-build-components.md
