@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 import os
 import json
@@ -72,6 +72,10 @@ class CloudCredentialsReport(object):
         self.processed_files = []
 
     def create_filters(self, filters):
+        """
+        Filters are key values with '=' delimiator, with command sepparated for each filter.
+        Example: filter1=value,filter2=value
+        """
         if filters is None:
             return None
         finalFilters = {}
@@ -162,7 +166,7 @@ class CloudCredentialsReport(object):
                 # Check if userIdentity.UserName prefixes with cluster_name
                 user_id = event['userIdentity'].get('userName', '')
                 # Extract the eventSource and eventName
-                event_id = (f'{event.get('eventSource', '').replace('.amazonaws.com', '')}:{event.get('eventName', '')}')
+                event_id = (f"{event.get('eventSource', '').replace('.amazonaws.com', '')}:{event.get('eventName', '')}")
                 event_params = ''
                 if 'requestParameters' in event:
                     event_params = event['requestParameters']
@@ -356,7 +360,13 @@ class CloudCredentialsRequests(CloudCredentialsReport):
                     self.compiled_users['users'][principal_id]['msg'] = f"no requests file has been found to installer user {principal_id}"
                     self.compiled_users['users'][principal_id]['requested'] = []
                     continue
+
                 reqInstaller = self.credentials_requests.get(principal_id, {})
+                if len(reqInstaller.get('Statement', [])) == 0:
+                    self.compiled_users['users'][principal_id]['msg'] = f"invalid requests file to installer user {principal_id}"
+                    self.compiled_users['users'][principal_id]['requested'] = []
+                    continue
+
                 self.compiled_users['users'][principal_id]['requested'] = reqInstaller.get('Statement', [])[0].get('Action', [])
 
                 # calculate diff

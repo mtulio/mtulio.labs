@@ -489,3 +489,61 @@ Process CredentialsRequests versus required (API calls):
     --installer-user-name ${INSTALL_USER} \
     --filters cluster-name=lab-trail
 ```
+
+---
+
+## Wait for objects has been created
+
+Watch the objects waiting to collect the events from the time window
+
+```sh
+./cci-events-aws --command collect-events \
+  --bucket-name $BUCKET_NAME --bucket-region us-east-2 \
+  --output events-dev/ \
+  --filters event-region=us-east-2,utc-start-date=2024-09-23-22:00,utc-end-date=2024-09-24-00:00
+```
+
+
+Sync events:
+
+```sh
+mkdir events-openshift-dev
+aws s3 --region us-east-2 sync s3://installer-debug-cloudtrail-logs-*-9d9aefb6/ events-openshift-dev/
+
+# synching to get the final events of cluster finished
+aws s3 --region us-east-2 sync s3://installer-debug-cloudtrail-logs-*-9d9aefb6/AWSLogs/*/CloudTrail/us-east-2/2024/09/23 events-openshift-dev/AWSLogs/*/CloudTrail/us-east-2/2024/09/23
+
+# copying events tarted lower than 20:30 UTC
+mkdir events-openshift-dev-filtered
+cp -rf events-openshift-dev/AWSLogs/*/CloudTrail/us-east-2/2024/09/23/*_CloudTrail_us-east-2_20240923T20* events-openshift-dev-filtered/
+cp -rf events-openshift-dev/AWSLogs/*/CloudTrail/us-east-2/2024/09/23/*_CloudTrail_us-east-2_20240923T21* events-openshift-dev-filtered/
+cp -rf events-openshift-dev/AWSLogs/*/CloudTrail/us-east-2/2024/09/23/*_CloudTrail_us-east-2_20240923T22* events-openshift-dev-filtered/
+
+$ zcat events-openshift-dev-filtered2/* | jq '.Records[].eventTime'| sort -n | head -n1
+"2024-09-23T17:21:21Z"
+$ zcat events-openshift-dev-filtered2/* | jq '.Records[].eventTime'| sort -n | tail -n1
+"2024-09-23T19:53:28Z"
+
+EVENTS_INPUT_RAW=events-openshift-dev-filtered
+EVENTS_OUTPUT_DIR=events-openshift-dev-filtered-output
+INSTALLER_USER=rdo-marco-perms
+CLUSTER_PREFIX=rdo-installer
+mkdir ${EVENTS_OUTPUT_DIR}
+./cci --command extract --events-path ${EVENTS_INPUT_RAW} --output ${EVENTS_OUTPUT_DIR} \
+    --filters principal-name=${INSTALLER_USER}
+
+oc adm release extract \
+    --credentials-requests \
+    --cloud=aws \
+    --to=$PWD/4.18-credrequests \
+    --from=quay.io/openshift-release-dev/ocp-release:4.18.0-ec.1-x86_64
+
+./cci --command compare --events-path ${EVENTS_OUTPUT_DIR}/events.json \
+  --output ${EVENTS_OUTPUT_DIR} \
+  --credentials-requests-path $PWD/4.18-credrequests \
+  --installer-requests-file 4.18-mint-creds.json \
+  --installer-user-name ${INSTALLER_USER} \
+  --filters cluster-name=${CLUSTER_PREFIX}
+
+```
+
