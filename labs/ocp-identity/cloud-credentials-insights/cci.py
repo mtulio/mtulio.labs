@@ -184,7 +184,7 @@ class CloudCredentialsReport(object):
             elif user_type in ['AssumedRole']:
                 # role_name = event['userIdentity'].get('arn', '')
                 user_id = event['userIdentity'].get('sessionContext', {}).get('sessionIssuer', {}).get('userName', '')
-                event_id = (f'{event.get('eventSource', '').replace('.amazonaws.com', '')}:{event.get('eventName', '')}')
+                event_id = (f"{event.get('eventSource', '').replace('.amazonaws.com', '')}:{event.get('eventName', '')}")
 
                 self.events.insert_principal("AWS", user_id, user_type)
                 self.events.insert_event(user_id, event_id)
