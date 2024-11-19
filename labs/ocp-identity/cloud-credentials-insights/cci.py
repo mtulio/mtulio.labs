@@ -63,13 +63,26 @@ class CloudCredentialsReport(object):
     """
     Parse the CloudTrail or Azure Monitor logs to extract Principal and Event information.
     """
-    def __init__(self, output_dir, filters=None):
+    def __init__(self, output_dir, filters=None, args=None):
         self.output_dir = output_dir
         self.filters = self.create_filters(filters)
 
         self.events = Events()
         self.filtered_events = None
         self.processed_files = []
+        self.installer_user_name = None
+        self.installer_user_policy = None
+
+        self.set_from_args(args)
+
+    def set_from_args(self, args):
+        if args == None:
+            return
+        if args.installer_user_name is not None:
+            self.installer_user_name =  args.installer_user_name
+
+        if args.installer_user_policy is not None:
+            self.installer_user_policy =  args.installer_user_policy
 
     def create_filters(self, filters):
         """
@@ -290,8 +303,8 @@ class CloudCredentialsRequests(CloudCredentialsReport):
     """
     Compare the IAM events with the CredentialsRequests to identify the missing permissions.
     """
-    def __init__(self, output_dir, credentials_requests_path, filters=None):
-        super().__init__(output_dir, filters)
+    def __init__(self, output_dir, credentials_requests_path, filters=None, args=None):
+        super().__init__(output_dir, filters, args=args)
         self.credentials_requests_path = credentials_requests_path
         self.credentials_requests = {}
         self.compiled_users = {
@@ -301,11 +314,14 @@ class CloudCredentialsRequests(CloudCredentialsReport):
         }
 
     def load_events(self, events_path):
+        print("Loading IAM events....")
         with open(events_path, 'r') as f:
             self.events.iam_events = json.load(f)
+        print(f"IAM user loaded ({len(self.events.iam_events.keys())}): {list(self.events.iam_events.keys())}")
         return
 
     def load_credentials_requests(self, args):
+        print("Loading CredentialRequests...")
         # Discover all the log files paths
         log_files = glob.glob(os.path.join(self.credentials_requests_path, '**/*.yaml'), recursive=True)
         for log_file in log_files:
@@ -315,12 +331,14 @@ class CloudCredentialsRequests(CloudCredentialsReport):
             self.credentials_requests[log_file] = data
 
         # Load installer requested permissions:
-        if args.installer_requests_file:
-            if args.installer_user_name is None:
-                raise Exception('installer-user-name is required when installer-requests-file is set.')
-            with open(args.installer_requests_file, 'r') as f:
+        if self.installer_user_policy:
+            if self.installer_user_name is None:
+                raise Exception('installer-user-name is required when installer-user-policy is set.')
+            with open(self.installer_user_policy, 'r') as f:
                 data = json.load(f)
-                self.credentials_requests[args.installer_user_name] = data
+                self.credentials_requests[self.installer_user_name] = data
+
+        print("Total CredentialRequests loaded: ", len(self.credentials_requests))
         return
 
     def compare(self, opts):
@@ -329,7 +347,7 @@ class CloudCredentialsRequests(CloudCredentialsReport):
             if 'cluster-name' not in self.filters:
                 raise Exception('cluster-name filter is required to discover the expected userName by CredentailsRequests. Username is the metadata.name added in install-config.yaml. Set it and try again.')
 
-            print(f'Processing {principal_id}')
+            print(f'Processing principal: {principal_id}')
             if principal_id not in self.compiled_users['users']:
                 self.compiled_users['users'][principal_id] = {
                     'required': sorted(list(self.events.iam_events[principal_id]['events'].keys())),
@@ -337,7 +355,7 @@ class CloudCredentialsRequests(CloudCredentialsReport):
 
             # Check if the principal_id is the installer user.
             # 'installer user' is an IAM user ending with '-installer'
-            if principal_id.endswith('-installer') or principal_id.startswith(opts.installer_user_name):
+            if (principal_id == self.installer_user_name):
                 #
                 # Fixes
                 #
@@ -355,6 +373,11 @@ class CloudCredentialsRequests(CloudCredentialsReport):
                             self.compiled_users['users'][principal_id]['requiredInjected'] = []
                         self.compiled_users['users'][principal_id]['requiredInjected'].append(action)
 
+                # Force the ordered events
+                self.compiled_users['users'][principal_id]['required'] = sorted(self.compiled_users['users'][principal_id]['required'])
+
+                print(f"'-> Detected installer user requiring {len(self.compiled_users['users'][principal_id]['required'])} permissions (API calls)")
+
                 # Calculate diff
                 if principal_id not in self.credentials_requests:
                     self.compiled_users['users'][principal_id]['msg'] = f"no requests file has been found to installer user {principal_id}"
@@ -367,8 +390,14 @@ class CloudCredentialsRequests(CloudCredentialsReport):
                     self.compiled_users['users'][principal_id]['requested'] = []
                     continue
 
-                self.compiled_users['users'][principal_id]['requested'] = reqInstaller.get('Statement', [])[0].get('Action', [])
+                self.compiled_users['users'][principal_id]['requested'] = []
+                for st in reqInstaller.get('Statement', []):
+                    for act in st.get('Action', []):
+                        self.compiled_users['users'][principal_id]['requested'].append(act)
 
+                self.compiled_users['users'][principal_id]['requested'] = sorted(self.compiled_users['users'][principal_id]['requested'])
+
+                print(f"'-> Using installer credential requests with {len(self.compiled_users['users'][principal_id]['requested'])} permissions (API calls)")
                 # calculate diff
                 diff = {
                     'missing': [],
@@ -393,29 +422,36 @@ class CloudCredentialsRequests(CloudCredentialsReport):
             # mycluster-abc123-openshift-image-registry-xyq987
             # ^ The identifier must be transformed to openshift-image-registry.
             normalized_principal_id = principal_id.replace(f"{self.filters['cluster-name']}-", '')
-            parts = normalized_principal_id.split('-')[:-1][1:]
-            normalized_principal_id = '-'.join(parts)
+            #parts = normalized_principal_id.split('-')[:-1][1:]
+            #normalized_principal_id = '-'.join(parts)
 
-            print(f'Processing {principal_id} => {normalized_principal_id}')
             if normalized_principal_id == '':
+                print(f"'-> Skipping principal id {normalized_principal_id} (empty)")
                 continue
 
             # Additional information: Sometimes the IAM principal must be truncated by CCO, the
             # operation is comparing the initial words to try to make the inference.
-            print(f'Processing {principal_id} => {normalized_principal_id} => {self.filters["cluster-name"]}')
             if not principal_id.startswith(self.filters['cluster-name']):
+                print(f"'-> Skipping principal id {normalized_principal_id} (unmatched prefix)")
                 continue
+
+            self.compiled_users['users'][principal_id]['requested'] = []
+
+            print(f"'-> Detected principal id {normalized_principal_id} with {len(self.compiled_users['users'][principal_id]['required'])} required permissions")
 
             # Iteract over the credential requests to find the expected principal
             for credReq in self.credentials_requests.keys():
-                print(f'Processing {principal_id} => {normalized_principal_id} => {credReq}')
                 # Get expected userName from the credentials requests
                 credReq_principal = self.credentials_requests.get(credReq, {}).get('metadata', {}).get('name', '')
 
-                if not credReq_principal.startswith(normalized_principal_id):
+                if not normalized_principal_id.startswith(credReq_principal):
+                    #print(f"Skipping: credReq_principal={credReq_principal} not starts with {normalized_principal_id}")
                     continue
 
-                self.compiled_users['users'][principal_id]['requested'] = []
+                # FIXME for some reason the last statment is not matching
+                if (credReq == self.installer_user_name):
+                    continue
+
                 # extract required permissions for CredentialsRequests
                 manifest = self.credentials_requests.get(credReq, {})
                 allowEntries = manifest.get('spec', {}).get('providerSpec', {}).get('statementEntries', [])
@@ -444,6 +480,7 @@ class CloudCredentialsRequests(CloudCredentialsReport):
                         elif action not in self.compiled_users['users'][principal_id]['required']:
                             diff['extra'].append(action)
 
+                print(f"'-> Detected {len(self.compiled_users['users'][principal_id]['requested'])} requested permissions from CredentialsRequests file {credReq}")
                 # end CredRequest
                 self.compiled_users['users'][principal_id]['diff'] = diff
                 self.compiled_users['users'][principal_id]['credRequestRef'] = credReq
@@ -463,6 +500,11 @@ class CloudCredentialsRequests(CloudCredentialsReport):
             f.write(json.dumps(self.compiled_users, indent=2))
         print(f'Compiled users saved to {file}')
 
+        file = f"{self.output_dir}/credentials_requests.json"
+        with open(file, 'w') as f:
+            f.write(json.dumps(self.credentials_requests, indent=2))
+        print(f'Compiled credential requests saved to {file}')
+
 def main():
     # Create the argument parser
     parser = argparse.ArgumentParser(description='CLI for managing clusters')
@@ -479,8 +521,8 @@ def main():
 
     # Options used to command compare
     parser.add_argument('--credentials-requests-path', help='Path to CredentialsRequests Manifests', required=False)
-    parser.add_argument('--installer-requests-file', help='Path to credentials file generated by installer with "create permissions"', required=False)
     parser.add_argument('--installer-user-name', help='Name of the IAM User used by installer to assign the requested permission', required=False)
+    parser.add_argument('--installer-user-policy', help='Path to the policy file generated by installer with "create permissions-policy"', required=False)
 
     # Parse the command line arguments
     args = parser.parse_args()
@@ -488,12 +530,11 @@ def main():
     try:
         # Command extract
         if args.command == 'extract':
-            report = CloudCredentialsReport(args.output, filters=args.filters)
+            report = CloudCredentialsReport(args.output, filters=args.filters, args=args)
             report.parse_events(args.events_path)
             report.save()
         elif args.command == 'compare':
-            print('Checking credentials requests')
-            report = CloudCredentialsRequests(args.output, args.credentials_requests_path, filters=args.filters)
+            report = CloudCredentialsRequests(args.output, args.credentials_requests_path, filters=args.filters, args=args)
             report.load_events(args.events_path)
             report.load_credentials_requests(args)
             report.compare(args)
