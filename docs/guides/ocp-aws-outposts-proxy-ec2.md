@@ -1,8 +1,8 @@
-# Installing OpenShift on AWS extending worker node to AWS Outposts and HAProxy router
+# Installing OpenShift on AWS extending worker node to AWS Outposts, and an standalone EC2
 
 Lab steps to install an OpenShift cluster on AWS, extending compute node to AWS Outposts as Day 2 operations.
 
-The lab also deploy an HA Proxy compute node into Outpost subnet.
+The lab also deploy an standalone EC2 instance, which can be used to a router (haproxy, etc) - not covered by this document.
 
 Total time running this lab: ~120 minutes (install, setup, test, destroy).
 
@@ -89,16 +89,9 @@ These steps modify the existing CloudFormation template available in the install
 The template is modified to receive the parameter to support AWS Outpost instance ARN.
 
 
-Questions in OCP Docs (Why?):
-- Do we need "Display the subnet ID for the AWS VPC cluster. Retain this value"?
-- If we instruct the user to install a cluster setting the `networking.clusterNetworkMTU=1200`, do we need "Configuring your network for your Outpost"?
-
-
 ### Prerequisites
 
 #### Export required variables
-
-> Question: 
 
 Steps based in OCP user documentation:
   - https://docs.openshift.com/container-platform/4.17/installing/installing_aws/ipi/installing-aws-outposts.html
@@ -560,11 +553,11 @@ Resources:
       - IpProtocol: "tcp"
         FromPort: 80
         ToPort: 80
-        CidrIp: !Ref VpcCidr
+        CidrIp: "0.0.0.0/0"
       - IpProtocol: "tcp"
         FromPort: 443
         ToPort: 443
-        CidrIp: !Ref VpcCidr
+        CidrIp: "0.0.0.0/0"
       SecurityGroupEgress:
       - IpProtocol: "-1"
         CidrIp: "10.0.0.0/16"
@@ -781,3 +774,9 @@ aws cloudformation delete-stack --stack-name ${STACK_NAME}
 - [AWS Doc: How AWS Outposts works](https://docs.aws.amazon.com/outposts/latest/userguide/how-outposts-works.html)
 - [AWS Blog: Configuring an Application Load Balancer on AWS Outposts](https://aws.amazon.com/blogs/networking-and-content-delivery/configuring-an-application-load-balancer-on-aws-outposts/)
 - [AWS Doc Outposts: Customer-owned IP addresses](https://docs.aws.amazon.com/outposts/latest/userguide/routing.html#ip-addressing)
+\
+
+
+## Follow ups
+
+- OCP document steps could advise a user to install a cluster with custom MTU, day 0, by setting the `networking.clusterNetworkMTU=1200` on instlal-config.yaml
