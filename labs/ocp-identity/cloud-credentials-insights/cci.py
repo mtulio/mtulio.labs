@@ -9,13 +9,76 @@ import yaml
 # Events not recoginized as permissions by IAM Policy
 SKIP_EVENTS=[
     "s3:HeadObject",
-    "tagging:GetResource"
+    "tagging:GetResource",
+    "tagging:GetResources"
 ]
 
 # Permissions that must exists in the installer user
 MUST_EXISTS_INSTALLER=[
-    "elasticloadbalancing:AddTags"
+    "elasticloadbalancing:AddTags",
+
+    # required by create manifests
+    "ec2:DescribeInstanceTypeOfferings", # skipped on CI as it enforces type
+
+    # required by create cluster
+    "iam:TagRole",
+    "iam:TagInstanceProfile",
+    "iam:PassRole",
+
+    # required by CAPA
+    "s3:PutObject",
+    "ec2:GetConsoleOutput",
+
+    # by destroy
+    "tag:GetResources",
+    "s3:ListBucket",
+    "s3:DeleteObject",
+    "s3:ListBucketVersions",
+
+    # uncaught but making bootstrap to fail:
+    "s3:CreateBucket",
+    "s3:GetAccelerateConfiguration",
+    "s3:GetBucketAcl",
+    "s3:GetBucketCors",
+    "s3:GetBucketLocation",
+    "s3:GetBucketLogging",
+    "s3:GetBucketObjectLockConfiguration",
+    "s3:GetBucketPolicy",
+    "s3:GetBucketRequestPayment",
+    "s3:GetBucketTagging",
+    "s3:GetBucketVersioning",
+    "s3:GetBucketWebsite",
+    "s3:GetEncryptionConfiguration",
+    "s3:GetLifecycleConfiguration",
+    "s3:GetReplicationConfiguration",
+    "s3:ListBucket",
+    "s3:PutBucketAcl",
+    "s3:PutBucketPolicy",
+    "s3:PutBucketTagging",
+    "s3:PutEncryptionConfiguration",
+    "s3:GetObject",
+    "s3:GetObjectAcl",
+    "s3:GetObjectTagging",
+    "s3:GetObjectVersion",
+    "s3:PutObject",
+    "s3:PutObjectAcl",
+    "s3:PutObjectTagging",
+
+    # Operator's has failed
+    "iam:PassRole", # I
 ]
+
+#
+# Enforced permissions which isn't a log event on CloudTrail
+#
+MUST_EXISTS_BY_SECRET_REF={
+    "openshift-machine-api/aws-cloud-credentials": [
+        "iam:PassRole"
+    ],
+    "openshift-cluster-api/capa-manager-bootstrap-credentials": [
+        "iam:PassRole"
+    ],
+}
 
 class Events(object):
     """
@@ -359,6 +422,10 @@ class CloudCredentialsRequests(CloudCredentialsReport):
                 #
                 # Fixes
                 #
+                print(">>>>>>")
+                print(list(set(MUST_EXISTS_INSTALLER) - set(MUST_EXISTS_INSTALLER)))
+                print(list(set(self.compiled_users['users'][principal_id]['required']) & set(SKIP_EVENTS)))
+
                 ## log the 'requiredSkipped' only if it is in 'required'
                 self.compiled_users['users'][principal_id]['requiredSkipped'] = list(set(self.compiled_users['users'][principal_id]['required']) & set(SKIP_EVENTS))
 
