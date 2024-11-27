@@ -79,6 +79,12 @@ MUST_EXISTS_BY_SECRET_REF={
         "iam:PassRole"
     ],
 }
+#
+# Alerts
+#
+ALERT_MSG_PERMISSION_WILDCARD="with start is not recommended. Use descritive permissions instead. Example: ec2:DescribeInstances instead of ec2:Describe*"
+ALERT_MSG_IAM_PASS_ROLE="iam:PassRole With Star In Resource: Using the iam:PassRole action with wildcards (*) in the resource can be overly permissive because it allows iam:PassRole permissions on multiple resources. We recommend that you specify resource ARNs or add the iam:PassedToService condition key to your statement.\
+Learn more: https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-reference-policy-checks.html#access-analyzer-reference-policy-checks-security-warning-pass-role-with-star-in-resource"
 
 class Events(object):
     """
@@ -414,6 +420,7 @@ class CloudCredentialsRequests(CloudCredentialsReport):
             if principal_id not in self.compiled_users['users']:
                 self.compiled_users['users'][principal_id] = {
                     'required': sorted(list(self.events.iam_events[principal_id]['events'].keys())),
+                    'securityAlerts': []
                 }
 
             # Check if the principal_id is the installer user.
@@ -530,19 +537,36 @@ class CloudCredentialsRequests(CloudCredentialsReport):
                     # skip when specific actions are Deny (not supported)
                     if entry.get('effect', '') != "Allow":
                         continue
+
+                    # Alert too open iam:PassRole
+                    hasAllResource = False
+                    for res in entry.get('resource', []):
+                        # alert at once
+                        if res == '*':
+                            hasAllResource=True
+
+                    # Consolidate permissions
                     for action in entry.get('action', []):
                         if action not in self.compiled_users['users'][principal_id]['requested']:
                             self.compiled_users['users'][principal_id]['requested'].append(action)
-                        # Calculate extra permissions:
-                        star = False
+
+                        # Alert for star/extra permissions:
+                        hasStar = False
                         if '*' in action:
                             # Too much open permissions. Should have at least the service definitoin.
                             if ':' not in action:
                                 diff['unwanted'].append(action)
                             else:
-                                star = True
+                                hasStar = True
+                                self.compiled_users['users'][principal_id]['securityAlerts'].append(f"{action} {ALERT_MSG_PERMISSION_WILDCARD}")
                                 action = action.replace('*', '')
-                        if star and action not in self.compiled_users['users'][principal_id]['required']:
+
+                        # Alert for too open iam:PassRole
+                        if action == 'iam:PassRole' and hasAllResource:
+                            self.compiled_users['users'][principal_id]['securityAlerts'].append(ALERT_MSG_IAM_PASS_ROLE)
+
+                        # Evaluate
+                        if hasStar and action not in self.compiled_users['users'][principal_id]['required']:
                             diff['extra'].append(action)
                         elif action not in self.compiled_users['users'][principal_id]['required']:
                             diff['extra'].append(action)
