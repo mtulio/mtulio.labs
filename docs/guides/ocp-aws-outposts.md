@@ -615,7 +615,7 @@ Removing debug pod ...
 - Create the application
 
 ```sh
-APP_NAME=myapp-outpost
+APP_NAME=sample-outpost
 cat << EOF > ./outpost-app.yaml
 kind: Namespace
 apiVersion: v1
@@ -673,6 +673,7 @@ spec:
           name: echoserver
           ports:
             - containerPort: 8080
+              protocol: TCP
           volumeMounts:
             - mountPath: "/mnt/storage"
               name: data
@@ -723,7 +724,7 @@ metadata:
 spec:
   ports:
     - port: 80
-      targetPort: 8080
+      targetPort: 30080
       protocol: TCP
   type: NodePort
   selector: 

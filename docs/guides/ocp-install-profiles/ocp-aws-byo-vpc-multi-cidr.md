@@ -2,14 +2,14 @@
 
 Deploy OpenShift on AWS in BYO VPC with multi-CDIR blocks.
 
-> Those steps are part of investigation. Needs refinement before publish
+> Those steps are part of investigation. Needs refinement before publish.
 
 ## BYO VPC with Multi-CIDR
 
 ```sh
-INSTALLER_BIN="./openshift-install"
+INSTALLER_BIN="openshift-install-devel-capa-t"
 PULL_SECRET_FILE="${HOME}/.openshift/pull-secret-latest.json"
-CLUSTER_NAME=byvpccidr-v0
+CLUSTER_NAME=byvpccidr-v1
 INSTALL_DIR=${HOME}/openshift-labs/$CLUSTER_NAME
 CLUSTER_BASE_DOMAIN=devcluster.openshift.com
 SSH_PUB_KEY_FILE=$HOME/.ssh/id_rsa.pub
@@ -18,27 +18,25 @@ REGION=us-east-1
 AWS_REGION=$REGION
 mkdir -p $INSTALL_DIR && cd $INSTALL_DIR
 
-MACHINE_CIDR="10.115.0.0/16"
-#MACHINE_CIDR="10.190.0.0/16"
+VPC_CIDR_PRIMARY="10.0.0.0/16"
+VPC_CIDR_SECONDARY="10.134.0.0/16"
+MACHINE_CIDR="$VPC_CIDR_SECONDARY"
 
 # Create VPC
-cp ~/go/src/github.com/mtulio/mtulio.labs-articles/docs/guides/ocp-aws-byo-vpc-multi-cidr_cfn-vpc.yaml $INSTALL_DIR/vpc.yaml
+cp ~/go/src/github.com/mtulio/mtulio.labs-articles/docs/guides/ocp-install-profiles/ocp-aws-byo-vpc-multi-cidr_cfn-vpc.yaml $INSTALL_DIR/vpc.yaml
 
 STACK_VPC="${CLUSTER_NAME}-vpc"
 aws cloudformation create-stack --region $REGION  --stack-name ${STACK_VPC} \
   --template-body file://$INSTALL_DIR/vpc.yaml \
   --parameters \
-    ParameterKey=VpcCidr2,ParameterValue=${MACHINE_CIDR}
+    ParameterKey=VpcCidr,ParameterValue=${VPC_CIDR_PRIMARY} \
+    ParameterKey=VpcCidr2,ParameterValue=${VPC_CIDR_SECONDARY}
 
 aws --region $REGION cloudformation wait stack-create-complete --stack-name ${STACK_VPC}
 aws --region $REGION cloudformation describe-stacks --stack-name ${STACK_VPC}
 
 # Extract subnet IDs
-mapfile -t SUBNETS < <(aws --region $REGION cloudformation describe-stacks   --stack-name "${STACK_VPC}" --query "Stacks[0].Outputs[?OutputKey=='PublicSubnetIds'].OutputValue" --output text | tr ',' '\n')
-
-echo ${SUBNETS[@]}
-
-mapfile -t -O "${#SUBNETS[@]}" SUBNETS < <(aws --region $REGION cloudformation describe-stacks   --stack-name "${STACK_VPC}" --query "Stacks[0].Outputs[?OutputKey=='PrivateSubnetIds'].OutputValue" --output text | tr ',' '\n')
+mapfile -t SUBNETS < <(aws --region $REGION cloudformation describe-stacks   --stack-name "${STACK_VPC}" --query "Stacks[0].Outputs[?OutputKey=='SubnetsIdsForCidr2'].OutputValue" --output text | tr ',' '\n')
 
 echo ${SUBNETS[@]}
 
@@ -49,11 +47,11 @@ mkdir -p ${INSTALL_DIR}
 cat <<EOF | envsubst > ${INSTALL_DIR}/install-config.yaml
 apiVersion: v1
 baseDomain: ${CLUSTER_BASE_DOMAIN}
+metadata:
+  name: "${CLUSTER_NAME}"
 featureSet: CustomNoUpgrade
 featureGates:
 - ClusterAPIInstall=true
-metadata:
-  name: "${CLUSTER_NAME}"
 platform:
   aws:
     region: ${REGION}
@@ -71,7 +69,6 @@ sshKey: |
   $(cat ${SSH_PUB_KEY_FILE})
 EOF
 
-OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="quay.io/openshift-release-dev/ocp-release:4.16.0-ec.6-x86_64" \
+OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="quay.io/openshift-release-dev/ocp-release:4.17.0-rc.1-x86_64" \
 $INSTALLER_BIN create cluster --dir $INSTALL_DIR --log-level=debug
 ```
-
