@@ -179,8 +179,8 @@ nav:
 
     - OpenShift hybrid cloud deployments on AWS:
       - Articles: guides/ocp-aws-local-zones.md
-      - Extending OCP to AWS Local Zones (Day-2): ocp-aws-local-zones-day-2.md
-      - Installing OCP on AWS extending to Local Zones (Day-0): ocp-aws-local-zones-day-0.md
+      - Extending OCP to AWS Local Zones (Day-2): articles/ocp-aws-local-zones-day-2.md
+      - Installing OCP on AWS extending to Local Zones (Day-0): articles/ocp-aws-local-zones-day-0.md
       - oc Plugin to install OCP on AWS extending to Local Zones (Day-0): articles/ocp-aws-local-zones-day-0-plugin.md
       - Patch MTU on Installed clusters with Local Zones: guides/ocp-aws-local-zones-day-2-patch-mtu.md
       - OCP + AWS Local Zones demo script: guides/ocp-aws-local-zones-demo.md
