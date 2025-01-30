@@ -95,13 +95,13 @@ extra:
   analytics:
       provider: google
       property: G-HR0NQWHH1T
-  consent:
-      title: Cookie consent
-      description: >
-          We use cookies to recognize your repeated visits and preferences, as well
-          as to measure the effectiveness of our documentation and whether users
-          find what they're searching for. With your consent, you're helping us to
-          make our documentation better.
+  # consent:
+  #     title: Cookie consent
+  #     description: >
+  #         We use cookies to recognize your repeated visits and preferences, as well
+  #         as to measure the effectiveness of our documentation and whether users
+  #         find what they're searching for. With your consent, you're helping us to
+  #         make our documentation better.
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/mtulio
@@ -128,6 +128,7 @@ nav:
       - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
 
     - OpenShift Installing:
+      - Hands On guides for BYO Infrastructure on AWS: guides/ocp-aws-byo-infra-labs.md
       - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
       - Installing Hypershift on AWS with STS (draft/unfinished): playbooks/openshift/hypershift-install-sts.md
       - Installing single node (SNO) on AWS [draft]: playbooks/openshift/ocp-aws-sno-install.md
