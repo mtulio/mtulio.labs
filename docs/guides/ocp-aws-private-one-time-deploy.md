@@ -1,6 +1,6 @@
 # OpenShift Private Hacking | one-time setup
 
-> The **Quickly**, and **one-time** is a goal, is not yet achieved! xD
+> The "**Quickly**", and "**one-time**", are goals. Not yet achieved! =)
 
 Quickly way to deploy OpenShift private/restricted mode on AWS.
 
