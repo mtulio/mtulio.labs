@@ -28,4 +28,4 @@ Kubernetes The Hard Way:
 
 - [Agents Course by The Hugging Face](https://huggingface.co/learn/agents-course/unit0/introduction)
 - [AI Agents Course by Armand Ruiz]( https://jewel-snapdragon-5a9.notion.site/AI-Agents-Course-by-Armand-Ruiz-182accc688c780f3b27eedf56359213f?pvs=4&utm_source=newsletter.armand.so&utm_medium=newsletter&utm_campaign=free-course-ai-agents&_bhlid=be0089c9f5eaaab9041d7f6eb71d2e310d8f0620)
-
+- [Microsoft - Building AI Agents](https://www.youtube.com/playlist?list=PLlrxD0HtieHgKcRjd5-8DT9TbwdlDO-OC)[Code](https://github.com/microsoft/ai-agents-for-beginners)
