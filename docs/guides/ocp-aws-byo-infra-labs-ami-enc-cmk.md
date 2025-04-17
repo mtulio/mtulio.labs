@@ -45,7 +45,7 @@ Prerequisites:
 
 ```sh
 export AWS_REGION=us-east-1
-export INFRA_REF="RFE-5733v5"
+export INFRA_REF="RFE-5733v6"
 
 WORKDIR=$PWD/${INFRA_REF}
 AWS_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
@@ -221,7 +221,7 @@ while true; do
 done
 
 # Alternatively, if you find any issues, check if the user have correct permissions.
-AWS_PROFILE=$IAM_USER_AMI  aws iam simulate-principal-policy \
+AWS_PROFILE=$IAM_USER_AMI aws iam simulate-principal-policy \
     --policy-source-arn "arn:aws:iam::$AWS_ACCOUNT:user/$IAM_USER_AMI" \
     --action-names kms:Encrypt kms:GenerateDataKey kms:DescribeKey \
     --resource-arns arn:aws:kms:us-east-1:${AWS_ACCOUNT}:key/${KMS_KEY_ID}
@@ -262,7 +262,125 @@ Next Step (choose one):
 - [BYO Encrypted AMI with Manual with STS Authenticated mode (IAM Role)](#byo-ami-enc-sts)
 - [BYO Encrypted AMI with Mint Authenticated mode (IAM User)](#byo-ami-enc-mint)
 
-##### BYO Encrypted AMI with Manual with STS Authenticated mode (IAM Role) <a name="byo-ami-enc-sts"></a>>
+##### BYO Encrypted AMI with Passthrough Authenticated mode (IAM User)<a name="byo-ami-enc-user"></a>>
+
+
+Steps:
+
+> TBDescribed
+
+```sh
+# Append the credentials mode to the patch:
+cat <<EOF >> ${INSTALL_DIR}/install-config.patch.yaml
+credentialsMode: Passthrough
+EOF
+
+# Generate final install-config
+${BIN_YQ} -i ". *= load(\"${INSTALL_DIR}/install-config.patch.yaml\")" ${INSTALL_DIR}/install-config.yaml
+
+# Check and back up the policy
+${BIN_YQ} ea .platform.aws ${INSTALL_DIR}/install-config.yaml
+
+cp ${INSTALL_DIR}/install-config.yaml ${INSTALL_DIR}/install-config-bkp.yaml
+
+# Generate the IAM policy used by installer
+./openshift-install create permissions-policy --dir $INSTALL_DIR
+
+
+cp -v $INSTALL_DIR/aws-permissions-policy-creds.json ./${IAM_USER_INST}-policy.json
+create_user_and_keys "${IAM_USER_INST}" "./${IAM_USER_INST}-policy.json"
+
+# create the installer manifests with installer user
+AWS_PROFILE=$IAM_USER_INST ./openshift-install create manifests --dir $INSTALL_DIR
+
+# Get current KMS policy
+AWS_PROFILE=$IAM_USER_KMS aws kms get-key-policy --key-id $KMS_KEY_ID --query Policy --output text | jq '.' > ./kms-policy.json
+
+
+# Patch to allow new users
+jq --arg aws_account "$AWS_ACCOUNT" --arg user_installer "$IAM_USER_INST" \
+  '.Statement += [{
+  "Sid": "AllowInstaller",
+  "Effect": "Allow",
+  "Principal": {
+    "AWS": "arn:aws:iam::\($aws_account):user/\($user_installer)"
+  },
+  "Action" : "*",
+  "Resource": "*"
+}]' ./kms-policy.json > ./kms-policy-2.json
+
+# Check if the policies is appending to the original in ./kms-policy-1.json
+
+# Update
+AWS_PROFILE=$IAM_USER_KMS aws kms put-key-policy \
+    --policy-name default \
+    --key-id ${KMS_KEY_ID} \
+    --policy file://./kms-policy-2.json
+
+
+# Check if workers manifest set the correct AMI ID
+yq ea .spec.template.spec.providerSpec.value.blockDevices $INSTALL_DIR/openshift/99_openshift-cluster-api_worker-machineset-*.yaml
+
+echo $OCP_IMAGE_ID_ENC
+yq ea .spec.template.spec.providerSpec.value.ami $INSTALL_DIR/openshift/99_openshift-cluster-api_worker-mac*.yaml
+
+yq ea .spec.providerSpec.value.ami $INSTALL_DIR/openshift/99_openshift-cluster-api_master-mac*.yaml
+
+
+```
+
+Create a cluster with custom user:
+
+```sh
+AWS_PROFILE=$IAM_USER_INST ./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
+```
+
+
+### BYO Encrypted AMI with Manual with Manual Credentials mode (IAM Role/STS) <a name="byo-ami-enc-sts"></a>>
+
+Install Option 01) Dedicated IAM user for each component (Failing)
+
+Quickly deploy a cluster using STS with [automated shell script (automates the required manual steps)](https://mtulio.dev/playbooks/openshift/ocp-aws-cco-sts-install-quickly/)
+
+```sh
+# Change the function setup_installer appending the AMI to:
+# platform.aws.defaultMachinePlatform.amiID
+# Install a cluter 4.18.8
+CLUSTER_VERSION="4.18.8" &&\
+  CLUSTER_NAME="sts418ami" &&\
+  CLUSTER_BASE_DOMAIN="devcluster.openshift.com" &&\
+  create_cluster $CLUSTER_NAME
+
+# Access the cluster
+export KUBECONFIG=$INSTALL_DIR/auth/kubeconfig
+
+# Collect relevant information to ensure readiness:
+oc get clusterversion
+
+# Credentials mode  
+$ oc get -n kube-system cm cluster-config-v1 -o yaml | yq4 '.data["install-config"]' | yq4 .credentialsMode
+
+# AMI Used in the install-config
+$ oc get -n kube-system cm cluster-config-v1 -o yaml | yq4 '.data["install-config"]' | yq4 .platform.aws.defaultMachinePlatform.amiID
+
+# Check AMIs used in machines are same added to install-config
+$ oc get machines -n openshift-machine-api -o yaml | yq ea .items[].spec.providerSpec.value.ami -
+
+# Check encrypted AMI - mirrored from RHCOS payload
+$ aws ec2 describe-images --image-ids $(aws ec2 describe-instances --instance-ids $(oc get machines -n openshift-machine-api $(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=worker -ojsonpath='{.items[0].metadata.name}') -o yaml | yq4 .status.providerStatus.instanceId ) --query Reservations[].Instances[].ImageId --output text) | jq '.Images[]|{ImageId, Name, Description, BlockDeviceMappings}'
+
+# AMI (Snapshot) is encrypted with KMS CMK
+$ aws ec2 describe-snapshots --snapshot-ids $(aws ec2 describe-images --image-ids $(aws ec2 describe-instances --instance-ids $(oc get machines -n openshift-machine-api $(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=worker -ojsonpath='{.items[0].metadata.name}') -o yaml | yq4 .status.providerStatus.instanceId ) --query Reservations[].Instances[].ImageId --output text) | jq -r '.Images[].BlockDeviceMappings[0].Ebs.SnapshotId') | jq -r '.Snapshots[]|{SnapshotId, StartTime, CompletionTime, Encrypted, KmsKeyId, Description}'
+
+# KMS CMK policy have enough permissions
+$ aws kms get-key-policy --key-id $(aws ec2 describe-snapshots --snapshot-ids $(aws ec2 describe-images --image-ids $(aws ec2 describe-instances --instance-ids $(oc get machines -n openshift-machine-api $(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machine-role=worker -ojsonpath='{.items[0].metadata.name}') -o yaml | yq4 .status.providerStatus.instanceId ) --query Reservations[].Instances[].ImageId --output text) | jq -r '.Images[].BlockDeviceMappings[0].Ebs.SnapshotId') | jq -r '.Snapshots[].KmsKeyId') | jq -r .Policy
+```
+
+
+**Install Option 02) Dedicated IAM user for each component (Failing)**
+
+!!! warn "Failing option"
+    Don't use this option as there is no enough information to determine the root cause of failure in OIDC Authnz (unrelated with encrypted AMI). Use Option 1 to quickly acces STS cluster using standard deployment method.
 
 Steps:
 - Create the install-config with:
@@ -391,7 +509,7 @@ oc adm release extract \
   --from=$RELEASE_IMAGE \
   --credentials-requests \
   --included \
-  --install-config=${INSTALL_DIR}/install-config-bkp.yaml \
+  --install-config=${INSTALL_DIR}/install-config.yaml \
   --to=./creds-requests
 
 # create the installer manifests with installer user
@@ -407,7 +525,7 @@ echo $CLUSTER_INFRA_ID
 
 # create IAM roles with cco user
 AWS_PROFILE=$IAM_USER_CCOCTL ./ccoctl aws create-all \
-  --name=${CLUSTER_INFRA_ID} \
+  --name=${CLUSTER_NAME} \
   --region=${AWS_REGION} \
   --credentials-requests-dir=./creds-requests \
   --output-dir=./creds-output \
@@ -480,78 +598,6 @@ Create a cluster with custom user:
 AWS_PROFILE=$IAM_USER_INST ./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
 ```
 
-##### BYO Encrypted AMI with Passthrough Authenticated mode (IAM User)<a name="byo-ami-enc-user"></a>>
-
-
-Steps:
-
-> TBDescribed
-
-```sh
-# Append the credentials mode to the patch:
-cat <<EOF >> ${INSTALL_DIR}/install-config.patch.yaml
-credentialsMode: Passthrough
-EOF
-
-# Generate final install-config
-${BIN_YQ} -i ". *= load(\"${INSTALL_DIR}/install-config.patch.yaml\")" ${INSTALL_DIR}/install-config.yaml
-
-# Check and back up the policy
-${BIN_YQ} ea .platform.aws ${INSTALL_DIR}/install-config.yaml
-
-cp ${INSTALL_DIR}/install-config.yaml ${INSTALL_DIR}/install-config-bkp.yaml
-
-# Generate the IAM policy used by installer
-./openshift-install create permissions-policy --dir $INSTALL_DIR
-
-
-cp -v $INSTALL_DIR/aws-permissions-policy-creds.json ./${IAM_USER_INST}-policy.json
-create_user_and_keys "${IAM_USER_INST}" "./${IAM_USER_INST}-policy.json"
-
-# create the installer manifests with installer user
-AWS_PROFILE=$IAM_USER_INST ./openshift-install create manifests --dir $INSTALL_DIR
-
-# Get current KMS policy
-AWS_PROFILE=$IAM_USER_KMS aws kms get-key-policy --key-id $KMS_KEY_ID --query Policy --output text | jq '.' > ./kms-policy.json
-
-
-# Patch to allow new users
-jq --arg aws_account "$AWS_ACCOUNT" --arg user_installer "$IAM_USER_INST" \
-  '.Statement += [{
-  "Sid": "AllowInstaller",
-  "Effect": "Allow",
-  "Principal": {
-    "AWS": "arn:aws:iam::\($aws_account):user/\($user_installer)"
-  },
-  "Action" : "*",
-  "Resource": "*"
-}]' ./kms-policy.json > ./kms-policy-2.json
-
-# Check if the policies is appending to the original in ./kms-policy-1.json
-
-# Update
-AWS_PROFILE=$IAM_USER_KMS aws kms put-key-policy \
-    --policy-name default \
-    --key-id ${KMS_KEY_ID} \
-    --policy file://./kms-policy-2.json
-
-
-# Check if workers manifest set the correct AMI ID
-yq ea .spec.template.spec.providerSpec.value.blockDevices $INSTALL_DIR/openshift/99_openshift-cluster-api_worker-machineset-*.yaml
-
-echo $OCP_IMAGE_ID_ENC
-yq ea .spec.template.spec.providerSpec.value.ami $INSTALL_DIR/openshift/99_openshift-cluster-api_worker-mac*.yaml
-
-yq ea .spec.providerSpec.value.ami $INSTALL_DIR/openshift/99_openshift-cluster-api_master-mac*.yaml
-
-
-```
-
-Create a cluster with custom user:
-
-```sh
-AWS_PROFILE=$IAM_USER_INST ./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
-```
 
 ## Troubleshooting
 
