@@ -13,7 +13,7 @@ The motivation of this playbook is to create a default cluster with STS support 
 custom_vars() {
   cat<<'EOF'> ~/.env-ocp-sts-aws
 export REGION=${CLUSTER_REGION:-'us-east-1'}
-export VERSION=${CLUSTER_VERSION:-4.11.8}
+export VERSION=${CLUSTER_VERSION:-4.16.38}
 
 export PULL_SECRET_FILE=${HOME}/.openshift/pull-secret-latest.json
 export SSH_PUB_KEY_FILE="${HOME}/.ssh/id_rsa.pub"
@@ -159,7 +159,7 @@ destroy_cluster() {
 - Create the cluster with the name "labsts":
 
 ```bash
-CLUSTER_NAME="labsts07" &&\
+CLUSTER_NAME="sts416" &&\
   CLUSTER_BASE_DOMAIN="devcluster.openshift.com" &&\
   create_cluster $CLUSTER_NAME
 ```
@@ -167,8 +167,8 @@ CLUSTER_NAME="labsts07" &&\
 - Create the cluster changing the default image:
 
 ```bash
-CLUSTER_VERSION="4.11.10" &&\
-  CLUSTER_NAME="labsts41110t1" &&\
+CLUSTER_VERSION="4.16.38" &&\
+  CLUSTER_NAME="sts416" &&\
   CLUSTER_BASE_DOMAIN="devcluster.openshift.com" &&\
   create_cluster $CLUSTER_NAME
 ```
@@ -260,6 +260,19 @@ aws sts assume-role-with-web-identity \
 ```
 
 - [Simulate IAM Role Permissions](./ocp-aws-cco-simulate-policy.md)
+
+## Troubleshoot Helper OIDC Script
+
+Helper script to validate the OIDC infra:
+
+```sh
+wget -O ~/bin/ocp-oidc-check "https://github.com/mtulio/mtulio.labs/refs/heads/devel/bin/ocp-oidc-check.sh" && \
+chmod +x ~/bin/ocp-oidc-check
+
+# Run check to get initial insights to troubleshoot OIDC infra
+~/bin/ocp-oidc-check
+```
+
 
 ## References
 
