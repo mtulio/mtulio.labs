@@ -7,13 +7,22 @@ an OpenShift cluster on AWS using `openshift-install`.
 For more information about OpenShift install, check the
 [official documentation](https://docs.openshift.com/container-platform/latest/installing/installing_aws/preparing-to-install-on-aws.html)
 
-Steps:
+Guidance:
+
+- 1) Resolve Dependencies
+- 2) Choose only BYO Infrastructure (according to your needs/variant)
+- 3) Generate the install-config.yaml (according to your needs/variant)
+- 4) Deploy the cluster
+
+
+Table of Contents:
 
 - Prerequisites
     - install awscli
     - install openshift-install
     - yq4
-- Choose and Deploy your BYO infrastructure
+    - Download CloudFormation Templates
+- [Deploy your BYO infrastructure](#byo-infra)
     - BYO VPC
     - BYO subnet on AWS Local Zones
     - BYO subnet on AWS Wavelength
@@ -24,16 +33,18 @@ Steps:
     - BYO KMS Key (TODO)
     - BYO Security Group (TODO)
     - BYO Infra for private deployments (TODO)
-- Create the install-config.yaml
+    - BYO Encrypted AMI
+- [Create the install-config.yaml](#setup)
     - Base install-config
-    - Patch the configuration to BYO infra
+    - Patch the configuration to meet BYO infrastructure
         - BYO VPC
         - BYO subnet on AWS Local Zones
         - BYO subnet on AWS Wavelength
         - BYO VPC with multi-subnets in same zone
-- Deploy OpenShift cluster on AWS
+        - BYO Encrypted AMI
+- [Deploy OpenShift cluster on AWS](#deploy)
 
-## Prerequisites
+## Prerequisites <a name="prerequisites"></a>>
 
 - Export environment variables used in the cluster:
 ```sh
@@ -44,6 +55,27 @@ export SSH_KEYS="$(cat ~/.ssh/id_rsa.pub)"
 export AWS_DEFAULT_REGION=us-east-1
 export INSTALL_DIR="${PWD}/${CLUSTER_NAME}"
 
+mkdir -vp ${INSTALL_DIR}
+```
+
+### Installing dependencies
+
+- [Install `awscli` v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- Install `yq`:
+```sh
+yq_version=v4.34.2
+yq_bin_arch=yq_linux_amd64
+yq_url="https://github.com/mikefarah/yq/releases/download/${yq_version}/${yq_bin_arch}"
+BIN_YQ=${PWD}/yq
+
+wget -O ${BIN_YQ} ${yq_url} && chmod +x ${BIN_YQ}
+```
+- Download `openshift-install`
+
+### Downloading CloudFormation templates when customizing infra
+
+- Download the CloudFormation Templates (when BYO requires it):
+```sh
 # Source and version URL to download the CloudFormation templates
 export TEMPLATES_BASE=https://raw.githubusercontent.com/openshift/installer
 export TEMPLATES_VERSION=master
@@ -64,22 +96,10 @@ function download_cloudformation_templates() {
   done
 }
 export -f download_cloudformation_templates
-
-mkdir -vp ${INSTALL_DIR}
-```
-- Install `openshift-install`
-- [Install `awscli` v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-- Install `yq`:
-```sh
-yq_version=v4.34.2
-yq_bin_arch=yq_linux_amd64
-yq_url="https://github.com/mikefarah/yq/releases/download/${yq_version}/${yq_bin_arch}"
-BIN_YQ=${PWD}/yq
-
-wget -O ${BIN_YQ} ${yq_url} && chmod +x ${BIN_YQ}
 ```
 
-## Choose and Deploy your BYO infrastructure
+
+## Choose and Deploy your BYO infrastructure <a name="byo-infra"></a>
 
 ### BYO VPC
 
@@ -263,6 +283,8 @@ aws cloudformation wait stack-create-complete --stack-name ${STACK_SUBNET}
 aws cloudformation describe-stacks --stack-name ${STACK_SUBNET}
 ```
 
+Next Step: [Create the install-config.yaml](#setup)
+
 ### BYO VPC with multi-subnets in same zone
 
 Create multiple subnets in the same zone to isolate cluster resources into dedicated subnets, suchh as:
@@ -271,6 +293,8 @@ Create multiple subnets in the same zone to isolate cluster resources into dedic
 - Deploy Control Plane nodes into different subnet in zone A
 
 > TODO create AWS CloudFormation stack set to reuse AWS CloudFomration templates
+
+Next Step: [Create the install-config.yaml](#setup)
 
 ### BYO Public IPv4 Pool
 
@@ -281,6 +305,8 @@ After it is provisioned, no additional steps is required by OpenShift cluster in
 See [openshift-install parameter `platform.aws.publicIpv4Pool`](https://docs.openshift.com/container-platform/4.17/installing/installing_aws/installation-config-parameters-aws.html)
 
 See AWS documentation to ["Bring your own IP addresses (BYOIP) to Amazon EC2"](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-onboard).
+
+Next Step: [Create the install-config.yaml](#setup)
 
 ### BYO EIP
 
@@ -321,6 +347,8 @@ There is additional work on CAPA to fully support BYO EIP, take a look at the fo
 - [CAPA spike to BYO EIP](https://github.com/kubernetes-sigs/cluster-api-provider-aws/compare/main...mtulio:cluster-api-provider-aws:spike-byo-eip?expand=1)
 - [Installer Spike/PoC to BYO EIP for control plane components (API NLB, Bootstrap, and NAT GWs)](https://github.com/openshift/installer/compare/main...mtulio:installer:spike-byo-eip?expand=1#diff-eb33be4c39b4da2461546c7a4f59bce61f5b515fa6e2f7d71974b647f6f42a9e)
 
+Next Step: [Create the install-config.yaml](#setup)
+
 ### BYO Infra for private deployments
 
 > TODO/WIP Partial
@@ -329,8 +357,7 @@ Steps to create the infrastructure (VPC/network, Proxy and Bastion nodes, etc) f
 
 Check out the draft/notes [ocp-aws-private-one-time-deploy](https://mtulio.dev/guides/ocp-aws-private-one-time-deploy/).
 
-
-## Create the install-config.yaml
+## Create the install-config.yaml <a name="setup"></a>
 
 ```sh
 cat <<EOF > ${INSTALL_DIR}/install-config.yaml
@@ -383,6 +410,8 @@ ${BIN_YQ} -i ". *= load(\"${INSTALL_DIR}/install-config.patch.yaml\")" ${INSTALL
 grep -A 7 subnets ${INSTALL_DIR}/install-config.yaml
 ```
 
+Next Step: [Deploy OpenShift cluster on AWS](#deploy)
+
 #### BYO subnet on AWS Local Zones
 
 Steps to patch install-config to BYO VPC extending to Local Zone subnet:
@@ -422,6 +451,8 @@ ${BIN_YQ} -i ". *= load(\"${INSTALL_DIR}/install-config.patch.yaml\")" ${INSTALL
 
 grep -A 7 subnets ${INSTALL_DIR}/install-config.yaml
 ```
+
+Next Step: [Deploy OpenShift cluster on AWS](#deploy)
 
 #### BYO subnet on AWS Wavelentth Zones
 
@@ -463,6 +494,8 @@ ${BIN_YQ} -i ". *= load(\"${INSTALL_DIR}/install-config.patch.yaml\")" ${INSTALL
 grep -A 7 subnets ${INSTALL_DIR}/install-config.yaml
 ```
 
+Next Step: [Deploy OpenShift cluster on AWS](#deploy)
+
 #### BYO VPC with multi-subnets in same zone
 
 Patch install-config.yaml to use the new subnets API `platform.aws.vpc.subnets`
@@ -503,8 +536,9 @@ ${BIN_YQ} -i ". *= load(\"${INSTALL_DIR}/install-config.patch.yaml\")" ${INSTALL
 grep -A 7 subnets ${INSTALL_DIR}/install-config.yaml
 ```
 
+Next Step: [Deploy OpenShift cluster on AWS](#deploy)
 
-## Deploy OpenShift cluster on AWS
+## Deploy OpenShift cluster on AWS <a name="deploy"></a>
 
 ```sh
 ./openshift-install create cluster
