@@ -29,6 +29,7 @@ tar xvzf ccoctl-linux-${OCP_VERSION}.tar.gz
 ## BYO Encrypted AMI Requirements
 
 This setup will ensure each step runs with minimum permission, using the identities for different agents. Those are agents:
+
 - Identity used to create/mirror and encrypted the AMI
 - Identity used to executed ccoctl - create IAM Roles
 - Identity used to executed openshift-install
@@ -379,10 +380,11 @@ $ aws kms get-key-policy --key-id $(aws ec2 describe-snapshots --snapshot-ids $(
 
 #### Install Option 02 - Dedicated IAM User for openshift-install and ccoctl (FAILING)
 
-!!! warn "Failing option"
+!!! danger "Failing option"
     Don't use this option as there is no enough information to determine the root cause of failure in OIDC Authnz (unrelated with encrypted AMI). Use Option 1 to quickly acces STS cluster using standard deployment method.
 
 Steps:
+
 - Create the install-config with:
     - `manual` autentication mode
 - Generate the IAM Policy required to the installer user (minimum permissions)

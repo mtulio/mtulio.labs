@@ -44,7 +44,7 @@ Table of Contents:
         - BYO Encrypted AMI
 - [Deploy OpenShift cluster on AWS](#deploy)
 
-## Prerequisites <a name="prerequisites"></a>>
+## Prerequisites <a name="prerequisites"></a>
 
 - Export environment variables used in the cluster:
 ```sh
@@ -287,7 +287,7 @@ Next Step: [Create the install-config.yaml](#setup)
 
 ### BYO VPC with multi-subnets in same zone
 
-Create multiple subnets in the same zone to isolate cluster resources into dedicated subnets, suchh as:
+Create multiple subnets in the same zone to isolate cluster resources into dedicated subnets, such as:
 
 - Deploy API's and Ingress LBs in dedicated subnet in zone A
 - Deploy Control Plane nodes into different subnet in zone A

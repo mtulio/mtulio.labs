@@ -261,6 +261,19 @@ aws sts assume-role-with-web-identity \
 
 - [Simulate IAM Role Permissions](./ocp-aws-cco-simulate-policy.md)
 
+## Troubleshoot Helper OIDC Script
+
+Helper script to validate the OIDC infra:
+
+```sh
+wget -O ~/bin/ocp-oidc-check "https://github.com/mtulio/mtulio.labs/refs/heads/devel/bin/ocp-oidc-check.sh" && \
+chmod +x ~/bin/ocp-oidc-check
+
+# Run check to get initial insights to troubleshoot OIDC infra
+~/bin/ocp-oidc-check
+```
+
+
 ## References
 
 - [Install a OCP Cluster with STS](#)

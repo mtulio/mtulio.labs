@@ -193,6 +193,7 @@ nav:
       - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelength-zones-hands-on.md
       - Installing on AWS extending compute nodes to AWS Outposts in Day-2: guides/ocp-aws-outposts.md
       - Installing on AWS BYO VPC with Multi CDIR: guides/ocp-install-profiles/ocp-aws-byo-vpc-multi-cidr.md
+      - Installing on AWS with BYO Encrypted AMI: guides/ocp-aws-byo-infra-labs-ami-enc-cmk.md
 
     - OpenShift scaling labs:
       - OpenShift on AWS using Karpenter: guides/ocp-lab-scaling-setup-karpenter.md
