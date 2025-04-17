@@ -1,32 +1,31 @@
 #!/usr/bin/env bash
 
 #
-# Helper script to troubleshoot OIDC* infrastructure
+# Helper script to troubleshoot OIDC infrastructure
 # when installing an OpenShift cluster on AWS with manual
-# credentials mode with STS.
+# credentials mode using STS (AWS Security Token Service).
 #
-# *OpenID Connect / Cloud Authentication on OpenShift/Kubernetes
+# *OpenID Connect (OIDC) / Cloud Authentication on OpenShift/Kubernetes
 #
 
-# Show results with PASS/FAIL format with errors when it have.
+# Show results with PASS/FAIL format and display errors if present.
 function show_results() {
   local show_resp=${1-}
   local resp_type='out'
-  if [[ ! -s /tmp/oc-oidc-check.err ]];
-  then
+  if [[ ! -s /tmp/oc-oidc-check.err ]]; then
     echo -ne "PASS"
   else
     resp_type='err'
     echo -ne "FAIL"
   fi
   if [[ -n ${show_resp} ]]; then
-    if [[ -f ${show_resp} ]]; then
+    if [[ -f /tmp/oc-oidc-check.$resp_type ]]; then
       echo -e "\n~~~"
       cat /tmp/oc-oidc-check.$resp_type
       echo "~~~"
     fi
   fi
-  rm /tmp/oc-oidc-check.* >/dev/null 2>&1
+  rm -f /tmp/oc-oidc-check.* >/dev/null 2>&1
 }
 
 function show_results_without() {
@@ -37,80 +36,79 @@ declare -A aws_credsrequests
 declare -A aws_credsrequests_secrets
 declare -A aws_creds_pod_controllers
 
+# Populate credential requests with their corresponding operators.
 aws_credsrequests["openshift-cluster-csi-drivers"]="aws-ebs-csi-driver-operator"
 aws_credsrequests["openshift-machine-api"]="openshift-machine-api-aws"
 
-
 echo -ne "\n--- Validate infrastructure"
 
+# Validate OIDC issuer URLs.
 # https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
 # .2
-# Checking issuer
 echo -e "\n---"
-
 echo -en "\n=> Getting Issuer URL in Auth\t: "
 ISSUER_AUTH=$(oc get authentication cluster -o jsonpath='{.spec.serviceAccountIssuer}')
-echo -n $ISSUER_AUTH
+echo -n "$ISSUER_AUTH"
 
 echo -en "\n=> Getting Issuer URL in KAS\t: "
 ISSUER_KUBE=$(kubectl get --raw /.well-known/openid-configuration | jq -r .issuer)
-echo -n $ISSUER_KUBE
+echo -n "$ISSUER_KUBE"
 
 echo -en "\n=> Getting Issuer URL in OIDC\t: "
-ISSUER_OIDC=$(curl -sk $(kubectl get --raw /.well-known/openid-configuration | jq -r .issuer)/.well-known/openid-configuration | jq -r .issuer)
-echo -n $ISSUER_OIDC
+ISSUER_OIDC=$(curl -sk "$(kubectl get --raw /.well-known/openid-configuration | jq -r .issuer)/.well-known/openid-configuration" | jq -r .issuer)
+echo -n "$ISSUER_OIDC"
 
 echo -e "\n---"
 echo -en "\n=> ServiceAccountIssuer can be accessed through the internet... "
-curl -sk $ISSUER_AUTH/.well-known/openid-configuration | jq -cr .issuer \
-  >/tmp/oc-oidc-check.out 2> /tmp/oc-oidc-check.err
-  show_results
+curl -sk "$ISSUER_AUTH/.well-known/openid-configuration" | jq -cr .issuer \
+  >/tmp/oc-oidc-check.out 2>/tmp/oc-oidc-check.err
+show_results
 
 echo -ne "\n--- Validate credential requests / tokens by component"
 
+# Discover secrets associated with credential requests.
 for key in "${!aws_credsrequests[@]}"; do
-  echo -ne "\n=> AWS STS | discoverying secret name from CredRequest | ${aws_credsrequests[$key]}"
-  aws_credsrequests_secrets[$key]="$(oc get -n openshift-cloud-credential-operator credentialsrequests ${aws_credsrequests[$key]} -o jsonpath='{.spec.secretRef.name}')"
+  echo -ne "\n=> AWS STS | Discovering secret name from CredRequest | ${aws_credsrequests[$key]}"
+  aws_credsrequests_secrets[$key]="$(oc get -n openshift-cloud-credential-operator credentialsrequests "${aws_credsrequests[$key]}" -o jsonpath='{.spec.secretRef.name}')"
 done
 
 echo -ne "\n---"
+
+# Function to check logs for specific errors.
 function check_log_error() {
   local namespace=$1
   local pod_container_name=""
   local pod_filter=""
   local check_logs=false
-  
+
   if [[ "${namespace}" == "openshift-machine-api" ]]; then
-    pod_container_name=machine-controller
+    pod_container_name="machine-controller"
     pod_filter="api=clusterapi,k8s-app=controller"
     check_logs=true
   fi
 
   if [[ $check_logs == true ]]; then
-    # Checking log pattern: InvalidIdentityToken
     echo -ne "\n=> AWS STS | Component Check | $namespace | Controller reporting errors | InvalidIdentityToken..."
-    ERR_COUNT=$(oc logs -n $namespace -c $pod_container_name $(oc get pods -l $pod_filter -n $namespace -o jsonpath='{.items[0].metadata.name}'
-) | grep InvalidIdentityToken | wc -l)
+    ERR_COUNT=$(oc logs -n "$namespace" -c "$pod_container_name" "$(oc get pods -l "$pod_filter" -n "$namespace" -o jsonpath='{.items[0].metadata.name}')" | grep -c "InvalidIdentityToken")
     if [[ $ERR_COUNT -ge 1 ]]; then
       echo -e "ERROR COUNT: $ERR_COUNT \nSAMPLE:" > /tmp/oc-oidc-check.err
-      oc logs -n $namespace -c $pod_container_name $(oc get pods -l $pod_filter -n $namespace -o jsonpath='{.items[0].metadata.name}'
-) | grep InvalidIdentityToken | tail -n1 >> /tmp/oc-oidc-check.err
+      oc logs -n "$namespace" -c "$pod_container_name" "$(oc get pods -l "$pod_filter" -n "$namespace" -o jsonpath='{.items[0].metadata.name}')" | grep "InvalidIdentityToken" | tail -n1 >> /tmp/oc-oidc-check.err
     fi
     show_results "yes"
   fi
 }
 
+# Validate secrets and check logs for errors.
 for key in "${!aws_credsrequests_secrets[@]}"; do
   echo -ne "\n=> AWS STS | Component Check | $key | secret | $key/${aws_credsrequests_secrets[$key]} ..."
-  # Check if credentials secret has been created
-  oc get secrets ${aws_credsrequests_secrets[$key]} \
-      -n $key \
+  oc get secrets "${aws_credsrequests_secrets[$key]}" \
+      -n "$key" \
       -o jsonpath='{.data.credentials}' \
       | base64 -d \
-      >/tmp/oc-oidc-check.out 2> /tmp/oc-oidc-check.err
+      >/tmp/oc-oidc-check.out 2>/tmp/oc-oidc-check.err
   show_results
 
-  check_log_error "${key}"
+  check_log_error "$key"
 done
 
 echo

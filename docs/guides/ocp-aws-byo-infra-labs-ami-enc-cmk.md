@@ -2,7 +2,7 @@
 
 This guide describes how to install am OpenShift cluster on AWS using custom Encrypted AMI, encrypted with a KMS Customer Managed Key (CMK).
 
-### Installing dependencies
+## Installing dependencies
 
 - [Install `awscli` v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 - Install `yq`:
@@ -26,9 +26,7 @@ tar xvzf openshift-install-linux-${OCP_VERSION}.tar.gz
 tar xvzf ccoctl-linux-${OCP_VERSION}.tar.gz
 ```
 
-## Choose and Deploy your BYO infrastructure <a name="byo-infra"></a>
-
-### BYO Encrypted AMI
+## BYO Encrypted AMI Requirements
 
 This setup will ensure each step runs with minimum permission, using the identities for different agents. Those are agents:
 - Identity used to create/mirror and encrypted the AMI
@@ -262,12 +260,12 @@ Next Step (choose one):
 - [BYO Encrypted AMI with Manual with STS Authenticated mode (IAM Role)](#byo-ami-enc-sts)
 - [BYO Encrypted AMI with Mint Authenticated mode (IAM User)](#byo-ami-enc-mint)
 
-##### BYO Encrypted AMI with Passthrough Authenticated mode (IAM User)<a name="byo-ami-enc-user"></a>>
 
+## BYO Encrypted AMI - Installing by Credentials Mode
+
+### BYO Encrypted AMI with Passthrough Credential mode (IAM User)<a name="byo-ami-enc-user"></a>>
 
 Steps:
-
-> TBDescribed
 
 ```sh
 # Append the credentials mode to the patch:
@@ -336,9 +334,11 @@ AWS_PROFILE=$IAM_USER_INST ./openshift-install create cluster --dir $INSTALL_DIR
 ```
 
 
-### BYO Encrypted AMI with Manual with Manual Credentials mode (IAM Role/STS) <a name="byo-ami-enc-sts"></a>>
+### BYO Encrypted AMI with Manual STS Credential mode (IAM Role/STS) <a name="byo-ami-enc-sts"></a>>
 
-Install Option 01) Dedicated IAM user for each component (Failing)
+#### Install Option 01 - Default IAM User to deploy/install (standard)
+
+This section install a cluster on AWS with STS quickly using automated scripts (based in official OCP documentation).
 
 Quickly deploy a cluster using STS with [automated shell script (automates the required manual steps)](https://mtulio.dev/playbooks/openshift/ocp-aws-cco-sts-install-quickly/)
 
@@ -377,7 +377,7 @@ $ aws kms get-key-policy --key-id $(aws ec2 describe-snapshots --snapshot-ids $(
 ```
 
 
-**Install Option 02) Dedicated IAM user for each component (Failing)**
+#### Install Option 02 - Dedicated IAM User for openshift-install and ccoctl (FAILING)
 
 !!! warn "Failing option"
     Don't use this option as there is no enough information to determine the root cause of failure in OIDC Authnz (unrelated with encrypted AMI). Use Option 1 to quickly acces STS cluster using standard deployment method.
@@ -596,143 +596,4 @@ Create a cluster with custom user:
 
 ```sh
 AWS_PROFILE=$IAM_USER_INST ./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
-```
-
-
-## Troubleshooting
-
-OIDC token validation:
-
-TODO: investigate credentials issues
-```sh
-export KUBECONFIG=$INSTALL_DIR/auth/kubeconfig
-
-```
-
-Issue:
-```sh
-An error occurred (InvalidIdentityToken) when calling the AssumeRoleWithWebIdentity operation: Couldn't retrieve verification key from your identity provider,  please reference AssumeRoleWithWebIdentity documentation for requirements
-
-```
-
-Validation script:
-
-```sh
-echo "---"
-echo "=> Secret has been created: "
-# Check if credentials secret has been created
-oc get secrets aws-cloud-credentials \
-    -n openshift-machine-api \
-    -o jsonpath='{.data.credentials}' \
-    | base64 -d
-
-echo "---"
-echo "=> Component | Secret has been created: "
-# Extracts the token
-# Get Token path from AWS credentials mounted to pod
-TOKEN_PATH=$(oc get secrets aws-cloud-credentials \
-    -n openshift-machine-api \
-    -o jsonpath='{.data.credentials}' |\
-    base64 -d |\
-    grep ^web_identity_token_file |\
-    awk '{print$3}')
-
-echo "---"
-echo "=> Component | Can read signed service account token: "
-# Get Controler's pod
-CAPI_POD=$(oc get pods -n openshift-machine-api \
-    -l api=clusterapi \
-    -o jsonpath='{.items[*].metadata.name}')
-
-# Extract tokens from pod
-TOKEN=$(oc exec -n openshift-machine-api ${CAPI_POD} \
-    -c machine-controller -- cat ${TOKEN_PATH})
-
-echo "Token size from pod $CAPI_POD: $(echo $TOKEN|wc)"
-
-echo "---"
-echo "=> Component | Can extract information from JWT token: "
-
-# Get insigits
-echo $TOKEN | awk -F. '{ print $1 }' | base64 -d 2>/dev/null | jq .alg
-echo $TOKEN | awk -F. '{ print $2 }' | base64 -d 2>/dev/null | jq .iss
-
-
-echo "---"
-echo "=> Component | Can extract IAM Role from secret: "
-
-# Test token
-IAM_ROLE=$(oc get secrets aws-cloud-credentials \
-    -n openshift-machine-api \
-    -o jsonpath='{.data.credentials}' |\
-    base64 -d |\
-    grep ^role_arn |\
-    awk '{print$3}')
-
-echo $IAM_ROLE
-
-echo "---"
-echo "=> Component | Can assume IAM role with bound token: "
-AWS_SHARED_CREDENTIALS_FILE=$HOME/.aws/credentials aws sts assume-role-with-web-identity \
-    --role-arn "${IAM_ROLE}" \
-    --role-session-name "my-session" \
-    --web-identity-token "${TOKEN}"
-
-
-echo "---"
-echo "=> ServiceAccountIssuer can be accessed through the internet:"
-if command curl -sl $(oc get authentication cluster -o jsonpath='{.spec.serviceAccountIssuer}')/.well-known/openid-configuration | jq -cr .issuer; then
-  echo -ne " OK"
-else
-  echo "ERROR accessing public OIDC endpoint"
-fi
-
-# https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
-# .2
-# Checking issuer
-echo "---"
-echo "=> Issuer provided by kube: "
-kubectl get --raw /.well-known/openid-configuration | jq -r .issuer
-
-echo "=> Issuer in public JWKS: "
-curl -sk $(kubectl get --raw /.well-known/openid-configuration | jq -r .issuer)/.well-known/openid-configuration | jq -r .issuer
-
-echo "=> Issuer in the token: "
-echo $TOKEN | awk -F. '{ print $2 }' | base64 -d 2>/dev/null  | jq -r .iss
-
-# Checking kid
-echo "---"
-echo "=> kid in public JWKS: "
-kid_public=$(curl -sk $(kubectl get --raw /.well-known/openid-configuration | jq -r .issuer)/keys.json  | jq -r .keys[0].kid)
-echo $kid_public
-
-echo "=> kid kube keys: "
-kubectl get --raw /openid/v1/jwks | jq -r ".keys[] | select(.kid==\"${kid_public}\")"
-
-if [[ -z $(kubectl get --raw /openid/v1/jwks | jq -r ".keys[] | select(.kid==\"${kid_public}\")") ]]; then
-  echo "ERROR kid published in S3 not found in kube"
-fi
-
-echo "=> kid token: "
-kid_token=$(echo $TOKEN | awk -F. '{ print $1 }' | base64 -d 2>/dev/null  | jq -r .kid)
-echo $kid_token
-
-echo "=> kid token in kube: "
-kubectl get --raw /openid/v1/jwks | jq -r ".keys[] | select(.kid==\"${kid_token}\").kid"
-
-if [[ "${kid_public}" != "${kid_token}" ]]; then
-  echo "ERROR kid missmatch from signed token and published public keys"
-fi
-```
-
-other checks:
-```sh
-# check if public keys are accessible
-curl -sk $(echo $TOKEN | awk -F. '{ print $2 }' | base64 -d 2>/dev/null  | jq -r .iss)/keys.json
-
-# checkif config is accessible
-curl -sk $(echo $TOKEN | awk -F. '{ print $2 }' | base64 -d 2>/dev/null  | jq -r .iss)/.well-known/openid-configuration
-
-kubectl get --raw /.well-known/openid-configuration | jq .
-kubectl get --raw /openid/v1/jwks | jq .
 ```
