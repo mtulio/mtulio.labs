@@ -1,0 +1,589 @@
+{
+  "lab-trail-installer": {
+    "provider": "AWS",
+    "name": "lab-trail-installer",
+    "type": "IAMUser",
+    "events": {
+      "ec2:DescribeInstanceTypeOfferings": {
+        "count": 6
+      },
+      "ec2:DescribeAvailabilityZones": {
+        "count": 31
+      },
+      "route53:ListHostedZones": {
+        "count": 3
+      },
+      "route53:ListResourceRecordSets": {
+        "count": 264
+      },
+      "servicequotas:ListAWSDefaultServiceQuotas": {
+        "count": 12
+      },
+      "ec2:CreateNatGateway": {
+        "count": 6
+      },
+      "ec2:DescribeSecurityGroups": {
+        "count": 29
+      },
+      "ec2:CreateSecurityGroup": {
+        "count": 4
+      },
+      "ec2:AuthorizeSecurityGroupIngress": {
+        "count": 4
+      },
+      "ec2:DescribeNatGateways": {
+        "count": 86
+      },
+      "ec2:DescribeRouteTables": {
+        "count": 48
+      },
+      "ec2:DescribeVpcEndpoints": {
+        "count": 19
+      },
+      "ec2:DescribeInstances": {
+        "count": 142
+      },
+      "sts:GetCallerIdentity": {
+        "count": 8
+      },
+      "ec2:DescribeInternetGateways": {
+        "count": 19
+      },
+      "ec2:DescribeVpcs": {
+        "count": 74
+      },
+      "ec2:DescribeVpcAttribute": {
+        "count": 34
+      },
+      "ec2:DescribeSubnets": {
+        "count": 35
+      },
+      "elasticloadbalancing:ModifyLoadBalancerAttributes": {
+        "count": 32
+      },
+      "elasticloadbalancing:SetSecurityGroups": {
+        "count": 34
+      },
+      "elasticloadbalancing:DescribeTags": {
+        "count": 40
+      },
+      "elasticloadbalancing:DescribeTargetGroups": {
+        "count": 158
+      },
+      "elasticloadbalancing:DescribeListeners": {
+        "count": 34
+      },
+      "elasticloadbalancing:DescribeLoadBalancers": {
+        "count": 164
+      },
+      "elasticloadbalancing:DescribeLoadBalancerAttributes": {
+        "count": 40
+      },
+      "s3:PutBucketPolicy": {
+        "count": 7
+      },
+      "s3:PutBucketTagging": {
+        "count": 7
+      },
+      "s3:CreateBucket": {
+        "count": 7
+      },
+      "route53:CreateHostedZone": {
+        "count": 1
+      },
+      "route53:ChangeTagsForResource": {
+        "count": 1
+      },
+      "route53:ChangeResourceRecordSets": {
+        "count": 9
+      },
+      "route53:GetChange": {
+        "count": 2
+      },
+      "ec2:DescribeInstanceTypes": {
+        "count": 13
+      },
+      "ec2:DescribeImages": {
+        "count": 8
+      },
+      "ec2:RunInstances": {
+        "count": 4
+      },
+      "ec2:DescribeDhcpOptions": {
+        "count": 57
+      },
+      "ec2:DescribeNetworkInterfaces": {
+        "count": 61
+      },
+      "ec2:CreateTags": {
+        "count": 108
+      },
+      "kms:GenerateDataKey": {
+        "count": 1
+      },
+      "kms:GenerateDataKeyWithoutPlaintext": {
+        "count": 4
+      },
+      "elasticloadbalancing:DescribeTargetHealth": {
+        "count": 174
+      },
+      "kms:CreateGrant": {
+        "count": 8
+      },
+      "elasticloadbalancing:RegisterTargets": {
+        "count": 12
+      },
+      "kms:Decrypt": {
+        "count": 1
+      },
+      "iam:GetUser": {
+        "count": 1199
+      },
+      "iam:SimulatePrincipalPolicy": {
+        "count": 6
+      },
+      "servicequotas:ListServiceQuotas": {
+        "count": 11
+      },
+      "iam:GetRole": {
+        "count": 182
+      },
+      "iam:CreateInstanceProfile": {
+        "count": 2
+      },
+      "iam:CreateRole": {
+        "count": 2
+      },
+      "iam:GetInstanceProfile": {
+        "count": 19
+      },
+      "iam:AddRoleToInstanceProfile": {
+        "count": 2
+      },
+      "iam:PutRolePolicy": {
+        "count": 2
+      },
+      "ec2:CreateSubnet": {
+        "count": 12
+      },
+      "ec2:ModifyVpcAttribute": {
+        "count": 1
+      },
+      "ec2:ModifySubnetAttribute": {
+        "count": 6
+      },
+      "ec2:CreateVpc": {
+        "count": 1
+      },
+      "ec2:AllocateAddress": {
+        "count": 6
+      },
+      "ec2:DescribeAddresses": {
+        "count": 1
+      },
+      "ec2:CreateInternetGateway": {
+        "count": 1
+      },
+      "ec2:AttachInternetGateway": {
+        "count": 1
+      },
+      "ec2:CreateRouteTable": {
+        "count": 12
+      },
+      "ec2:CreateRoute": {
+        "count": 12
+      },
+      "ec2:AssociateRouteTable": {
+        "count": 12
+      },
+      "elasticloadbalancing:CreateLoadBalancer": {
+        "count": 2
+      },
+      "ec2:CreateVpcEndpoint": {
+        "count": 1
+      },
+      "elasticloadbalancing:CreateTargetGroup": {
+        "count": 3
+      },
+      "elasticloadbalancing:ModifyTargetGroupAttributes": {
+        "count": 3
+      },
+      "elasticloadbalancing:CreateListener": {
+        "count": 3
+      },
+      "iam:TagUser": {
+        "count": 6
+      },
+      "iam:ListAccessKeys": {
+        "count": 13
+      },
+      "iam:CreateUser": {
+        "count": 6
+      },
+      "iam:PutUserPolicy": {
+        "count": 6
+      },
+      "iam:GetUserPolicy": {
+        "count": 7
+      },
+      "iam:CreateAccessKey": {
+        "count": 6
+      },
+      "elasticloadbalancing:DeregisterTargets": {
+        "count": 9
+      },
+      "s3:DeleteBucket": {
+        "count": 2
+      },
+      "ec2:RevokeSecurityGroupIngress": {
+        "count": 7
+      },
+      "ec2:TerminateInstances": {
+        "count": 10
+      },
+      "iam:ListRoles": {
+        "count": 5
+      },
+      "tagging:GetResources": {
+        "count": 21
+      },
+      "iam:ListUsers": {
+        "count": 48
+      },
+      "iam:DeleteAccessKey": {
+        "count": 6
+      },
+      "ec2:DeleteSubnet": {
+        "count": 21
+      },
+      "iam:DeleteUser": {
+        "count": 6
+      },
+      "ec2:DeleteVolume": {
+        "count": 74
+      },
+      "iam:DeleteUserPolicy": {
+        "count": 6
+      },
+      "iam:ListUserPolicies": {
+        "count": 6
+      },
+      "iam:ListRolePolicies": {
+        "count": 2
+      },
+      "iam:DeleteRolePolicy": {
+        "count": 2
+      },
+      "iam:DeleteInstanceProfile": {
+        "count": 2
+      },
+      "iam:ListAttachedRolePolicies": {
+        "count": 2
+      },
+      "iam:ListInstanceProfilesForRole": {
+        "count": 2
+      },
+      "iam:DeleteRole": {
+        "count": 2
+      },
+      "ec2:DeleteNatGateway": {
+        "count": 24
+      },
+      "iam:RemoveRoleFromInstanceProfile": {
+        "count": 2
+      },
+      "elasticloadbalancing:DeleteTargetGroup": {
+        "count": 4
+      },
+      "ec2:RevokeSecurityGroupEgress": {
+        "count": 6
+      },
+      "ec2:DeleteSecurityGroup": {
+        "count": 8
+      },
+      "ec2:DisassociateRouteTable": {
+        "count": 10
+      },
+      "ec2:DeleteRouteTable": {
+        "count": 12
+      },
+      "ec2:ReleaseAddress": {
+        "count": 10
+      },
+      "elasticloadbalancing:DeleteLoadBalancer": {
+        "count": 6
+      },
+      "ec2:DeleteNetworkInterface": {
+        "count": 5
+      },
+      "elasticloadbalancing:DeleteListener": {
+        "count": 3
+      },
+      "ec2:DetachInternetGateway": {
+        "count": 2
+      },
+      "route53:GetHostedZone": {
+        "count": 2
+      },
+      "route53:ListHostedZonesByName": {
+        "count": 4
+      },
+      "route53:DeleteHostedZone": {
+        "count": 2
+      },
+      "ec2:DeleteVpcEndpoints": {
+        "count": 1
+      },
+      "ec2:DeleteVpc": {
+        "count": 2
+      },
+      "ec2:DeleteInternetGateway": {
+        "count": 1
+      }
+    },
+    "creates": [
+      "lab-trail-lxqrw-openshift-machine-api-aws-s2nml",
+      "lab-trail-lxqrw-openshift-ingress-56v6s",
+      "lab-trail-lxqrw-aws-ebs-csi-driver-operator-jmrf2",
+      "lab-trail-lxqrw-openshift-cloud-network-config-contro-85lxq",
+      "lab-trail-lxqrw-openshift-image-registry-749dr",
+      "lab-trail-lxqrw-cloud-credential-operator-iam-ro-lw9hj"
+    ],
+    "created_by": "mrbraga"
+  },
+  "lab-trail-lxqrw-openshift-machine-api-aws-s2nml": {
+    "provider": "AWS",
+    "name": "lab-trail-lxqrw-openshift-machine-api-aws-s2nml",
+    "type": "IAMUser",
+    "events": {
+      "elasticloadbalancing:DescribeTargetHealth": {
+        "count": 216
+      },
+      "elasticloadbalancing:DescribeLoadBalancers": {
+        "count": 72
+      },
+      "elasticloadbalancing:DescribeTargetGroups": {
+        "count": 144
+      },
+      "ec2:DescribeInstanceTypes": {
+        "count": 9
+      },
+      "ec2:DescribeInstances": {
+        "count": 346
+      },
+      "ec2:DescribeVpcs": {
+        "count": 170
+      },
+      "ec2:DescribeDhcpOptions": {
+        "count": 170
+      },
+      "ec2:DescribeSecurityGroups": {
+        "count": 6
+      },
+      "ec2:DescribeAvailabilityZones": {
+        "count": 3
+      },
+      "kms:CreateGrant": {
+        "count": 6
+      },
+      "ec2:RunInstances": {
+        "count": 3
+      },
+      "ec2:DescribeSubnets": {
+        "count": 3
+      },
+      "ec2:DescribeImages": {
+        "count": 3
+      },
+      "kms:GenerateDataKeyWithoutPlaintext": {
+        "count": 3
+      }
+    },
+    "created_by": "lab-trail-installer"
+  },
+  "lab-trail-lxqrw-master-role": {
+    "provider": "AWS",
+    "name": "lab-trail-lxqrw-master-role",
+    "type": "AssumedRole",
+    "events": {
+      "ec2:DescribeInstances": {
+        "count": 857
+      },
+      "ec2:DescribeAvailabilityZones": {
+        "count": 1
+      },
+      "ec2:CreateSecurityGroup": {
+        "count": 4
+      },
+      "ec2:DescribeSecurityGroups": {
+        "count": 42
+      },
+      "ec2:AuthorizeSecurityGroupIngress": {
+        "count": 8
+      },
+      "ec2:DescribeSubnets": {
+        "count": 8
+      },
+      "ec2:DescribeRouteTables": {
+        "count": 4
+      },
+      "elasticloadbalancing:DescribeLoadBalancers": {
+        "count": 18
+      },
+      "ec2:DescribeAccountAttributes": {
+        "count": 4
+      },
+      "ec2:DescribeVpcs": {
+        "count": 4
+      },
+      "ec2:DescribeInternetGateways": {
+        "count": 4
+      },
+      "elasticloadbalancing:CreateLoadBalancer": {
+        "count": 4
+      },
+      "elasticloadbalancing:CreateLoadBalancerPolicy": {
+        "count": 1
+      },
+      "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer": {
+        "count": 2
+      },
+      "elasticloadbalancing:DescribeLoadBalancerAttributes": {
+        "count": 4
+      },
+      "elasticloadbalancing:ModifyLoadBalancerAttributes": {
+        "count": 4
+      },
+      "elasticloadbalancing:ConfigureHealthCheck": {
+        "count": 4
+      },
+      "elasticloadbalancing:RegisterInstancesWithLoadBalancer": {
+        "count": 7
+      },
+      "elasticloadbalancing:DeleteLoadBalancer": {
+        "count": 3
+      },
+      "ec2:RevokeSecurityGroupIngress": {
+        "count": 3
+      },
+      "ec2:DeleteSecurityGroup": {
+        "count": 11
+      }
+    }
+  },
+  "lab-trail-lxqrw-openshift-ingress-56v6s": {
+    "provider": "AWS",
+    "name": "lab-trail-lxqrw-openshift-ingress-56v6s",
+    "type": "IAMUser",
+    "events": {
+      "elasticloadbalancing:DescribeLoadBalancers": {
+        "count": 9
+      },
+      "tagging:GetResources": {
+        "count": 5
+      },
+      "route53:ListHostedZones": {
+        "count": 3
+      },
+      "route53:ChangeResourceRecordSets": {
+        "count": 2
+      }
+    },
+    "created_by": "lab-trail-installer"
+  },
+  "lab-trail-lxqrw-openshift-cloud-network-config-contro-85lxq": {
+    "provider": "AWS",
+    "name": "lab-trail-lxqrw-openshift-cloud-network-config-contro-85lxq",
+    "type": "IAMUser",
+    "events": {
+      "ec2:DescribeInstances": {
+        "count": 98
+      },
+      "ec2:DescribeInstanceTypes": {
+        "count": 98
+      },
+      "ec2:DescribeSubnets": {
+        "count": 98
+      }
+    },
+    "created_by": "lab-trail-installer"
+  },
+  "lab-trail-lxqrw-openshift-image-registry-749dr": {
+    "provider": "AWS",
+    "name": "lab-trail-lxqrw-openshift-image-registry-749dr",
+    "type": "IAMUser",
+    "events": {
+      "s3:CreateBucket": {
+        "count": 1
+      },
+      "s3:PutBucketEncryption": {
+        "count": 1
+      },
+      "s3:PutBucketLifecycle": {
+        "count": 1
+      },
+      "s3:PutBucketTagging": {
+        "count": 1
+      },
+      "s3:PutBucketPublicAccessBlock": {
+        "count": 1
+      }
+    },
+    "created_by": "lab-trail-installer"
+  },
+  "lab-trail-lxqrw-aws-ebs-csi-driver-operator-jmrf2": {
+    "provider": "AWS",
+    "name": "lab-trail-lxqrw-aws-ebs-csi-driver-operator-jmrf2",
+    "type": "IAMUser",
+    "events": {
+      "ec2:DescribeInstances": {
+        "count": 217
+      },
+      "ec2:AttachVolume": {
+        "count": 72
+      },
+      "ec2:DetachVolume": {
+        "count": 127
+      },
+      "ec2:DescribeVolumes": {
+        "count": 389
+      },
+      "ec2:CreateVolume": {
+        "count": 69
+      },
+      "kms:GenerateDataKeyWithoutPlaintext": {
+        "count": 25
+      },
+      "kms:CreateGrant": {
+        "count": 26
+      },
+      "ec2:DeleteVolume": {
+        "count": 89
+      },
+      "ec2:DescribeVolumesModifications": {
+        "count": 23
+      },
+      "ec2:ModifyVolume": {
+        "count": 7
+      }
+    },
+    "created_by": "lab-trail-installer"
+  },
+  "lab-trail-lxqrw-cloud-credential-operator-iam-ro-lw9hj": {
+    "provider": "AWS",
+    "name": "lab-trail-lxqrw-cloud-credential-operator-iam-ro-lw9hj",
+    "type": "IAMUser",
+    "events": {
+      "iam:GetUser": {
+        "count": 24
+      },
+      "iam:ListAccessKeys": {
+        "count": 12
+      },
+      "iam:GetUserPolicy": {
+        "count": 12
+      }
+    },
+    "created_by": "lab-trail-installer"
+  }
+}
