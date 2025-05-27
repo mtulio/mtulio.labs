@@ -26,7 +26,7 @@ func fetchNews(category string) ([]NewsItem, error) {
 		"item.directoryId": "whats-new-v2",
 		"sort_by":          "item.additionalFields.postDateTime",
 		"sort_order":       "desc",
-		"size":             "15",
+		"size":             "50",
 		"item.locale":      "en_US",
 	}
 
