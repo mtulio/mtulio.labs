@@ -209,12 +209,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "SSE not supported", http.StatusInternalServerError)
-		return
-	}
-
 	// Check if the query string ?json is added
 	outputJson := false
 	query := r.URL.Query()
@@ -226,6 +220,23 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "%s", content)
 		} else {
 			fmt.Fprintf(w, "data: %s\n\n", content)
+		}
+	}
+
+	// Allow browsers which does not support SSE to run through arg no-sse.
+	// Vercel does not support Server-Sent Events (SSE)
+	unsupportedSSE := false
+	if _, ok := query["no-sse"]; ok {
+		unsupportedSSE = true
+	}
+	flusher, ok := w.(http.Flusher)
+	if !unsupportedSSE && !ok {
+		http.Error(w, "SSE not supported", http.StatusInternalServerError)
+		return
+	}
+	flusherFunc := func() {
+		if !unsupportedSSE {
+			flusher.Flush()
 		}
 	}
 
@@ -256,7 +267,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	initJSON, _ := json.Marshal(initResp)
 	writeData(initJSON)
-	flusher.Flush()
+	flusherFunc()
 
 	category := ""
 	var req struct {
@@ -288,7 +299,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		}
 		errJSON, _ := json.Marshal(errResp)
 		writeData(errJSON)
-		flusher.Flush()
+		flusherFunc()
 		return
 	}
 	for _, item := range news {
@@ -309,6 +320,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		}
 		newsJSON, _ := json.Marshal(newsResp)
 		writeData(newsJSON)
-		flusher.Flush()
+		flusherFunc()
 	}
 }
