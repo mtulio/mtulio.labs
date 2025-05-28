@@ -224,9 +224,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Allow browsers which does not support SSE to run through arg no-sse.
-	// Vercel does not support Server-Sent Events (SSE)
 	unsupportedSSE := false
+
+	// Disable manually by query string added by user
 	if _, ok := query["no-sse"]; ok {
+		unsupportedSSE = true
+	}
+	// Automatically disable on Vercel serverless as it does not support Server-Sent Events (SSE).
+	if r.Header.Get("X-Vercel-Id") != "" {
 		unsupportedSSE = true
 	}
 	flusher, ok := w.(http.Flusher)
