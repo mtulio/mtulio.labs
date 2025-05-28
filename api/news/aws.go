@@ -137,31 +137,178 @@ func fetchNews(category string) ([]NewsItem, error) {
 			Category: categoryData,
 			Products: products,
 		})
+
+		// temp: collect only one item
+		break
 	}
 
 	return newsItems, nil
 }
 
-func Handler(w http.ResponseWriter, r *http.Request) {
-	// Extract 'category' query parameter
-	category := r.URL.Query().Get("category")
+// type AddArgs struct {
+// 	A int `json:"a"`
+// 	B int `json:"b"`
+// }
 
-	// Fetch news based on the category
+// // var mcpHandler mcptransport.Handler
+// var Server *mcp.Server
+
+// // TimeArgs defines the arguments for the time tool
+// type TimeArgs struct {
+// 	Format string `json:"format" jsonschema:"description=The time format to use"`
+// }
+
+// func init() {
+// 	transport := mcptransport.NewHTTPTransport("/mcp")
+// 	transport.WithAddr(":8080")
+
+// 	Server = mcp.NewServer(
+// 		transport,
+// 		mcp.WithName("mcp-golang-stateless-http-example"),
+// 		mcp.WithInstructions("A simple example of a stateless HTTP server using mcp-golang"),
+// 		mcp.WithVersion("0.0.1"),
+// 	)
+
+// 	// Register add tool
+// 	err := Server.RegisterTool("add", "Add two numbers", func(args AddArgs) (*mcp.ToolResponse, error) {
+// 		sum := args.A + args.B
+// 		return mcp.NewToolResponse(mcp.NewTextContent(fmt.Sprintf("%d", sum))), nil
+// 	})
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	// Register time tool
+// 	err = Server.RegisterTool("time", "Returns the current time in the specified format", func(args TimeArgs) (*mcp.ToolResponse, error) {
+// 		format := args.Format
+// 		return mcp.NewToolResponse(mcp.NewTextContent(time.Now().Format(format))), nil
+// 	})
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// }
+
+// Vercel entry point
+// func Handler(w http.ResponseWriter, r *http.Request) {
+// 	mcpHandler.ServeHTTP(w, r)
+// }
+
+// type MCPMessage struct {
+// 	Type string          `json:"type"`
+// 	Data json.RawMessage `json:"data,omitempty"`
+// }
+
+// type Tool struct {
+// 	Name        string `json:"name"`
+// 	Description string `json:"description"`
+// }
+
+func Handler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "SSE not supported", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the query string ?json is added
+	outputJson := false
+	query := r.URL.Query()
+	if _, ok := query["json"]; ok {
+		outputJson = true
+	}
+	writeData := func(content []byte) {
+		if outputJson {
+			fmt.Fprintf(w, "%s", content)
+		} else {
+			fmt.Fprintf(w, "data: %s\n\n", content)
+		}
+	}
+
+	// 1. Send the correct initialization message
+	initResp := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"result": map[string]interface{}{
+			"capabilities": map[string]interface{}{
+				"completion": true,
+			},
+			"tools": []map[string]interface{}{
+				{
+					"name":        "aws_news",
+					"description": "Fetches latest AWS news and announcements",
+					"parameters": map[string]interface{}{
+						"type": "object",
+						"properties": map[string]interface{}{
+							"category": map[string]interface{}{
+								"type":        "string",
+								"description": "Optional category to filter news",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	initJSON, _ := json.Marshal(initResp)
+	writeData(initJSON)
+	flusher.Flush()
+
+	category := ""
+	var req struct {
+		ID     int                    `json:"id"`
+		Method string                 `json:"method"`
+		Params map[string]interface{} `json:"params"`
+	}
+	if r.Method == http.MethodPost {
+		body, _ := io.ReadAll(r.Body)
+		json.Unmarshal(body, &req)
+		if c, ok := req.Params["category"].(string); ok {
+			category = c
+		}
+	} else {
+		if _, ok := query["category"]; ok {
+			category = query["category"][0]
+		}
+	}
+
 	news, err := fetchNews(category)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error fetching news: %v", err), http.StatusInternalServerError)
+		errResp := map[string]interface{}{
+			"jsonrpc": "2.0",
+			"id":      req.ID,
+			"error": map[string]interface{}{
+				"code":    -32000,
+				"message": fmt.Sprintf("Failed to fetch news: %v", err),
+			},
+		}
+		errJSON, _ := json.Marshal(errResp)
+		writeData(errJSON)
+		flusher.Flush()
 		return
 	}
-
-	// Convert news items to JSON
-	jsonData, err := json.MarshalIndent(news, "", "  ")
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error converting news to JSON: %v", err), http.StatusInternalServerError)
-		return
+	for _, item := range news {
+		newsResp := map[string]interface{}{
+			"jsonrpc": "2.0",
+			"id":      req.ID,
+			"result": map[string]interface{}{
+				"message": map[string]interface{}{
+					"role": "assistant",
+					"content": fmt.Sprintf("📢 AWS News Update (%s)\n\n**%s**\n\n%s\n\nCategory: %s\nProducts: %s",
+						item.Date,
+						item.Headline,
+						item.Body,
+						item.Category,
+						strings.Join(item.Products, ", ")),
+				},
+			},
+		}
+		newsJSON, _ := json.Marshal(newsResp)
+		writeData(newsJSON)
+		flusher.Flush()
 	}
-
-	// Set response headers and write JSON data
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonData)
 }
