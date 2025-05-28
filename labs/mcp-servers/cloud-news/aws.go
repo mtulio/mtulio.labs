@@ -9,9 +9,22 @@ import (
 	serverlessAPI "github.com/mtulio/mtulio.labs-devel/api/news"
 )
 
+// filterHeaders removes sensitive headers from the log output.
+func filterHeaders(headers http.Header) http.Header {
+	safeHeaders := http.Header{}
+	for key, values := range headers {
+		// Exclude sensitive headers like Authorization and Cookie
+		if key == "Authorization" || key == "Cookie" {
+			continue
+		}
+		safeHeaders[key] = values
+	}
+	return safeHeaders
+}
+
 func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[DEBUG] Incoming request: Method=%s, URL=%s, Headers=%v\n", r.Method, r.URL, r.Header)
+		log.Printf("[DEBUG] Incoming request: Method=%s, URL=%s, Headers=%v\n", r.Method, r.URL, filterHeaders(r.Header))
 		next.ServeHTTP(w, r)
 	}
 }
