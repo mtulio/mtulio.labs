@@ -138,70 +138,10 @@ func fetchNews(category string) ([]NewsItem, error) {
 			Products: products,
 		})
 
-		// temp: collect only one item
-		break
 	}
 
 	return newsItems, nil
 }
-
-// type AddArgs struct {
-// 	A int `json:"a"`
-// 	B int `json:"b"`
-// }
-
-// // var mcpHandler mcptransport.Handler
-// var Server *mcp.Server
-
-// // TimeArgs defines the arguments for the time tool
-// type TimeArgs struct {
-// 	Format string `json:"format" jsonschema:"description=The time format to use"`
-// }
-
-// func init() {
-// 	transport := mcptransport.NewHTTPTransport("/mcp")
-// 	transport.WithAddr(":8080")
-
-// 	Server = mcp.NewServer(
-// 		transport,
-// 		mcp.WithName("mcp-golang-stateless-http-example"),
-// 		mcp.WithInstructions("A simple example of a stateless HTTP server using mcp-golang"),
-// 		mcp.WithVersion("0.0.1"),
-// 	)
-
-// 	// Register add tool
-// 	err := Server.RegisterTool("add", "Add two numbers", func(args AddArgs) (*mcp.ToolResponse, error) {
-// 		sum := args.A + args.B
-// 		return mcp.NewToolResponse(mcp.NewTextContent(fmt.Sprintf("%d", sum))), nil
-// 	})
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	// Register time tool
-// 	err = Server.RegisterTool("time", "Returns the current time in the specified format", func(args TimeArgs) (*mcp.ToolResponse, error) {
-// 		format := args.Format
-// 		return mcp.NewToolResponse(mcp.NewTextContent(time.Now().Format(format))), nil
-// 	})
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
-
-// Vercel entry point
-// func Handler(w http.ResponseWriter, r *http.Request) {
-// 	mcpHandler.ServeHTTP(w, r)
-// }
-
-// type MCPMessage struct {
-// 	Type string          `json:"type"`
-// 	Data json.RawMessage `json:"data,omitempty"`
-// }
-
-// type Tool struct {
-// 	Name        string `json:"name"`
-// 	Description string `json:"description"`
-// }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
