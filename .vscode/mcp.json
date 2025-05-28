@@ -1,0 +1,16 @@
+{
+    "servers": {
+        "cep": {
+            "path": "labs/mcp-servers/cep",
+            "description": "A simple HTTP server that serves CEP from a directory",
+            "command": "/home/mtulio/go/src/github.com/mtulio/mtulio.labs-devel/labs/mcp-servers/cep/cep"
+        },
+        "aws-news-service": {
+            "description": "A simple tool that fetches latest AWS annoucements.",
+            "command": "/home/mtulio/go/src/github.com/mtulio/mtulio.labs-devel/labs/mcp-servers/cloud-news/aws-client"
+        },
+        // "my-mcp-server-0fcc892a": {
+        //     "url": "http://localhost:8080/api/news/aws"
+        // }
+    }
+}

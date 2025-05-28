@@ -55,9 +55,4 @@ func main() {
 	if err != nil {
 		log.Fatalf("[ERROR] Error starting server: %v", err)
 	}
-
-	// Start the server
-	// if err := serverlessAPI.Server.Serve(); err != nil {
-	// 	log.Fatal(err)
-	// }
 }
