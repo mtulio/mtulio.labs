@@ -13,8 +13,15 @@ import (
 func filterHeaders(headers http.Header) http.Header {
 	safeHeaders := http.Header{}
 	for key, values := range headers {
-		// Obfuscate sensitive headers like Authorization and Cookie
-		if key == "Authorization" || key == "Cookie" {
+		// Obfuscate sensitive headers like Authorization, Cookie, and others
+		sensitiveHeaders := map[string]bool{
+			"Authorization": true,
+			"Cookie":        true,
+			"X-Api-Key":     true,
+			"Set-Cookie":    true,
+			"Proxy-Authorization": true,
+		}
+		if sensitiveHeaders[key] {
 			safeHeaders[key] = []string{"[REDACTED]"}
 			continue
 		}
@@ -26,6 +33,7 @@ func filterHeaders(headers http.Header) http.Header {
 func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[DEBUG] Incoming request: Method=%s, URL=%s, SanitizedHeaders=%v\n", r.Method, r.URL, filterHeaders(r.Header))
+		// Ensure only sanitized headers are logged to prevent sensitive data exposure
 		next.ServeHTTP(w, r)
 	}
 }
