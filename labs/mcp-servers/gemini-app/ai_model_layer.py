@@ -46,8 +46,28 @@ class AIModelLayer:
             )
         ]
 
+        # The key is to be explicit about what the model *should* do and *should not* do.
+        system_instruction = """
+        You are a specialized AI assistant that can only answer questions related to weather information or provide random greetings.
+
+        Your capabilities are limited to:
+        1. Providing current weather information for a given location.
+        2. Generating a random 'hello world' message.
+
+        If a user asks about anything else, politely inform them that you are a specialized assistant and can only help with weather or greetings. Do not try to answer questions outside of these two domains. Do not engage in general conversation.
+        """
+
         # Initialize the Gemini model with the defined tools
-        self.model = genai.GenerativeModel(os.getenv("GEMINI_MODEL"), tools=self.available_tools)
+        self.model = genai.GenerativeModel(os.getenv("GEMINI_MODEL"),
+                                           tools=self.available_tools,
+                                           system_instruction=system_instruction)
+        # TODO implement native safeguard/guardrails.
+                                            #     safety_settings={
+                                            #         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                                            #         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                                            #         # ... other categories
+                                            #     }
+
         self.chat_session = self.model.start_chat(history=[])
         print("[AI Model Layer] Gemini model initialized with tools.")
 
