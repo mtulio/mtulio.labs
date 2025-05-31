@@ -37,12 +37,12 @@ This diagram illustrates the high-level components and their relationships.
 
 ```mermaid
 graph TD
-    User -->|Chat Interface| StreamlitApp[Streamlit Chatbot (app.py)]
-    StreamlitApp -->|User Query| AIModelLayer[AI Model Layer (ai_model_layer.py)]
+    User -->|Chat Interface| StreamlitApp["Streamlit Chatbot (app.py)"]
+    StreamlitApp -->|User Query| AIModelLayer["AI Model Layer (ai_model_layer.py)"]
     AIModelLayer -->|Prompt & Tools| GeminiAPI(Google Gemini API)
     GeminiAPI -->|Text Response / FunctionCall| AIModelLayer
-    AIModelLayer -- Optional: Calls if FunctionCall --> MCP_Server[MCP Server (mcp_server.py)]
-    MCP_Server -->|Tool Execution (e.g., Simulated Weather API)| ExternalTools[External Services/Databases]
+    AIModelLayer -- Optional: Calls if FunctionCall --> MCP_Server["MCP Server (mcp_server.py)"]
+    MCP_Server -->|"Tool Execution (e.g., Simulated Weather API)"| ExternalTools[External Services/Databases]
     ExternalTools -->|Tool Result| MCP_Server
     MCP_Server -->|Tool Output| AIModelLayer
     AIModelLayer -->|Final Response| StreamlitApp
@@ -54,16 +54,16 @@ graph TD
         MCP_Server:::mcp_layer
     end
 
-    linkStyle 0,1 stroke:#3366cc,stroke-width:2px;
-    linkStyle 1,2 stroke:#3366cc,stroke-width:2px;
-    linkStyle 2,3 stroke:#3366cc,stroke-width:2px;
-    linkStyle 3,4 stroke:#3366cc,stroke-width:2px;
-    linkStyle 4,5 stroke:#cc6633,stroke-width:2px,stroke-dasharray: 5 5;
-    linkStyle 5,6 stroke:#9933cc,stroke-width:2px;
-    linkStyle 6,7 stroke:#9933cc,stroke-width:2px;
-    linkStyle 7,8 stroke:#cc6633,stroke-width:2px,stroke-dasharray: 5 5;
-    linkStyle 8,9 stroke:#3366cc,stroke-width:2px;
-    linkStyle 9,10 stroke:#3366cc,stroke-width:2px;
+    linkStyle 0 stroke:#3366cc,stroke-width:2px;
+    linkStyle 1 stroke:#3366cc,stroke-width:2px;
+    linkStyle 2 stroke:#3366cc,stroke-width:2px;
+    linkStyle 3 stroke:#3366cc,stroke-width:2px;
+    linkStyle 4 stroke:#cc6633,stroke-width:2px,stroke-dasharray: 5 5;
+    linkStyle 5 stroke:#9933cc,stroke-width:2px;
+    linkStyle 6 stroke:#9933cc,stroke-width:2px;
+    linkStyle 7 stroke:#cc6633,stroke-width:2px,stroke-dasharray: 5 5;
+    linkStyle 8 stroke:#3366cc,stroke-width:2px;
+    linkStyle 9 stroke:#3366cc,stroke-width:2px;
 
     classDef ui_layer fill:#e0f7fa,stroke:#00bcd4,stroke-width:2px;
     classDef ai_layer fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
