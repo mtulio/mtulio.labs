@@ -210,6 +210,9 @@ nav:
       - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
       - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
 
+    - OpenShift Hacking:
+      - Service type-LoadBalancer NLB with Security Groups: guides/ocp-spikes/ocp-aws-ingress-sg.md
+
     - OpenShift Dev:
       - Build components: playbooks/openshift/dev-build-components.md
       - Create custom release: playbooks/openshift/dev-custom-release.md

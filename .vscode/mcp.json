@@ -1,0 +1,19 @@
+{
+    "servers": {
+        "cep": {
+            "path": "labs/mcp-servers/cep",
+            "description": "A simple HTTP server that serves CEP from a directory",
+            "command": "$HOME/go/src/github.com/mtulio/mtulio.labs-devel/labs/mcp-servers/cep/cep"
+        },
+        "aws-news-service": {
+            "description": "A simple tool that fetches latest AWS annoucements.",
+            "command": "$HOME/go/src/github.com/mtulio/mtulio.labs-devel/labs/mcp-servers/cloud-news/aws-client"
+        },
+        "remote-aws-news-service": {
+            "url": "https://labs-git-api-mcp-news-aws-marco-bragas-projects.vercel.app/api/news/aws"
+        },
+        "local-aws-news-service": {
+            "url": "http://localhost:8080/api/news/aws"
+        }
+    }
+}

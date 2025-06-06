@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type FileInfo struct {
@@ -62,10 +63,48 @@ func setHeaders(w http.ResponseWriter, r *http.Request) {
 func DummyRootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Received request root: %s %s\n", r.Method, r.URL.Path)
 	setHeaders(w, r)
-	w.WriteHeader(http.StatusOK)
-	//w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte("OK"))
+
+	// If Accept header contains text/event-stream, handle as SSE
+	if strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.WriteHeader(http.StatusOK)
+
+		// Get the flush interface if available
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+			return
+		}
+
+		// Send initial connection established message
+		fmt.Fprintf(w, "event: connected\ndata: {\"status\":\"connected\"}\n\n")
+		flusher.Flush()
+
+		// Create a channel to detect client disconnect
+		notify := w.(http.CloseNotifier).CloseNotify()
+
+		// Keep the connection alive with heartbeat
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-notify:
+				fmt.Println("Client disconnected")
+				return
+			case <-ticker.C:
+				fmt.Fprintf(w, "event: heartbeat\ndata: {\"time\":\"%s\"}\n\n", time.Now().Format(time.RFC3339))
+				flusher.Flush()
+			}
+		}
+	} else {
+		// Regular HTTP request
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}
 }
 
 func listFilesHandler(w http.ResponseWriter, r *http.Request) {
@@ -100,11 +139,41 @@ func listFilesHandler(w http.ResponseWriter, r *http.Request) {
 func eventsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Received request: %s %s\n", r.Method, r.URL.Path)
 	setHeaders(w, r)
-    w.Header().Set("Content-Type", "text/event-stream")
-    w.WriteHeader(http.StatusOK)
-	
-    // Optionally, you can write a comment to keep the connection open
-    fmt.Fprintf(w, ": keep-alive\n\n")
+
+	// Set headers for SSE
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+
+	// Get the flush interface if available
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+		return
+	}
+
+	// Send initial connection established message
+	fmt.Fprintf(w, "event: connected\ndata: {\"status\":\"connected\"}\n\n")
+	flusher.Flush()
+
+	// Create a channel to detect client disconnect
+	notify := w.(http.CloseNotifier).CloseNotify()
+
+	// Keep the connection alive with heartbeat
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-notify:
+			fmt.Println("Client disconnected")
+			return
+		case <-ticker.C:
+			fmt.Fprintf(w, "event: heartbeat\ndata: {\"time\":\"%s\"}\n\n", time.Now().Format(time.RFC3339))
+			flusher.Flush()
+		}
+	}
 }
 
 func fileHandler(w http.ResponseWriter, r *http.Request) {
@@ -181,4 +250,4 @@ func summaryHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(summary)
-} 
+}
