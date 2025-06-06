@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	serverlessAPI "github.com/mtulio/mtulio.labs-devel/api/news"
@@ -15,13 +16,14 @@ func filterHeaders(headers http.Header) http.Header {
 	for key, values := range headers {
 		// Obfuscate sensitive headers like Authorization, Cookie, and others
 		sensitiveHeaders := map[string]bool{
-			"Authorization": true,
-			"Cookie":        true,
-			"X-Api-Key":     true,
-			"Set-Cookie":    true,
-			"Proxy-Authorization": true,
+			"authorization":          true,
+			"cookie":                 true,
+			"x-api-key":              true,
+			"set-cookie":             true,
+			"proxy-authorization":    true,
 		}
-		if sensitiveHeaders[key] {
+		lowerKey := strings.ToLower(key) // Normalize header key to lowercase
+		if sensitiveHeaders[lowerKey] {
 			safeHeaders[key] = []string{"[REDACTED]"}
 			continue
 		}
