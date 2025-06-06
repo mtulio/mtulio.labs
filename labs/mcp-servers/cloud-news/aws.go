@@ -34,8 +34,7 @@ func filterHeaders(headers http.Header) http.Header {
 
 func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		obfuscatedHeaders := filterHeaders(r.Header)
-		log.Printf("[DEBUG] Incoming request: Method=%s, URL=%s, SanitizedHeaders=%v\n", r.Method, r.URL, obfuscatedHeaders)
+		log.Printf("[DEBUG] Incoming request: Method=%s, URL=%s\n", r.Method, r.URL)
 		// Ensure only sanitized headers are logged to prevent sensitive data exposure
 		next.ServeHTTP(w, r)
 	}
