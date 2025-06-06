@@ -59,4 +59,6 @@ if __name__ == '__main__':
     print("  - get_weather(location: str)")
     print("  - generate_random_hello_world()")
     print("Listening on http://127.0.0.1:5000/mcp/call_tool")
-    app.run(debug=True, port=5000)
+    import os
+    debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(debug=debug_mode, port=5000)
