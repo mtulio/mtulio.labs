@@ -375,8 +375,8 @@ spec:
   sourceNamespace: openshift-marketplace
 EOF
 
-oc get installplan -n $ALBO_NS
-oc get all -n $ALBO_NS
+oc get installplan -w -n $ALBO_NS
+oc get all -w -n $ALBO_NS
 ```
 
 - Wait the resources to be created, then create the controller:

@@ -85,9 +85,9 @@ NOTES e2e tests for https://github.com/openshift/installer/pull/9681:
 
 ```sh
 # CHANGE ME
-version=v28
-BUILD_CLUSTER=build06
-CI_JOB=ci-ln-4g581wk
+export version=v36
+BUILD_CLUSTER=build10
+CI_JOB=ci-ln-5wdr0g2
 
 # Run
 export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="registry.${BUILD_CLUSTER}.ci.openshift.org/${CI_JOB}/release:latest"
@@ -97,17 +97,24 @@ export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="registry.${BUILD_CLUSTER}.ci.op
 export INSTALL_DIR=$PWD/install-dir/install-${version}
 mkdir -p $INSTALL_DIR
 #cat install-dir/install-config-CIO2.yaml | sed "s/sg-v4/sg-${version}/" > ${INSTALL_DIR}/install-config.yaml
-cat install-dir/install-config-CIO2.yaml | sed "s/sg-v4/sg-${version}/" > ${INSTALL_DIR}/install-config.yaml
+cat install-dir/install-config-regular.yaml | sed "s/sg-v4/sg-${version}/" > ${INSTALL_DIR}/install-config.yaml
 
 export OPENSHIFT_INSTALL_REENTRANT=true
+export INSTALL_COMMAND=./install-dir/openshift-install
+export INSTALL_COMMAND=./openshift-install-4.20ec2
+export INSTALL_COMMAND=./openshift-install
 #./openshift-install create manifests --log-level=debug --dir $INSTALL_DIR
-./install-dir/openshift-install create cluster --log-level=debug --dir $INSTALL_DIR
+$INSTALL_COMMAND create cluster --log-level=debug --dir $INSTALL_DIR
+
+#./openshift-install create cluster --log-level=debug --dir $INSTALL_DIR
 
 # Replace image manually
 
 # Scale down the managers
-oc scale --replicas=0 deployment.apps/cluster-cloud-controller-manager-operator -n openshift-cloud-controller-manager-operator
 oc scale --replicas=0 deployment.apps/cluster-version-operator -n openshift-cluster-version
+
+oc scale --replicas=0 deployment.apps/cluster-cloud-controller-manager-operator -n openshift-cloud-controller-manager-operator
+
 
 # Replace the custom image (provided by cluster-bot)
 BUILT_RELEASE="registry.build06.ci.openshift.org/ci-ln-t5fttvb/release:latest"
@@ -560,4 +567,201 @@ spec:
   type: LoadBalancer
   loadBalancerClass: service.k8s.aws/nlb
 EOF
+```
+
+
+ALBC installed using ALBO on self-managed OCP:
+
+```sh
+
+```
+
+## Testing CCM and ALBC Service interface
+Tests below are executed in a cluster with ALBC and CCM
+
+- Create a Service LoadBalancer NLB with CCM
+
+```sh
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $APP_NAME-svc-ccm
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  selector:
+    app: $APP_NAME
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+EOF
+```
+
+```sh
+LB_DNS=$(oc get svc $APP_NAME-svc-ccm -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"$LB_DNS\").LoadBalancerArn") | jq .TagDescriptions[].Tags
+
+[
+  {
+    "Key": "kubernetes.io/service-name",
+    "Value": "app-albc/app-albc-svc-ccm"
+  },
+  {
+    "Key": "kubernetes.io/cluster/mrb-sg-v36-zvcgr",
+    "Value": "owned"
+  }
+]
+
+```
+
+Service LoadBalancer NLB with ALBC using loadBalancerClass
+
+```sh
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $APP_NAME-svc-albc
+  namespace: ${APP_NAMESPACE}
+spec:
+  selector:
+    app: $APP_NAME
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+  loadBalancerClass: service.k8s.aws/nlb
+EOF
+```
+
+- Check tags
+```sh
+LB_DNS=$(oc get svc $APP_NAME-svc-albc -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+$ aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"$LB_DNS\").LoadBalancerArn") | jq .TagDescriptions[].Tags
+[
+  {
+    "Key": "service.k8s.aws/stack",
+    "Value": "app-albc/app-albc-svc-albc"
+  },
+  {
+    "Key": "service.k8s.aws/resource",
+    "Value": "LoadBalancer"
+  },
+  {
+    "Key": "elbv2.k8s.aws/cluster",
+    "Value": "mrb-sg-v36-zvcgr"
+  }
+]
+
+```
+
+
+### Option 3) Signalize CCM to use external load balancer provider:
+
+```sh
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $APP_NAME-svc-albc-annot
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: instance
+spec:
+  selector:
+    app: $APP_NAME
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+EOF
+
+LB_DNS=$(oc get svc $APP_NAME-svc-albc-annot -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"$LB_DNS\").LoadBalancerArn") | jq .TagDescriptions[].Tags
+```
+
+Results:
+```json
+[
+  {
+    "Key": "service.k8s.aws/stack",
+    "Value": "app-albc/app-albc-svc-albc-annot"
+  },
+  {
+    "Key": "service.k8s.aws/resource",
+    "Value": "LoadBalancer"
+  },
+  {
+    "Key": "elbv2.k8s.aws/cluster",
+    "Value": "mrb-sg-v36-zvcgr"
+  }
+]
+```
+
+## e2e exploration
+
+```sh
+VERSION=$(oc get clusterversion version  -o jsonpath='{.status.desired.version}')
+ARCH=x86_64
+TESTS_IMAGE=$(oc adm release info --image-for=tests -a ${PULL_SECRET_FILE} \
+    quay.io/openshift-release-dev/ocp-release:${VERSION}-${ARCH})
+
+oc image extract $TESTS_IMAGE -a ${PULL_SECRET_FILE} \
+    --file="/usr/bin/openshift-tests"
+chmod u+x ./openshift-tests
+```
+
+
+## ROSA HCP
+
+### Prerequisites
+
+- Enroll ROSA
+- Link to Account
+
+### Steps to deploy a cluster 
+
+
+```sh
+export AWS_PROFILE=my-account
+export AWS_REGION=us-east-1
+
+rosa login --token="xxx"
+rosa create account-roles --mode auto
+
+rosa create network
+
+rosa create cluster
+
+rosa create operator-roles --cluster mrb-rosa
+
+rosa create oidc-provider --cluster mrb-rosa
+
+rosa describe cluster -c mrb-rosa
+
+rosa logs install -c mrb-rosa --watch
+
+cat <<EOF >./rosa-creds
+ROSA_CLUSTER=cluster-name
+ROSA_ADMIN="cluster-admin"
+ROSA_ADMIN_PASS="pass"
+KUBECONFIG=$PWD/rosa-kubeconfig
+EOF
+
+source ./rosa-creds
+
+export OPENSHIFT_API_URL=$(rosa describe cluster --cluster=$ROSA_CLUSTER  -o json | jq -r '.api.url')
+oc login --server=$OPENSHIFT_API_URL \
+  --user $ROSA_ADMIN \
+  --password $ROSA_ADMIN_PASS
 ```
