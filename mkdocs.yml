@@ -141,7 +141,7 @@ nav:
       - Oracle Cloud:
         - Experimental | Installing OCP on OCI provisioning network with CAPOCI: guides/ocp-oci-capoci-exploration-net.md
 
-    - OpenShift on AWS with STS hacking guides:
+    - OpenShift on AWS with STS advanced guides:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
       - Hacking CCO manual mode: playbooks/openshift/ocp-aws-cco-run-instance.md
       - Simulate CredentialsRequests permissions: playbooks/openshift/ocp-aws-cco-simulate-policy.md
