@@ -19,7 +19,7 @@ jobs:
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
 
-      - name: showw
+      - name: Show environment variables
         env:
           VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
