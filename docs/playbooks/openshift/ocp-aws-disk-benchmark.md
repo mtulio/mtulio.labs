@@ -53,7 +53,7 @@ spec:
       units:
       - contents: |
           [Unit]
-          Description=Make File System on /dev/${DEVICE_NAME}
+          Description=Make Filesystem on /dev/${DEVICE_NAME}
           DefaultDependencies=no
           BindsTo=dev-${DEVICE_NAME}.device
           After=dev-${DEVICE_NAME}.device var.mount
