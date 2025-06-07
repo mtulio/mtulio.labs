@@ -1,4 +1,4 @@
-site_name: "@mtulio labs | notes"
+site_name: "@mtulio labs | blog | notes"
 site_url: https://mtulio.dev
 site_author: 'Marco Braga'
 site_description: >-
@@ -125,9 +125,6 @@ nav:
   - Guides:
     - Home: playbooks/README.md
 
-    - OpenShift API:
-      - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
-
     - OpenShift Installing:
       - Hands On guides for BYO Infrastructure on AWS: guides/ocp-aws-byo-infra-labs.md
       - Installing OpenShift with STS quickly on AWS: playbooks/openshift/ocp-aws-cco-sts-install-quickly.md
@@ -143,10 +140,6 @@ nav:
         - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
       - Oracle Cloud:
         - Experimental | Installing OCP on OCI provisioning network with CAPOCI: guides/ocp-oci-capoci-exploration-net.md
-
-    - OpenShift Control Plane operations:
-      - Re
-      e: playbooks/openshift/replace-nlb-tg-k8sapi.md
 
     - OpenShift on AWS with STS hacking guides:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
@@ -208,6 +201,9 @@ nav:
       - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
       - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
       - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
+
+    - OpenShift API:
+      - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
 
     - OpenShift and Karpenter | Day-2 guides:
       - Deploy Karpenter with OpenShift (standalone) on AWS | Day-2: guides/ocp-deploy-karpenter-aws.md
