@@ -214,7 +214,7 @@ with Diagram("OCP K8S signer", show=False, filename=f"{DIAGRAM_BASE_NAME}-flow-k
             with Cluster("OpenShift/K8S/APIserver"):
                 kas = APIServer("Kube-API")
                 with Cluster("OpenShift/K8S/APIserver/HTTP"):
-                    kasOidcConfig = APIServer("/.well-know/openid-configuration")
+                    kasOidcConfig = APIServer("/.well-known/openid-configuration")
                     kasOidcJwks = APIServer("/openid/v1/jwks")
 
 
