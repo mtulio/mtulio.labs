@@ -191,6 +191,7 @@ nav:
       - Blog demo - Installing with Local Zone nodes in Existing VPC (4.13+): blogs/ocp-aws-local-zones/ocp-aws-local-zones-413-script.md
       - Hands-on Local Zones (verbose draft) : guides/ocp-aws-local-zones-hands-on.md
       - Hands-on Wavelength Zones (verbose draft) : guides/ocp-aws-wavelength-zones-hands-on.md
+      - Installing on AWS extending compute nodes to AWS Outposts in Day-1, with standalone EC2: guides/ocp-aws-outposts-proxy-ec2.md
       - Installing on AWS extending compute nodes to AWS Outposts in Day-2: guides/ocp-aws-outposts.md
       - Installing on AWS BYO VPC with Multi CDIR: guides/ocp-install-profiles/ocp-aws-byo-vpc-multi-cidr.md
       - Installing on AWS with BYO Encrypted AMI: guides/ocp-aws-byo-infra-labs-ami-enc-cmk.md
