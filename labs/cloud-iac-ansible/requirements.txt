@@ -1,5 +1,5 @@
 # Base
-ansible==4.10
+ansible>=8.5.0
 #packaging
 
 # Provider dependencies

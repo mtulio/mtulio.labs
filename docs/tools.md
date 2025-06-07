@@ -6,6 +6,8 @@
 - [Geo information about my IP](https://mtulio.dev/api/geo)
 - [HTTP echo](https://mtulio.dev/api/echo/echo?just-a-test)
 - [Ping!](https://mtulio.dev/api/ping/ping)
+- [MCP Server Sample - AWS Annoucements](/api/news/aws?json)
+
 
 - your IPv4
 

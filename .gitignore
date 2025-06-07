@@ -1,4 +1,6 @@
 .venv
 .env
-.vscode
+.vscode/
+!.vscode
+!.vscode/mcp.json
 tmp/

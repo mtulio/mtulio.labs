@@ -8,4 +8,4 @@ pymdown-extensions
 mkdocs-diagrams
 
 # Image resizing
-Pillow>=9.4,<9.5
+Pillow>=10.3.0
