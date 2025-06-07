@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Template for OpenShift Cluster Proxy (EC2 Instance, Security Groups and IAM)"
+
+Parameters:
+  NamePrefix:
+    AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
+    MaxLength: 27
+    MinLength: 1
+    ConstraintDescription: Infrastructure name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
+    Description: A short, unique cluster ID used to tag cloud resources and identify items owned or used by the cluster.
+    Type: String
+  NameSuffix:
+    Default: ""
+    Description: A short, unique cluster ID used to tag cloud resources and identify items owned or used by the cluster.
+    Type: String
+  AmiId:
+    Description: Current CoreOS AMI to use for proxy.
+    Type: AWS::EC2::Image::Id
+  SubnetId:
+    Description: The public subnet to launch the proxy node into.
+    Type: AWS::EC2::Subnet::Id
+  UserData:
+    Default: ""
+    Description: Ignition config file location.
+    Type: String
+  IamRoleArn:
+    Default: ""
+    Description: Ignition config file location.
+    Type: String
+  KeyName:
+    Default: "openshift-dev"
+    Description: Ignition config file location.
+    Type: String
+  InstanceType:
+    Default: "m5.xlarge"
+    Description: Ignition config file location.
+    Type: String
+  SecurityGroupId:
+    Default: ""
+    Description: Ignition config file location.
+    Type: String
+  IsPublic:
+    Default: false
+    Description: Ignition config file location.
+    Type: String
+  Ipv6AddressCount:
+    Default: "0"
+    Description: Ignition config file location.
+    Type: String
+  Monitoring:
+    Default: "True"
+    Description: Enable detailed EC2 monitoring.
+    Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "Host Information"
+      Parameters:
+      - Ami
+      - ProxyIgnitionLocation
+    - Label:
+        default: "Network Configuration"
+      Parameters:
+      - VpcId
+      - AllowedProxyCidr
+      - PublicSubnet
+      - ClusterName
+
+    ParameterLabels:
+      VpcId:
+        default: "VPC ID"
+      AllowedProxyCidr:
+        default: "Allowed ingress Source"
+      Ami:
+        default: "CoreOS AMI ID"
+      ProxyIgnitionLocation:
+        default: "Bootstrap Ignition Source"
+      ClusterName:
+        default: "Cluster name"
+
+Resources:
+  InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref IamRoleArn
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      IamInstanceProfile: !Ref InstanceProfile
+      KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
+      # NetworkInterfaces:
+      # - AssociatePublicIpAddress: !Ref IsPublic
+      #   DeviceIndex: "0"
+      #   GroupSet:
+      #   - !Ref "SecurityGroupId"
+      #   SubnetId: !Ref "SubnetId"
+      SecurityGroupIds: 
+      - !Ref "SecurityGroupId"
+      SubnetId: !Ref "SubnetId"
+      Ipv6AddressCount: !Ref Ipv6AddressCount
+      UserData: !Ref UserData
+      Monitoring: !Ref Monitoring
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref NamePrefix, !Ref NameSuffix]]
+
+Outputs:
+  InstanceId:
+    Description: The instance ID.
+    Value: !Ref Instance
+  PrivateIp:
+    Description: The instance private IP address.
+    Value: !GetAtt "Instance.PrivateIp"
+  InstanceProfile:
+    Value: !Ref "InstanceProfile"
+  # Ipv6Address:
+  #   Description: The instance public IP address.
+  #   Value: !GetAtt "Instance.PublicIp"
+  # PrivateDnsName:
+  #   Description: The instance private IP address.
+  #   Value: !GetAtt "Instance.PrivateDnsName"
+  PublicDnsName:
+      Description: The instance public IP address.
+      Value: !GetAtt Instance.PublicDnsName #!If [!Equals [!GetAtt Instance.PublicDnsName, ""], "", !GetAtt "Instance.PublicDnsName"]

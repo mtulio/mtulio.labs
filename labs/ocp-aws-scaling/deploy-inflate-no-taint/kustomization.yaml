@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../deploy-inflate
+
+patches:
+- patch: |-
+    - op: remove
+      path: /spec/template/spec/tolerations
+  target:
+    kind: Deployment
+    name: inflate

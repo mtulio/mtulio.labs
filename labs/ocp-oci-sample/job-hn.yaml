@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: oci-sdk-sample-host-network
+spec:
+  template:
+    spec:
+      hostNetwork: true
+      containers:
+      - name: ocp-oci-sample
+        image: quay.io/mrbraga/ocp-oci-sample:latest
+      restartPolicy: Never
+  backoffLimit: 4

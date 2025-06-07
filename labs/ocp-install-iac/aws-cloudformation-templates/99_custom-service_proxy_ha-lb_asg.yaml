@@ -1,0 +1,396 @@
+Description: |
+  Nested Template to create HA proxy service.
+  Resources created using this Templates:
+  - One security group to Proxy servers
+  - One security group to Network Load Balancer
+  - One Network Load Balancer with two TCP listeners on port 3128 and 3130
+  - One AutoScalingGroup launching OnDemand and Spot instances, attaching to Load Balancer target groups.
+  - One DNS record to registering the service domain pointing to the Load Balancer DNS.
+
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  NamePrefix:
+    AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
+    MaxLength: 27
+    MinLength: 1
+    ConstraintDescription: Infrastructure name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
+    Description: A short, unique cluster ID used to tag cloud resources and identify items owned or used by the cluster.
+    Type: String
+  VpcId:
+    Default: ""
+    Description: A short, unique cluster ID used to tag cloud resources and identify items owned or used by the cluster.
+    Type: String
+  VpcCidr:
+    Default: ""
+    Description: VPC Cidr.
+    Type: String
+  NameSuffix:
+    Default: ""
+    Description: A short, unique cluster ID used to tag cloud resources and identify items owned or used by the cluster.
+    Type: String
+  AmiId:
+    Description: Current CoreOS AMI to use for proxy.
+    Type: AWS::EC2::Image::Id
+  SubnetId:
+    Description: The public subnet to launch the proxy node into.
+    Type: AWS::EC2::Subnet::Id
+
+  IamRoleArn:
+    Default: ""
+    Description: Ignition config file location.
+    Type: String
+  KeyName:
+    Default: "openshift-dev"
+    Description: Ignition config file location.
+    Type: String
+  InstanceType:
+    Default: "m5.xlarge"
+    Description: Ignition config file location.
+    Type: String
+  SecurityGroupId:
+    Default: ""
+    Description: Ignition config file location.
+    Type: String
+  IsPublic:
+    Default: false
+    Description: Ignition config file location.
+    Type: String
+  Ipv6AddressCount:
+    Default: "0"
+    Description: Ignition config file location.
+    Type: String
+  Monitoring:
+    Default: "True"
+    Description: Enable detailed EC2 monitoring.
+    Type: String
+
+  DnsHostedZoneId:
+    Default: ""
+    Description: DNS Hosted Zone ID.
+    Type: String
+  DnsRecordName:
+    Default: ""
+    Description: DNS Record Name.
+    Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "Cluster Information"
+      Parameters:
+      - InfrastructureName
+    - Label:
+        default: "Host Information"
+      Parameters:
+      - Ami
+      - ProxyIgnitionLocation
+    - Label:
+        default: "Network Configuration"
+      Parameters:
+      - VpcId
+      - AllowedProxyCidr
+      - PublicSubnet
+      - ClusterName
+
+    ParameterLabels:
+      InfrastructureName:
+        default: "Infrastructure Name"
+      VpcId:
+        default: "VPC ID"
+      AllowedProxyCidr:
+        default: "Allowed ingress Source"
+      Ami:
+        default: "CoreOS AMI ID"
+      ProxyIgnitionLocation:
+        default: "Bootstrap Ignition Source"
+      ClusterName:
+        default: "Cluster name"
+
+Resources:
+
+  ProxySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join ['', ["Security Group for ", "proxy host"]]
+      SecurityGroupIngress:
+      - IpProtocol: "tcp"
+        FromPort: 22
+        ToPort: 22
+        CidrIp: "0.0.0.0/0"
+      - IpProtocol: "tcp"
+        FromPort: 22
+        ToPort: 22
+        CidrIpv6: "::/0"
+      - IpProtocol: "tcp"
+        FromPort: 3128
+        ToPort: 3128
+        CidrIp: !Ref VpcCidr
+      - IpProtocol: "tcp"
+        FromPort: 3130
+        ToPort: 3130
+        CidrIp: !Ref VpcCidr
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: "0.0.0.0/0"
+      VpcId: !Ref VpcId
+      Tags:
+      - Key: Name
+        Value: !Join ['-', [!Ref NamePrefix, "sg"]]
+
+  #
+  # Launch Template
+  #
+  LBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join ['', ["Security Group for ", "nlb-sg"]]
+      SecurityGroupIngress:
+      - IpProtocol: "tcp"
+        FromPort: 3128
+        ToPort: 3128
+        CidrIp: !Ref VpcCidr
+      - IpProtocol: "tcp"
+        FromPort: 3130
+        ToPort: 3130
+        CidrIp: !Ref VpcCidr
+      SecurityGroupEgress:
+      - IpProtocol: "tcp"
+        FromPort: 3128
+        ToPort: 3128
+        DestinationSecurityGroupId: !Ref ProxySecurityGroup
+      - IpProtocol: "tcp"
+        FromPort: 3130
+        ToPort: 3130
+        DestinationSecurityGroupId: !Ref ProxySecurityGroup
+      VpcId: !Ref VpcId
+      Tags:
+      - Key: Name
+        Value: !Join ['-', [!Ref NamePrefix, "nlb-sg"]]
+
+  # HTTP
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      # HealthCheckEnabled: Boolean
+      HealthCheckIntervalSeconds: 5
+      # HealthCheckPath: String
+      HealthCheckPort: 3128
+      HealthCheckProtocol: TCP
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
+      IpAddressType: ipv4
+      # Matcher: 
+      #   Matcher
+      Name: !Join ["-", [!Ref NamePrefix, "tg"]]
+      Port: 3128
+      Protocol: TCP
+      # ProtocolVersion: String
+      # Tags: 
+      #   - Tag
+      TargetGroupAttributes: 
+        - Key: deregistration_delay.timeout_seconds
+          Value: 60
+        # - Key: load_balancing.cross_zone.enabled
+        #   Value: true
+        - Key: target_group_health.unhealthy_state_routing.minimum_healthy_targets.count
+          Value: 1
+        - Key: deregistration_delay.connection_termination.enabled
+          Value: true
+        # - Key: preserve_client_ip.enabled
+        #   Value: true
+        - Key: target_health_state.unhealthy.connection_termination.enabled
+          Value: true
+      Targets: []
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VpcId
+
+  TargetGroupTLS:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      # HealthCheckEnabled: Boolean
+      HealthCheckIntervalSeconds: 5
+      # HealthCheckPath: String
+      HealthCheckPort: 3130
+      HealthCheckProtocol: TCP
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
+      IpAddressType: ipv4
+      # Matcher: 
+      #   Matcher
+      Name: !Join ["-", [!Ref NamePrefix, "tls"]]
+      Port: 3130
+      Protocol: TCP
+      # ProtocolVersion: String
+      # Tags: 
+      #   - Tag
+      TargetGroupAttributes: 
+        - Key: deregistration_delay.timeout_seconds
+          Value: 60
+        # - Key: load_balancing.cross_zone.enabled
+        #   Value: true
+        - Key: target_group_health.unhealthy_state_routing.minimum_healthy_targets.count
+          Value: 1
+        - Key: deregistration_delay.connection_termination.enabled
+          Value: true
+        # - Key: preserve_client_ip.enabled
+        #   Value: true
+        - Key: target_health_state.unhealthy.connection_termination.enabled
+          Value: true
+      Targets: []
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VpcId
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      LoadBalancerAttributes: 
+        # - Key: deletion_protection.enabled
+        #   Value: true
+        - Key: load_balancing.cross_zone.enabled
+          Value: true
+        # availability_zone_affinity | partial_availability_zone_affinity | any_availability_zone
+        - Key: dns_record.client_routing_policy
+          Value: partial_availability_zone_affinity
+        # - Key: deletion_protection.enabled
+        #   Value: true
+      Name: !Join ["-", [!Ref NamePrefix, "nlb"]]
+      Scheme: internal
+      SecurityGroups:
+        - !Ref LBSecurityGroup
+      # SubnetMappings: 
+      #   - SubnetMapping
+      Subnets: !Split [",", !Ref SubnetId]
+      # - !Ref SubnetIds
+      Tags: 
+        - Key: Name
+          Value: !Join ['-', [!Ref NamePrefix, "nlb"]]
+      Type: network
+
+  ListenerProxy:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      # AlpnPolicy: 
+      #   - String
+      # Certificates: 
+      #   - Certificate
+      DefaultActions: 
+        # - ForwardConfig: 
+        #     TargetGroups: 
+        #       - TargetGroupArn: !Ref TargetGroup
+        #         Weight: 100
+            # TargetGroupStickinessConfig: 
+            #   TargetGroupStickinessConfig
+        - Order: 1
+          # RedirectConfig: 
+          #   RedirectConfig
+          TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref LoadBalancer
+      # MutualAuthentication: 
+      #   MutualAuthentication
+      Port: 3128
+      Protocol: TCP
+      # SslPolicy: String
+
+  ListenerProxyTLS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions: 
+        - Order: 1
+          TargetGroupArn: !Ref TargetGroupTLS
+          Type: forward
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 3130
+      Protocol: TCP
+
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-launchtemplate-launchtemplatedata.html
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Join ['-', [!Ref NamePrefix, "template"]]
+      LaunchTemplateData:
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+            Groups:
+              - !Ref ProxySecurityGroup
+            DeleteOnTermination: true
+        ImageId: !Ref AmiId
+        InstanceType: !Ref  InstanceType
+        KeyName: !Ref KeyName
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Join ["-", [!Ref NamePrefix, "asg"]]
+      DesiredCapacity: 1
+      DesiredCapacityType: units
+      LaunchTemplate: 
+        LaunchTemplateName: !Join ['-', [!Ref NamePrefix, "template"]]
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MaxSize: 5
+      MinSize: 1
+      MaxInstanceLifetime: 604800
+      Tags: 
+      - Key: Name
+        Value: !Join ['-', [!Ref NamePrefix, "asg"]]
+        PropagateAtLaunch: true
+      TargetGroupARNs: 
+        - !Ref TargetGroup
+        - !Ref TargetGroupTLS
+      TerminationPolicies: 
+        - OldestLaunchTemplate
+        - OldestInstance
+        - ClosestToNextInstanceHour
+      VPCZoneIdentifier: !Split [",", !Ref SubnetId]
+
+  # #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalingpolicy.html
+  # ScalingPolicy:
+  #   Type: AWS::ApplicationAutoScaling::ScalingPolicy
+  #   Properties:
+  #     PolicyName: "scale-in"
+  #     PolicyType: StepScaling
+  #     #ResourceId: String
+  #     #ScalableDimension: String
+  #     #ScalingTargetId: String
+  #     #ServiceNamespace: String
+  #     StepScalingPolicyConfiguration: 
+  #       AdjustmentType: PercentChangeInCapacity
+  #       Cooldown: 60
+  #       MetricAggregationType: Average
+  #       #MinAdjustmentMagnitude: Integer
+  #       StepAdjustments: 
+  #         - MetricIntervalLowerBound: 50
+  #           MetricIntervalUpperBound: 65
+  #           ScalingAdjustment: 1
+  #         - MetricIntervalLowerBound: 66
+  #           MetricIntervalUpperBound: 80
+  #           ScalingAdjustment: 3
+  #     TargetTrackingScalingPolicyConfiguration: 
+  #       #CustomizedMetricSpecification: 
+  #       #  CustomizedMetricSpecification
+  #       DisableScaleIn: False
+  #       PredefinedMetricSpecification: 
+  #         PredefinedMetricType: ALBRequestCountPerTarget
+  #         #ResourceLabel: String
+  #       ScaleInCooldown: 60
+  #       ScaleOutCooldown: 120
+  #       TargetValue: 1000
+
+  ProxyDNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId : !Ref DnsHostedZoneId
+      Name: !Ref DnsRecordName
+      ResourceRecords:
+      - !GetAtt LoadBalancer.DNSName
+      TTL: 900
+      Type: CNAME
+
+# Outputs:
+#   InstanceProfile:
+#     Value: !Ref "InstanceProfile"

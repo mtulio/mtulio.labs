@@ -1,0 +1,19 @@
+# TODO | Installing OpenShift on Oracle Cloud (OCI) with Ansible (full UPI)
+
+!!! danger "status"
+    This document is not completed, and requires further review.
+
+Install OCP/OKD on Oracle Cloud Infrastructure using platform external type with infrastructure provisioner fully automated with Ansible using Collectio okd-installer.
+
+## Prerequisites
+
+## Create the Cluster
+
+## Destroy the cluster
+
+
+## References
+
+- https://access.redhat.com/articles/7039183
+- https://github.com/oracle-quickstart/oci-openshift/blob/main/README.md
+- https://github.com/oracle-quickstart/oci-openshift/tree/main/custom_manifests

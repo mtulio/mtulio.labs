@@ -1,0 +1,62 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: karpenter
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+
+---
+apiVersion: cloudcredential.openshift.io/v1
+kind: CredentialsRequest
+metadata:
+  name: karpenter-aws
+  namespace: openshift-cloud-credential-operator
+spec:
+  providerSpec:
+    apiVersion: cloudcredential.openshift.io/v1
+    kind: AWSProviderSpec
+    statementEntries:
+    # TODO: refine the permissions allowed by karpenter. Ref:
+    # https://raw.githubusercontent.com/aws/karpenter-provider-aws/v0.33.1/website/content/en/preview/getting-started/getting-started-with-karpenter/cloudformation.yaml
+    - action:
+      - "ssm:GetParameter"
+      - "ec2:DescribeImages"
+      - "ec2:RunInstances"
+      - "ec2:DescribeSubnets"
+      - "ec2:DescribeSecurityGroups"
+      - "ec2:DescribeLaunchTemplates"
+      - "ec2:DescribeInstances"
+      - "ec2:DescribeInstanceTypes"
+      - "ec2:DescribeInstanceTypeOfferings"
+      - "ec2:DescribeAvailabilityZones"
+      - "ec2:DeleteLaunchTemplate"
+      - "ec2:CreateTags"
+      - "ec2:CreateLaunchTemplate"
+      - "ec2:CreateFleet"
+      - "ec2:DescribeSpotPriceHistory"
+      - "pricing:GetProducts"
+      - "sqs:DeleteMessage"
+      - "sqs:GetQueueUrl"
+      - "sqs:ReceiveMessage"
+      - "iam:GetInstanceProfile"
+      effect: Allow
+      resource: '*'
+    - action:
+      - ec2:TerminateInstances
+      effect: Allow
+      # TODO create conditional for karpenter
+      resource: '*'
+      policyCondition:
+        StringLike:
+          "ec2:ResourceTag/Name": "*karpenter*"
+    - action:
+      - "iam:PassRole"
+      effect: Allow
+      # TODO create conditional for IAM Worker or Master role
+      resource: '*'
+  secretRef:
+    name: karpenter-aws-credentials
+    namespace: karpenter
+  serviceAccountNames:
+  - karpenter

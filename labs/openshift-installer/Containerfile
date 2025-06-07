@@ -1,0 +1,8 @@
+# Simple container image adding pre-built installer to be used in CI experiments.
+FROM registry.fedoraproject.org/fedora-minimal:38
+RUN microdnf install -y python3 python3-pip tar curl gzip \
+    && microdnf clean all
+RUN pip install --upgrade pip pyyaml
+COPY ./bin/openshift-install /usr/bin/openshift-install
+RUN chmod u+x /usr/bin/openshift-install
+CMD ["/usr/bin/openshift-install"]

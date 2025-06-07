@@ -1,0 +1,13 @@
+FROM python:3.9-slim-buster
+
+WORKDIR /app
+
+ADD ./requirements.txt .
+
+RUN pip install pip --upgrade
+
+RUN pip install -r requirements.txt
+
+ADD ./list-instances-by-az.py .
+
+CMD ["./list-instances-by-az.py"]

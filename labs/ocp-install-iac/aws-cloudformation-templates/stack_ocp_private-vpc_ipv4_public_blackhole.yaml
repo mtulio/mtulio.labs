@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy VPC, public subnets IPv4, blackhole private subnets.
+
+Parameters:
+  VpcCidr:
+    #AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-4]))$
+    #ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-24.
+    Default: 10.0.0.0/16
+    Description: CIDR block for VPC.
+    Type: String
+
+  NamePrefix:
+    AllowedPattern: ^([a-zA-Z][a-zA-Z0-9\-]{0,26})$
+    MaxLength: 27
+    MinLength: 1
+    ConstraintDescription: Cluster name must be alphanumeric, start with a letter, and have a maximum of 27 characters.
+    Description: A short, representative cluster name to use for host names and other identifying names.
+    Type: String
+
+  TemplatesBaseURL:
+    Type: String
+    Description: Choose 2 Subnets to create Load balancer and ASG
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_00_standalone.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        VpcCidr: !Ref VpcCidr
+
+  PublicRouteTable:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_route_table.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        NameSuffix: "public"
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+
+  InternetGateway:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_internet_gateway.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        DefaultRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        NamePrefix: !Ref NamePrefix
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+
+  RouteDefaultPublicIpv4:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+    - PublicRouteTable
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_03_route_entry.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        RouteTableId:  !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+        DestinationCidrBlock: "0.0.0.0/0"
+        InternetGatewayId: !GetAtt 'InternetGateway.Outputs.InternetGatewayId'
+
+  PrivateRouteTable:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_01_route_table.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        NameSuffix: "private"
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+
+  # skip default route for private route table
+
+  SubnetsZone1:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_subnet.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        ClusterName: !Ref NamePrefix
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+        ZoneName: us-east-1a
+        PrivateSubnetCidr: !Select [ 0, !Cidr [ !GetAtt VPC.Outputs.CidrBlock, 4, 8 ]]
+        PublicSubnetCidr: !Select [ 1, !Cidr [ !GetAtt VPC.Outputs.CidrBlock, 4, 8 ]]
+        #PrivateSubnetCidrIpv6: !Select [ 0, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 1, 64 ]]
+        #PublicSubnetCidrIpv6: !Select [ 1, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 2, 64 ]]
+        PrivateRouteTableId: !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
+        PublicRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+
+  SubnetsZone2:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_subnet.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        ClusterName: !Ref NamePrefix
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+        ZoneName: us-east-1b
+        PrivateSubnetCidr: !Select [ 2, !Cidr [ !GetAtt VPC.Outputs.CidrBlock, 4, 8 ]]
+        PublicSubnetCidr: !Select [ 3, !Cidr [ !GetAtt VPC.Outputs.CidrBlock, 4, 8 ]]
+        #PrivateSubnetCidrIpv6: !Select [ 2, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 3, 64 ]]
+        #PublicSubnetCidrIpv6: !Select [ 3, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 4, 64 ]]
+        PrivateRouteTableId: !GetAtt 'PrivateRouteTable.Outputs.RouteTableId'
+        PublicRouteTableId: !GetAtt 'PublicRouteTable.Outputs.RouteTableId'
+
+  VPCEndpoints:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref TemplatesBaseURL, "01_vpc_99_endpoints.yaml"]]
+      TimeoutInMinutes: 5
+      Parameters:
+        NamePrefix: !Ref NamePrefix
+        VpcId: !GetAtt 'VPC.Outputs.VpcId'
+        VpcCidr: !Ref VpcCidr
+        GatewayEndpointRouteTableIds: !Join [',', [!GetAtt 'PrivateRouteTable.Outputs.RouteTableId', !GetAtt 'PublicRouteTable.Outputs.RouteTableId']]
+        SubnetIds: !Join [',', [!GetAtt 'SubnetsZone1.Outputs.PrivateSubnetId', !GetAtt 'SubnetsZone2.Outputs.PrivateSubnetId']]
+        CreateEndpointS3: "True"
+        CreateEndpointEC2: "True"
+        CreateEndpointELB: "True"
+        CreateEndpointRoute53: "True"
+        CreateEndpointSTS: "True"
+        CreateEndpointKMS: "True"
+        CreateEndpointIAM: "True"
+
+Outputs:
+  VpcId:
+    Description: VPC ID.
+    Value: !GetAtt 'VPC.Outputs.VpcId'
+
+  PublicSubnetIds:
+    Description: Subnet IDs of the public subnets.
+    Value:
+      !Join [
+        ",",
+        [!GetAtt 'SubnetsZone1.Outputs.PublicSubnetId', !GetAtt 'SubnetsZone2.Outputs.PublicSubnetId']
+      ]
+  PrivateSubnetIds:
+    Description: Subnet IDs of the private subnets.
+    Value:
+      !Join [
+        ",",
+        [!GetAtt 'SubnetsZone1.Outputs.PrivateSubnetId', !GetAtt 'SubnetsZone2.Outputs.PrivateSubnetId']
+      ]
+  
+  VpCEndpointsDNS:
+    Description: Comma sepparated list of VPC Endpoints
+    Value: !GetAtt 'VPCEndpoints.Outputs.InterfaceEndpointDNS'

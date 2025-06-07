@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../setup-machineset
+
+# The `environment` ConfigMap contains all of the environment variables captured by Kustomize
+configMapGenerator:
+- name: environment
+  envs:
+  - environment.env
+
+# Disabling the name suffix hash is required, or `vars` won't lookup the correct name
+generatorOptions:
+  disableNameSuffixHash: true
+
+# Extract the variables out of the ConfigMap and into Kustomize variables
+vars:
+- name: INFRA_ID
+  objref:
+    kind: ConfigMap
+    name: environment
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.INFRA_ID
+- name: ZONE_NAME
+  objref:
+    kind: ConfigMap
+    name: environment
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.ZONE_NAME
+
+patches:
+- patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 0
+  target:
+    kind: MachineSet
+    name: INFRA_ID-worker-ZONE_NAME

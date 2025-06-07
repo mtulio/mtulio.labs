@@ -1,0 +1,70 @@
+name: linters
+on: [push]
+jobs:
+
+  # https://github.com/marketplace/actions/shell-linter
+  ShellScript:
+    name: ShellScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history for all branches and tags
+
+      - name: Install shellcheck
+        run: sudo apt-get install shellcheck
+
+      - name: Find changed shell scripts
+        id: files
+        run: |
+          echo "::set-output name=shell_files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.sh$')"
+
+      - name: Run shellcheck
+        if: steps.files.outputs.shell_files != ''
+        run: |
+          for file in ${{ steps.files.outputs.shell_files }}
+          do
+            shellcheck "$file"
+          done
+
+  # https://github.com/marketplace/actions/yaml-lint
+  # linter-yaml:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: yaml-lint-config
+  #       uses: ibiqlik/action-yamllint@v3
+  #       with:
+  #         file_or_dir: config.yaml
+  #         config_file: .github/workflows/yaml-linter-config.yml
+  #     - name: yaml-lint-ci
+  #       uses: ibiqlik/action-yamllint@v3
+  #       with:
+  #         file_or_dir: .github/workflows/*.yaml
+  #         config_file: .github/workflows/yaml-linter-config.yml
+
+  # https://github.com/marketplace/actions/cfn-lint-action
+  CloudFormation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Cloud Formation Linter with Latest Version
+        uses: scottbrenner/cfn-lint-action@v2
+
+      - name: Run
+        run: |
+          cfn-lint --version
+          prefix_templates=labs/ocp-install-iac/aws-cloudformation-templates/
+
+          echo "Checking CloudFormation templates for changes..."
+          echo "${FILES_CHANGED_YAML}"
+          for file in $(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.yaml$')
+          do
+            if [[ $file == $prefix_templates* ]]; then
+              echo "Running CloudFormation link to file ${TPL}"
+              cfn-lint -t "${TPL}"
+            fi
+          done

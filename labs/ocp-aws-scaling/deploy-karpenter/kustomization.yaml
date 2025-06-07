@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Namespace.yaml
+- CredentialsRequests.yaml
+- Deployment.yaml
+
+patches:
+- target:
+    kind: Deployment
+    name: karpenter
+    namespace: karpenter
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/securityContext
+      value:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+    - op: add
+      path: /spec/template/spec/containers/0/env
+      value:
+        - name: AWS_SHARED_CREDENTIALS_FILE
+          value: /var/secrets/karpenter/credentials
+    - op: add
+      path: /spec/template/spec/containers/0/volumeMounts
+      value:
+        - name: credentials
+          readOnly: true
+          mountPath: "/var/secrets/karpenter"
+    - op: add
+      path: /spec/template/spec/volumes
+      value:
+        - name: credentials
+          secret:
+            secretName: karpenter-aws-credentials

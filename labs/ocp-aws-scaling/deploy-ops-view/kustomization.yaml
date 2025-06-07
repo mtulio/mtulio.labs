@@ -1,0 +1,54 @@
+# # https://codeberg.org/hjacobs/kube-ops-view/src/branch/main/openshift
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- "https://codeberg.org/hjacobs/kube-ops-view.git//openshift/deploy"
+
+patches:
+- target:
+    kind: Namespace
+    name: ocp-ops-view
+  patch: |-
+    - op: replace
+      path: /metadata/annotations
+      value:
+        openshift.io/node-selector: "node-role.kubernetes.io/worker="
+- target:
+    kind: Deployment
+    name: kube-ops-view
+  patch: |-
+    - op: replace
+      path: /metadata/namespace
+      value: ocp-ops-view
+- target:
+    kind: Deployment
+    name: kube-ops-view-redis
+  patch: |-
+    - op: replace
+      path: /metadata/namespace
+      value: ocp-ops-view
+- target:
+    kind: Service
+    name: kube-ops-view-redis
+  patch: |-
+    - op: replace
+      path: /metadata/namespace
+      value: ocp-ops-view
+- target:
+    kind: Route
+    name: proxy
+  patch: |-
+    - op: replace
+      path: /metadata/namespace
+      value: ocp-ops-view
+    - op: remove
+      path: /spec/host
+- target:
+    kind: Service
+    name: kube-ops-view
+  patch: |-
+    - op: replace
+      path: /metadata/namespace
+      value: ocp-ops-view
