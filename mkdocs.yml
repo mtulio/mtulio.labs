@@ -223,6 +223,7 @@ nav:
       - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
       - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
       - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
+      - Benchmark AWS disks on OCP: playbooks/openshift/ocp-aws-disk-benchmark.md
 
     - OpenShift Hacking:
       - Service type-LoadBalancer NLB with Security Groups: guides/ocp-spikes/ocp-aws-ingress-sg.md
