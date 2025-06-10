@@ -1,33 +1,33 @@
 # OpenShift Monitoring Grafana Dashboard
 
-Tutorial to use custom Grafana Dashboard to explore OpenShift metrics from a Prometheus Datasource.
+Tutorial to use custom Grafana Dashboard to explore OpenShift metrics from a Prometheus datasource.
 
-This guide will use OpenShift CI jobs, exploring the exported Prometheus dump from CI e2e job using the Prometheus API exposed by PromeCleus.
+This guide will use a Prometheus endpoint from an OpenShift CI job, exploring the exported Prometheus database from a OpenShift/Prow CI job using the Prometheus API exposed by PromeCIeus.
 
 Steps to use custom grafana:
 
-## Restore the Promethes datasource
+1) Restore the Prometheus datasource from a CI execution
 
 - Find the Prow job
-- Click in the lens "Debug Tools", then [PromeCleus](https://promecieus.dptools.openshift.org/?search=)
+- Click in the lens "Debug Tools", then [PromeCIeus](https://promecieus.dptools.openshift.org/?search=)
 - Paste the Job URL
-- Open the Prometheus instance, and copy the URL (without path) saving for later usage
+- Click in Generate to restore the the Prometheus database to an instance
+- Copy the URL (without path `/graph`) for later
 
-## Deploy Grafana Instance
+2) Deploy Grafana Instance using PromeCIeus as Datasource
 
 - Create the Grafana Instance (skip if you already have one)
 
-> https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/
-> https://hub.docker.com/r/grafana/grafana
+> See also Grafana Container: https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/ https://hub.docker.com/r/grafana/grafana
 
 ```sh
 podman run -d --name=grafana -p 3000:3000 grafana/grafana
 ```
 
-- Create or update a [Prometheus datasource](http://localhost:3000/connections/datasources) named `prometheus`
-- Paste the PromeCleus URL (without path)
-- Import the [Dashboard JSON file grafana-dashboard-promecleus.json](
-https://raw.githubusercontent.com/mtulio/mtulio.labs/master/labs/ocp-grafana-dash/grafana-dashboard-promecleus.json)
+- Open the Grafana creating a new [Prometheus datasource](http://localhost:3000/connections/datasources), **naming it as `prometheus`**.
+- Paste the PromeCIeus URL (without path `/graph`. example: https://ntpvpgpq-promecieus.apps.cr.j7t7.p1.openshiftapps.com)
+- Download the [Dashboard JSON file grafana-dashboard-promecleus.json](
+https://raw.githubusercontent.com/mtulio/mtulio.labs/master/labs/ocp-grafana-dash/grafana-dashboard-promecleus.json), and [import to Grafana](http://localhost:3000/dashboard/import)
 - Adjust the Dashboard timeframe for your job execution and be happy.
 
 Example:
