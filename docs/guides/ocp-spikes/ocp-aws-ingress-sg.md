@@ -12,7 +12,7 @@ Note: This is a notebook/playbook of exploring/hacking controller for kube resou
 # Step 1) built an OCP release with all PRs using cluster-bot
 # Step 2)
 # CHANGE ME
-export version=v36
+export version=v37
 BUILD_CLUSTER=build10
 CI_JOB=ci-ln-5wdr0g2
 
@@ -50,6 +50,8 @@ BUILT_RELEASE="registry.build06.ci.openshift.org/ci-ln-t5fttvb/release:latest"
 oc scale --replicas=0 deployment.apps/cluster-version-operator -n openshift-cluster-version
 
 oc scale --replicas=0 deployment.apps/cluster-cloud-controller-manager-operator -n openshift-cloud-controller-manager-operator
+
+oc scale --replicas=0 deployment.apps/aws-cloud-controller-manager -n openshift-cloud-controller-manager
 
 CCM_IMAGE=$(oc adm release info $BUILT_RELEASE --image-for aws-cloud-controller-manager)
 
@@ -113,8 +115,35 @@ service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "2
 service.beta.kubernetes.io/aws-load-balancer-security-groups: 'mrb-sg-v7-474wp-ingress-lb'
 service.beta.kubernetes.io/aws-load-balancer-type: nlb
 traffic-policy.network.alpha.openshift.io/local-with-fallback: ""
-
 ```
+
+### Run locally
+
+```sh
+oc scale --replicas=0 deployment.apps/cluster-version-operator -n openshift-cluster-version
+
+oc scale --replicas=0 deployment.apps/cluster-cloud-controller-manager-operator -n openshift-cloud-controller-manager-operator
+
+oc scale --replicas=0 deployment.apps/aws-cloud-controller-manager -n openshift-cloud-controller-manager
+
+# https://github.com/openshift/cluster-cloud-controller-manager-operator/blob/3486b5c01e32eb8375a503da49fe623ac83fcb98/pkg/cloud/aws/assets/deployment.yaml#L37
+
+
+export CLOUD_CONFIG=$PWD/ccm-config
+oc get cm cloud-conf -n openshift-cloud-controller-manager -o json | jq -r '.data["cloud.conf"]' > $CLOUD_CONFIG
+
+./aws-cloud-controller-manager --cloud-config="${CLOUD_CONFIG}" --kubeconfig $KUBECONFIG \
+--cloud-provider=aws \
+--use-service-account-credentials=true \
+--configure-cloud-routes=false \
+--leader-elect=true \
+--leader-elect-lease-duration=137s \
+--leader-elect-renew-deadline=107s \
+--leader-elect-retry-period=26s \
+--leader-elect-resource-namespace=openshift-cloud-controller-manager \
+-v=2
+```
+
 
 ## Manual Testing CCM and ALBC Service interface to provision type-LoadBalancer NLB
 
@@ -398,7 +427,7 @@ Results:
 ]
 ```
 
-## Automated e2e
+## Automated e2e with openshift-tests
 
 Explore existing tests in the test framework:
 ```sh
@@ -414,6 +443,19 @@ chmod u+x ./openshift-tests
 # TODO grep loadbalancer tests
 ```
 
+## Automated e2e with e2e.tests (ginkgo)
+
+```sh
+# Make the test binary
+make e2e.test
+
+# List available tests
+$ ./e2e.test --ginkgo.dry-run | grep -E '\[cloud-provider-aws-e2e'
+
+# Run the loadBalancer tests
+ ./e2e.test --ginkgo.v  --ginkgo.focus 'loadbalancer'
+
+```
 
 
 ## Install managed clusters
