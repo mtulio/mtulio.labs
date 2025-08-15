@@ -227,6 +227,7 @@ nav:
 
     - OpenShift Hacking:
       - Service type-LoadBalancer NLB with Security Groups: guides/ocp-spikes/ocp-aws-ingress-sg.md
+      - Installing ALBC: guides/ocp-spikes/ocp-aws-ingress-sg.md
 
     - OpenShift Dev:
       - Build components: playbooks/openshift/dev-build-components.md

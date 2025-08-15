@@ -12,7 +12,7 @@ Note: This is a notebook/playbook of exploring/hacking controller for kube resou
 # Step 1) built an OCP release with all PRs using cluster-bot
 # Step 2)
 # CHANGE ME
-export version=v37
+export version=v39
 BUILD_CLUSTER=build10
 CI_JOB=ci-ln-5wdr0g2
 
@@ -26,11 +26,13 @@ mkdir -p $INSTALL_DIR
 
 #cat install-dir/install-config-CIO2.yaml | sed "s/sg-v4/sg-${version}/" > ${INSTALL_DIR}/install-config.yaml
 cat install-dir/install-config-regular.yaml | sed "s/sg-v4/sg-${version}/" > ${INSTALL_DIR}/install-config.yaml
+cat install-dir/install-config-regular-compact.yaml | sed "s/sg-v4/sg-${version}/" > ${INSTALL_DIR}/install-config.yaml
 
 export OPENSHIFT_INSTALL_REENTRANT=true
 export INSTALL_COMMAND=./install-dir/openshift-install
 export INSTALL_COMMAND=./openshift-install-4.20ec2
 export INSTALL_COMMAND=./openshift-install
+export INSTALL_COMMAND=./openshift-install-4.20ec3
 #./openshift-install create manifests --log-level=debug --dir $INSTALL_DIR
 $INSTALL_COMMAND create cluster --log-level=debug --dir $INSTALL_DIR
 
@@ -117,7 +119,7 @@ service.beta.kubernetes.io/aws-load-balancer-type: nlb
 traffic-policy.network.alpha.openshift.io/local-with-fallback: ""
 ```
 
-### Run locally
+### Running CCM locally
 
 ```sh
 oc scale --replicas=0 deployment.apps/cluster-version-operator -n openshift-cluster-version
@@ -128,11 +130,32 @@ oc scale --replicas=0 deployment.apps/aws-cloud-controller-manager -n openshift-
 
 # https://github.com/openshift/cluster-cloud-controller-manager-operator/blob/3486b5c01e32eb8375a503da49fe623ac83fcb98/pkg/cloud/aws/assets/deployment.yaml#L37
 
-
+# Get current cloud-config
 export CLOUD_CONFIG=$PWD/ccm-config
 oc get cm cloud-conf -n openshift-cloud-controller-manager -o json | jq -r '.data["cloud.conf"]' > $CLOUD_CONFIG
 
-./aws-cloud-controller-manager --cloud-config="${CLOUD_CONFIG}" --kubeconfig $KUBECONFIG \
+CLUSTER_ID=$(oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')
+VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag-key,Values=kubernetes.io/cluster/${CLUSTER_ID}" --query Vpcs[].VpcId --output text)
+SUBNET_ID_PUBLIC=$(aws ec2 describe-subnets \
+--filters Name=vpc-id,Values=$VPC_ID Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,Values=public \
+--query 'Subnets[0].SubnetId' \
+--output text)
+
+# Patch it to work correctly to run locally:
+cat << EOF >> $CLOUD_CONFIG
+NLBSecurityGroupMode = Managed
+Region = us-east-1
+VPC = $VPC_ID
+SubnetID = $SUBNET_ID_PUBLIC
+KubernetesClusterTag = $CLUSTER_ID
+EOF
+
+export AWS_REGION=us-east-1
+export AWS_SHARED_CREDENTIALS_FILE=$HOME/.aws/credentials-splat
+
+./aws-cloud-controller-manager -v=2 \
+--cloud-config="${CLOUD_CONFIG}" \
+--kubeconfig="${KUBECONFIG}" \
 --cloud-provider=aws \
 --use-service-account-credentials=true \
 --configure-cloud-routes=false \
@@ -140,118 +163,16 @@ oc get cm cloud-conf -n openshift-cloud-controller-manager -o json | jq -r '.dat
 --leader-elect-lease-duration=137s \
 --leader-elect-renew-deadline=107s \
 --leader-elect-retry-period=26s \
---leader-elect-resource-namespace=openshift-cloud-controller-manager \
--v=2
+--leader-elect-resource-namespace=openshift-cloud-controller-manager
 ```
 
+## Create Sample Application
 
-## Manual Testing CCM and ALBC Service interface to provision type-LoadBalancer NLB
-
-The tests below are executed in a cluster with ALBC and CCM.
-
-The tests are purely with purpose to understa the mechanism ALBC provides to use in parallel ALBC and CCM with Service type-LoadBalancer resource.
-
-Those options are based in the ALBC configuration: 
-
-### Prerequisites: Install ALBC with ALBO
-
+Deploy a sample APP to validate services:
 
 ```sh
-# Create the Credentials for the Operator:
-ALBO_NS=aws-load-balancer-operator
-oc create namespace $ALBO_NS
-
-cat << EOF| oc create -f -
-apiVersion: cloudcredential.openshift.io/v1
-kind: CredentialsRequest
-metadata:
-  name: aws-load-balancer-operator
-  namespace: openshift-cloud-credential-operator
-spec:
-  providerSpec:
-    apiVersion: cloudcredential.openshift.io/v1
-    kind: AWSProviderSpec
-    statementEntries:
-      - action:
-          - ec2:DescribeSubnets
-        effect: Allow
-        resource: "*"
-      - action:
-          - ec2:CreateTags
-          - ec2:DeleteTags
-        effect: Allow
-        resource: arn:aws:ec2:*:*:subnet/*
-      - action:
-          - ec2:DescribeVpcs
-        effect: Allow
-        resource: "*"
-  secretRef:
-    name: aws-load-balancer-operator
-    namespace: aws-load-balancer-operator
-  serviceAccountNames:
-    - aws-load-balancer-operator-controller-manager
-EOF
-
-# Install the Operator from OLM:
-cat <<EOF | oc create -f -
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: $ALBO_NS
-  namespace: $ALBO_NS
-spec:
-  targetNamespaces:
-  - $ALBO_NS
-EOF
-
-# Create the subscription:
-cat <<EOF | oc create -f -
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: $ALBO_NS
-  namespace: $ALBO_NS
-spec:
-  channel: stable-v0
-  installPlanApproval: Automatic 
-  name: $ALBO_NS
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-EOF
-
-# Wait for install-plan approved
-oc get installplan -w -n $ALBO_NS
-
-# check controller is running
-oc get all -n $ALBO_NS
-oc get pods -w -n $ALBO_NS
-
-
-# Create cluster ALBO controller
-cat <<EOF | oc create -f -
-apiVersion: networking.olm.openshift.io/v1alpha1
-kind: AWSLoadBalancerController 
-metadata:
-  name: cluster 
-spec:
-  subnetTagging: Auto 
-  ingressClass: cloud 
-  config:
-    replicas: 2 
-  enabledAddons: 
-    - AWSWAFv2
-EOF
-
-# Wait for the pod becamig running
-oc get pods -w -n $ALBO_NS -l app.kubernetes.io/name=aws-load-balancer-operator
-```
-
-- Deploy an APP, optional:
-
-```sh
-APP_NAME=app-albc
-APP_NAMESPACE=$APP_NAME
-
+APP_NAME_BASE=app-sample
+APP_NAMESPACE=$APP_NAME_BASE
 
 oc create ns $APP_NAMESPACE
 
@@ -259,22 +180,22 @@ cat << EOF | oc create -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: $APP_NAME
+  name: $APP_NAME_BASE
   namespace: $APP_NAMESPACE
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: $APP_NAME
+      app: $APP_NAME_BASE
   template:
     metadata:
       labels:
-        app: $APP_NAME
+        app: $APP_NAME_BASE
     spec:
       containers:
       - image: ealen/echo-server:latest
         imagePullPolicy: IfNotPresent
-        name: $APP_NAME
+        name: $APP_NAME_BASE
         ports:
         - containerPort: 8080
         env:
@@ -283,11 +204,24 @@ spec:
 EOF
 ```
 
+## Manual Testing CCM and ALBC Service interface to provision type-LoadBalancer NLB
+
+The tests described in this section are example of services exercising the specific features using different controllers, such as CCM (Cloud Controller Manager) and ALBC (AWS Load Balancer Controller).
+
+Some tests requires ALBC, you need to follow the [following guides](./ocp-aws-ingress-sg-albc.md) as prerequisite:
+- Installing ALBC with ALBO (follows ALBC released by OpenShift)
+- Installing ALBC with Helm (usually latest ALBC version)
+
+
+Prerequisites:
+- CCM running: if you need to run locally, read the [development guide](https://github.com/kubernetes/cloud-provider-aws/blob/master/docs/development.md) to get started
+- ALBC using the desired method mentioned in the last paragraph
+
 
 ### Test Case 1) User defalt Service type-LoadBalancer controller (CCM):
 
 ```sh
-SVC_NAME=$APP_NAME-svc-ccm
+SVC_NAME=$APP_NAME_BASE-svc-ccm2
 cat << EOF | oc create -f -
 apiVersion: v1
 kind: Service
@@ -298,9 +232,35 @@ metadata:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
 spec:
   selector:
-    app: $APP_NAME
+    app: $APP_NAME_BASE
   ports:
-    - port: 80
+    - name: http80
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+EOF
+
+# two ports
+SVC_NAME=$APP_NAME_BASE-svc-ccm2
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - name: http80
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: http81
+      port: 81
       targetPort: 8080
       protocol: TCP
   type: LoadBalancer
@@ -322,7 +282,20 @@ aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers | jq
     "Value": "owned"
   }
 ]
+```
 
+BYO SG
+
+```sh
+CLUSTER_ID=$(oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')
+
+VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag-key,Values=kubernetes.io/cluster/${CLUSTER_ID}" --query Vpcs[].VpcId --output text)
+
+aws ec2 create-security-group \
+--description="${CLUSTER_ID}-sg-byo-myapp" \
+--group-name="BYO SG sample for service myapp" \
+--vpc-id="${VPC_ID}" \
+--tag-specifications "ResourceType=security-group,Tags=[{Key=kubernetes.io/cluster/${CLUSTER_ID},Value=shared}]"
 ```
 
 ### Test Case 2) Using `loadBalancerClass` to take over ALBC the Service type-LoadBalancer controller:
@@ -337,7 +310,7 @@ Service LoadBalancer NLB with ALBC using loadBalancerClass
 
 
 ```sh
-SVC_NAME=$APP_NAME-svc-albc
+SVC_NAME=$APP_NAME_BASE-svc-albc
 cat << EOF | oc create -f -
 apiVersion: v1
 kind: Service
@@ -346,7 +319,7 @@ metadata:
   namespace: ${APP_NAMESPACE}
 spec:
   selector:
-    app: $APP_NAME
+    app: $APP_NAME_BASE
   ports:
     - port: 80
       targetPort: 8080
@@ -358,7 +331,7 @@ EOF
 
 - Check tags
 ```sh
-LB_DNS=$(oc get svc $APP_NAME-svc-albc -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+LB_DNS=$(oc get svc $SVC_NAME -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 
 $ aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"$LB_DNS\").LoadBalancerArn") | jq .TagDescriptions[].Tags
 [
@@ -384,7 +357,7 @@ $ aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers | 
 > NOTE: by default this behavior does not provision SGs
 
 ```sh
-SVC_NAME=$APP_NAME-svc-albc-ext
+SVC_NAME=$APP_NAME_BASE-svc-albc-ext
 cat << EOF | oc create -f -
 apiVersion: v1
 kind: Service
@@ -396,7 +369,7 @@ metadata:
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: instance
 spec:
   selector:
-    app: $APP_NAME
+    app: $APP_NAME_BASE
   ports:
     - port: 80
       targetPort: 8080
@@ -588,4 +561,360 @@ PULL_SECRET="$PULL_SECRET_FILE"
   --aws-creds $AWS_CREDS \
   --region $REGION \
   --generate-ssh
+```
+
+
+## Validating bugs
+
+### SG error while Service Port update
+
+https://github.com/kubernetes/cloud-provider-aws/issues/1206
+
+```sh
+
+# Testing patch
+SVC_NAME=$APP_NAME_BASE-svc-clb1
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - name: http80
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+EOF
+
+
+kubectl patch service $SVC_NAME -n ${APP_NAMESPACE} --type=json \
+  --patch '[{"op": "add", "path": "/spec/ports/-", 
+    "value": {"name":"http81","port":81,"protocol":"TCP","targetPort":8080}}]'
+
+curl -v $(oc get svc $SVC_NAME -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'):81
+```
+
+### SG leak on BYO SG update on CLB
+
+[CCM-AWS Issue 1208](https://github.com/kubernetes/cloud-provider-aws/issues/1208)
+
+```sh
+# Step 1: Create CLB service
+SVC_NAME=$APP_NAME_BASE-clb-sg1
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - name: http80
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+EOF
+
+# Step 2: Check the CLB SG
+LB_DNS=$(oc get svc $SVC_NAME -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+$ aws elb describe-load-balancers | jq -r ".LoadBalancerDescriptions[] | select(.DNSName==\"$LB_DNS\")|(.LoadBalancerName, .SecurityGroups)"
+a341df09f30f94b78b5c33371eec8bac
+[
+  "sg-022da65a3d6e1d9ba"
+]
+
+SG_ID_ORIGINAL=$(aws elb describe-load-balancers | jq -r ".LoadBalancerDescriptions[] | select(.DNSName==\"$LB_DNS\").SecurityGroups | .[0]")
+
+echo $SG_ID_ORIGINAL
+
+# Step 3: Create a SG to be added ot BYO SG annotation
+CLUSTER_ID=$(oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')
+
+VPC_ID=$(aws elb describe-load-balancers | jq -r ".LoadBalancerDescriptions[] | select(.DNSName==\"$LB_DNS\").VPCId")
+
+SG_NAME="${SVC_NAME}-byosg"
+SG_ID=$(aws ec2 create-security-group \
+--vpc-id="${VPC_ID}" \
+--group-name="${SG_NAME}" \
+--description="BYO SG sample for service ${SVC_NAME}" \
+--tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${SG_NAME}},{Key=kubernetes.io/cluster/${CLUSTER_ID},Value=shared}]" \
+| tee -a | jq -r .GroupId)
+
+$ echo $SG_ID
+sg-019ce8390024660f0
+
+# Step 4: Patch the service with BYO SG
+kubectl patch service ${SVC_NAME} -n ${APP_NAMESPACE} --type=merge \
+  --patch '{"metadata":{"annotations":{"service.beta.kubernetes.io/aws-load-balancer-security-groups":"'$SG_ID'"}}}'
+
+# Step 5: Check SG has been added to CLB
+$ kubectl get service ${SVC_NAME} -n ${APP_NAMESPACE} -o yaml | yq4 ea .metadata.annotations
+service.beta.kubernetes.io/aws-load-balancer-security-groups: sg-019ce8390024660f0
+
+$ aws elb describe-load-balancers | jq -r ".LoadBalancerDescriptions[] | select(.DNSName==\"$LB_DNS\")|(.LoadBalancerName, .SecurityGroups)"
+a341df09f30f94b78b5c33371eec8bac
+[
+  "sg-019ce8390024660f0"
+]
+
+$ aws ec2 describe-network-interfaces \
+    --filters "Name=group-id,Values=$SG_ID" \
+    --output json | jq -r '.NetworkInterfaces[] | "\(.NetworkInterfaceId) - \(.Description) - \(.Status)"'
+eni-01667c7da28262a73 - ELB a341df09f30f94b78b5c33371eec8bac - in-use
+eni-0fbdb2e1df215869c - ELB a341df09f30f94b78b5c33371eec8bac - in-use
+
+# Step 6: Check if original SG has not been cleaned (bug/leaked)
+
+## SG exists / not deleted
+$ aws ec2 describe-security-groups --group-ids $SG_ID_ORIGINAL \
+    --query 'SecurityGroups[].{"name":GroupName, "tags":Tags}' \
+    --output json
+[
+    {
+        "name": "k8s-elb-a341df09f30f94b78b5c33371eec8bac",
+        "tags": [
+            {
+                "Key": "KubernetesCluster",
+                "Value": "mrb-sg-xknls"
+            },
+            {
+                "Key": "kubernetes.io/cluster/mrb-sg-xknls",
+                "Value": "owned"
+            }
+        ]
+    }
+]
+
+## SG not linked to any ENI
+
+$ aws ec2 describe-network-interfaces \
+--filters "Name=group-id,Values=$SG_ID_ORIGINAL" \
+--output json \
+| jq -r '.NetworkInterfaces[] | "\(.NetworkInterfaceId) - \(.Description) - \(.Status)"'
+<empty>
+```
+
+## IPv6 NLB
+
+
+```sh
+SVC_NAME=$APP_NAME_BASE-nlb
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+EOF
+
+SVC_NAME=$APP_NAME_BASE-clb
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+EOF
+
+```
+
+### TargetGroup attributes modification test cases
+
+```sh
+
+# Step 1) Create the service changing the attribute
+# delete existing router
+SVC_NAME=router-default
+APP_NAMESPACE=${APP_NAMESPACE}
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: $APP_NAMESPACE
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: preserve_client_ip.enabled=false,proxy_protocol_v2.enabled=true
+spec:
+  type: LoadBalancer
+  selector:
+    ingresscontroller.operator.openshift.io/deployment-ingresscontroller: default
+  externalTrafficPolicy: Local
+  internalTrafficPolicy: Cluster
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  type: LoadBalancer
+EOF
+
+SVC_NAME=router-default2
+APP_NAMESPACE=openshift-ingress
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: $APP_NAMESPACE
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: preserve_client_ip.enabled=false,proxy_protocol_v2.enabled=true
+spec:
+  type: LoadBalancer
+  selector:
+    ingresscontroller.operator.openshift.io/deployment-ingresscontroller: default
+  externalTrafficPolicy: Local
+  internalTrafficPolicy: Cluster
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  type: LoadBalancer
+EOF
+
+# Step 2) Check if the attribute has been set to the target group
+LB_DNS=$(oc get svc $SVC_NAME -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+aws elbv2 describe-target-group-attributes --target-group-arn $(aws elbv2 describe-target-groups --load-balancer-arn  $(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"$LB_DNS\").LoadBalancerArn") | jq -r .TargetGroups[].TargetGroupArn)  | jq -r '.Attributes[] | select(.Key=="preserve_client_ip.enabled")'
+{
+  "Key": "preserve_client_ip.enabled",
+  "Value": "true"
+}
+
+# Step 3) Remove the annotation 
+kubectl patch service $SVC_NAME -n ${APP_NAMESPACE} --type=json \
+  --patch '[{"op": "remove", "path": "/metadata/annotations[\"service.beta.kubernetes.io/aws-load-balancer-target-group-attributes\"]"}]'
+
+kubectl patch service $SVC_NAME -n ${APP_NAMESPACE} --type=merge \
+--patch '{"metadata":{"annotations":{"service.beta.kubernetes.io/aws-load-balancer-target-group-attributes":"preserve_client_ip.enabled=false"}}}'
+
+$ kubectl get service $SVC_NAME -n ${APP_NAMESPACE} -o json |jq .metadata.annotations
+null
+
+
+# Step 3) Check if the original/desired value has been restored
+aws elbv2 describe-target-group-attributes --target-group-arn $(aws elbv2 describe-target-groups --load-balancer-arn  $(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"$LB_DNS\").LoadBalancerArn") | jq -r .TargetGroups[].TargetGroupArn)  | jq -r '.Attributes[] | select(.Key=="preserve_client_ip.enabled")'
+```
+
+https://aws.amazon.com/blogs/networking-and-content-delivery/preserving-client-ip-address-with-proxy-protocol-v2-and-network-load-balancer/
+
+### TargetGroup attributes modification tests with ALBC
+
+Testing ALBC with custom attributes with valid for hairpin:
+```sh
+
+# Old (CCM) annotation pattern
+SVC_NAME=$APP_NAME_BASE-albc-srcoff-old
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: preserve_client_ip.enabled=false
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+  loadBalancerClass: service.k8s.aws/nlb
+EOF
+
+# Documentation pattern
+SVC_NAME=$APP_NAME_BASE-albc-srcoff-doc
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    alb.ingress.kubernetes.io/target-group-attributes: preserve_client_ip.enabled=false
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+  loadBalancerClass: service.k8s.aws/nlb
+EOF
+```
+
+Testing ALBC with custom attributes with invalid values:
+
+```sh
+SVC_NAME=$APP_NAME_BASE-albc-attb-invalid
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    alb.ingress.kubernetes.io/target-group-attributes: myattrib=false
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+  loadBalancerClass: service.k8s.aws/nlb
+EOF
+
+LB_DNS=$(oc get svc $SVC_NAME -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"$LB_DNS\").LoadBalancerArn") | jq .TagDescriptions[].Tags
+```
+
+## Testing proxy on CIO
+
+https://redhat-internal.slack.com/archives/CCH60A77E/p1752869482105659?thread_ts=1745435593.239899&cid=CCH60A77E
+
+```sh
+TBD
 ```
