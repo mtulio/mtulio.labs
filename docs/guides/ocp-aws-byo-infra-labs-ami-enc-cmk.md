@@ -599,3 +599,94 @@ Create a cluster with custom user:
 ```sh
 AWS_PROFILE=$IAM_USER_INST ./openshift-install create cluster --dir $INSTALL_DIR --log-level=debug
 ```
+
+## Troubleshooting
+
+### Check AMI is encrypted with default Key or CMK
+
+**Exporting source AMI info**
+
+```sh
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export AWS_REGION=us-east-1
+export OCP_ARCH=x86_64
+export OCP_IMAGE_ID=$(./openshift-install-4.21.0ec0 coreos print-stream-json | jq -r ".architectures[\"$OCP_ARCH\"].images.aws.regions[\"$AWS_REGION\"].image ")
+
+DEFAULT_EBS_KMS_KEY_ID=$(aws kms list-aliases --query "Aliases[?AliasName=='alias/aws/ebs']" | jq -r '.[].TargetKeyId')
+
+wait_for_ami() {
+  local ami_id=$1
+while true; do
+  echo $(date): $(aws ec2 describe-images --image-ids $ami_id | jq -cr '.Images[]|{State, StateMessage}');
+  test $(aws ec2 describe-images --image-ids $ami_id --query 'Images[].State' --output text) == "available" && { echo "Image Available!"; break;}
+  sleep 10;
+done
+}
+
+create_ami() {
+  local src_image=$1; shift
+  local img_name=$1;
+  local kms_key=${2:-}
+  local extra_args=''
+  test ! -z $kms_key && extra_args="--kms-key-id \"$kms_key\""
+  aws ec2 copy-image \
+--source-image-id "$src_image" \
+--source-region "$AWS_REGION" \
+--region "$AWS_REGION" \
+--name "${img_name}" \
+--encrypted $extra_args
+}
+export -f create_ami
+```
+
+**Create Image with CMK:**
+
+- Create encrypted AMI
+```sh
+AMI_NAME_CMK="${INFRA_REF}-RHCOS-${OCP_VERSION}-cmk"
+KMS_KEY_ID="28a71c38-bf4b-4def-9823-fa3281f198aa"
+KMS_KEY_ARN="arn:aws:kms:us-east-1:${AWS_ACCOUNT_ID}:key/${KMS_KEY_ID}"
+
+AMI_ID_CMK=$(create_ami "${OCP_IMAGE_ID}" "${AMI_NAME_CMK}" "${KMS_KEY_ID}"  | jq -r '.ImageId')
+
+# wait for image creation
+wait_for_ami "${AMI_ID_CMK}"
+```
+
+- Extract the KMS Key of snap
+
+```sh
+AMI_SNAP_ID_CMK=$(aws ec2 describe-images --image-ids $AMI_ID_CMK --query 'Images[0].BlockDeviceMappings[0].Ebs.SnapshotId' --output text)
+AMI_KMS_ID_CMK=$(aws kms describe-key --query 'KeyMetadata.KeyId' --output text --key-id $(aws ec2 describe-snapshots --snapshot-ids ${AMI_SNAP_ID_CMK} | jq -r '.Snapshots[0].KmsKeyId'))
+AMI_KMS_ALIAS_CMK=$(aws kms list-aliases --query "Aliases[?TargetKeyId==\"$AMI_KMS_ID_CMK\"].TargetKeyId")
+```
+
+**Answer questions**
+```sh
+echo "# Q: is AMI encrypted?"
+aws ec2 describe-images --image-ids $AMI_ID_CMK --query 'Images[0].BlockDeviceMappings[0].Ebs.Encrypted'
+
+echo "# Q: is the default EBS KMS key?"
+test ${AMI_KMS_ALIAS_CMK}  == $DEFAULT_EBS_KMS_KEY_ID && echo true || echo false
+```
+
+**Create image with Default**
+
+```sh
+AMI_NAME_DEF="${INFRA_REF}-RHCOS-${OCP_VERSION}-def"
+
+AMI_ID_DEF=$(create_ami "${OCP_IMAGE_ID}" "${AMI_NAME_DEF}" | jq -r '.ImageId')
+
+wait_for_ami "${AMI_ID_DEF}"
+
+AMI_SNAP_ID_DEF=$(aws ec2 describe-images --image-ids $AMI_ID_DEF --query 'Images[0].BlockDeviceMappings[0].Ebs.SnapshotId' --output text)
+AMI_KMS_ID_DEF=$(aws kms describe-key --query 'KeyMetadata.KeyId' --output text --key-id $(aws ec2 describe-snapshots --snapshot-ids ${AMI_SNAP_ID_DEF} | jq -r '.Snapshots[0].KmsKeyId'))
+AMI_KMS_ALIAS_DEF=$(aws kms list-aliases | jq -r ".Aliases[] | select(.TargetKeyId==\"$AMI_KMS_ID_DEF\").TargetKeyId")
+
+
+echo "# Q: is AMI encrypted?"
+aws ec2 describe-images --image-ids $AMI_ID_DEF --query 'Images[0].BlockDeviceMappings[0].Ebs.Encrypted'
+
+echo "# Q: is the default EBS KMS key?"
+test ${AMI_KMS_ALIAS_DEF}  == $DEFAULT_EBS_KMS_KEY_ID && echo true || echo false
+```
