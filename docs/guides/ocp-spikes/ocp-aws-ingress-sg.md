@@ -428,6 +428,8 @@ $ ./e2e.test --ginkgo.dry-run | grep -E '\[cloud-provider-aws-e2e'
 # Run the loadBalancer tests
  ./e2e.test --ginkgo.v  --ginkgo.focus 'loadbalancer'
 
+./e2e.test --ginkgo.v  --ginkgo.focus 'NLB internal should be reachable with hairpinning traffic.*'
+
 ```
 
 
@@ -703,6 +705,30 @@ $ aws ec2 describe-network-interfaces \
 <empty>
 ```
 
+### Validating HTTP target
+
+```sh
+SVC_NAME=$APP_NAME_BASE-nlb-http
+cat << EOF | oc create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $SVC_NAME
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+spec:
+  selector:
+    app: $APP_NAME_BASE
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: LoadBalancer
+EOF
+```
+
 ## IPv6 NLB
 
 
@@ -911,6 +937,10 @@ LB_DNS=$(oc get svc $SVC_NAME -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBala
 aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers | jq -r ".LoadBalancers[] | select(.DNSName==\"$LB_DNS\").LoadBalancerArn") | jq .TagDescriptions[].Tags
 ```
 
+
+
+
+
 ## Testing proxy on CIO
 
 https://redhat-internal.slack.com/archives/CCH60A77E/p1752869482105659?thread_ts=1745435593.239899&cid=CCH60A77E
@@ -918,3 +948,43 @@ https://redhat-internal.slack.com/archives/CCH60A77E/p1752869482105659?thread_ts
 ```sh
 TBD
 ```
+
+## Testing 3CMO FG update
+
+
+1. Check current 3CMO status (live cluster has already support of FG, similar developed here to sync-config-controller)
+```sh
+# I want to create a oc patch command to disable the following feature gates retrieved from the command: 
+$ oc get FeatureGate cluster -o json | jq  -r '.status.featureGates[].enabled[] | select(.name | startswith("VSphere")).name'
+VSphereConfigurableMaxAllowedBlockVolumesPerNode
+VSphereHostVMGroupZonal
+VSphereMultiDisk
+VSphereMultiNetworks
+
+# 1) Check timestamp of 3CMO controller
+
+$ oc get pods  -n openshift-cloud-controller-manager-operator -l k8s-app=cloud-manager-operator -o json | jq -r '.items[].status.containerStatuses[] | select(.name=="cluster-cloud-controller-manager").state'
+{
+  "running": {
+    "startedAt": "2025-08-27T15:39:16Z"
+  }
+}
+
+
+# 2) patch
+oc patch featuregate cluster --type='merge' -p='{
+  "spec": {
+    "featureSet": "CustomNoUpgrade",
+    "customNoUpgrade": {
+      "disabled": [
+        "VSphereMultiNetworks"
+      ]
+    }
+  }
+}'
+
+
+```
+
+1. Patch FG removing vsphere items
+1. What the controller container update:
