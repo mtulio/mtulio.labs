@@ -59,9 +59,20 @@ Keep commit messages concise. The first line should be under 72 characters.
 - Articles in `docs/articles/` are publication-quality and should be reviewed before committing
 - Technical terms: use proper casing in prose (OpenShift, Kubernetes, AWS) but lowercase in filenames
 
+## Security: Sensitive Data Prevention
+
+**Every file and PR must be scanned for sensitive data before committing or approving.**
+
+See `.claude/rules/sensitive-data.md` for the full policy. Key rules:
+- Never commit AWS keys, tokens, private keys, or plaintext passwords
+- Redact AWS account IDs, real S3 bucket names, and cluster-specific endpoints with `[redacted]` or variable references
+- Environment variable references (`${VAR}`) are preferred over hardcoded values
+- When reviewing PRs, grep for `AKIA`, inline tokens, and unredacted ARNs
+
 ## AI Assistant Guidelines
 
 - Review content for English spelling, grammar, and technical accuracy
+- **Always scan for sensitive data** in files being committed or PRs being reviewed
 - When creating notes, follow the structure in `.claude/skills/new-note/`
 - When reviewing content, use criteria from `.claude/skills/review-note/`
 - Do not modify `mkdocs.yml` nav without asking; adding an entry makes it public
