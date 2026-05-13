@@ -4,3 +4,7 @@
 !.vscode
 !.vscode/mcp.json
 tmp/
+
+# Claude Code local overrides
+CLAUDE.local.md
+.claude/settings.local.json
