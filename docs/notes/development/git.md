@@ -72,3 +72,20 @@ git push -f
 References:
 
 - https://www.git-tower.com/learn/git/faq/git-squash
+
+### Rewrite author on recent commits
+
+Set the desired identity for the project:
+
+```bash
+git config user.email "new-email@example.com"
+git config user.name "Your Name"
+```
+
+Rewrite the last N commits with the new author:
+
+```bash
+git rebase -x 'git commit --amend --reset-author --no-edit' HEAD~N
+```
+
+Replace `N` with the number of commits to rewrite. Only safe on commits that haven't been pushed yet.
