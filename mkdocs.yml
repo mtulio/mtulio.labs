@@ -229,6 +229,10 @@ nav:
       - Service type-LoadBalancer NLB with Security Groups: guides/ocp-spikes/ocp-aws-ingress-sg.md
       - Installing ALBC: guides/ocp-spikes/ocp-aws-ingress-sg.md
 
+    - HyperShift:
+      - HyperShift Development Quick Start: guides/ocp-hcp-aws-devel.md
+      - HyperShift CCM Managed Security Groups Lab: guides/ocp-hcp-aws-ccm-managed-sg.md
+
     - OpenShift Dev:
       - Build components: playbooks/openshift/dev-build-components.md
       - Create custom release: playbooks/openshift/dev-custom-release.md
