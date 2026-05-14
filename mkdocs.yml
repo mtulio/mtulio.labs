@@ -123,7 +123,7 @@ nav:
 # Guides
 #
   - Guides:
-    - Home: playbooks/README.md
+    - Home: guides/README.md
 
     - OpenShift Installing:
       - Hands On guides for BYO Infrastructure on AWS: guides/ocp-aws-byo-infra-labs.md
@@ -194,40 +194,33 @@ nav:
       - Installing on AWS BYO VPC with Multi CDIR: guides/ocp-install-profiles/ocp-aws-byo-vpc-multi-cidr.md
       - Installing on AWS with BYO Encrypted AMI: guides/ocp-aws-byo-infra-labs-ami-enc-cmk.md
 
-    - OpenShift Node/Machine operations:
-      - Machine resize: playbooks/openshift/resize-machines.md
-      - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
-      - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
-      - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
-      - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
-      - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
-
-    - OpenShift API:
-      - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
-
-    - OpenShift and Karpenter | Day-2 guides:
-      - Deploy Karpenter with OpenShift (standalone) on AWS | Day-2: guides/ocp-deploy-karpenter-aws.md
-      - Deploy Karpenter with OpenShift Hosted-cluster (Hypershift) on AWS | Day-2: guides/ocp-deploy-karpenter-aws-hcp.md
-
-    - OpenShift scaling labs:
-      - OpenShift on AWS using Karpenter: guides/ocp-lab-scaling-setup-karpenter.md
-      - OpenShift on AWS using Autoscaler: guides/ocp-lab-scaling-aws-autoscaler.md
-      - OpenShift on AWS using Ocean Spot by NetApp: guides/ocp-lab-scaling-setup-spotio-ocean.md
-      - Lab scaling and test: guides/ocp-lab-scaling-aws-autoscaling.md
-      - Draft/Spot interruption with FIS with CCO: guides/ocp-aws-spot-interrupt-CCO.md
-
-    - OpenShift Node/Machine operations:
-      - Machine resize: playbooks/openshift/resize-machines.md
-      - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
-      - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
-      - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
-      - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
-      - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
-      - Benchmark AWS disks on OCP: playbooks/openshift/ocp-aws-disk-benchmark.md
-
     - OpenShift Hacking:
-      - Service type-LoadBalancer NLB with Security Groups: guides/ocp-spikes/ocp-aws-ingress-sg.md
-      - Installing ALBC: guides/ocp-spikes/ocp-aws-ingress-sg.md
+      - AWS CCM:
+        - Service type-LoadBalancer NLB with Security Groups: guides/ocp-spikes/ocp-aws-ingress-sg.md
+        - Installing ALBC: guides/ocp-spikes/ocp-aws-ingress-sg-albc.md
+
+      - Node/Machine operations:
+        - Machine resize: playbooks/openshift/resize-machines.md
+        - Machine resize plugin: playbooks/openshift/resize-machines-plugin.md
+        - Using Instance Disks for containers' ephemeral storage: playbooks/openshift/ocp-aws-disk-ephemeral.md
+        - AWS - Create EC2 manually: playbooks/openshift/ocp-aws-create-compute.md
+        - OpenShift Cluster Autoscaler playground: guides/ocp-aws-autoscaler.md
+        - OCP on AWS - Interrupt Spot instances with FIS: guides/ocp-aws-spot-interrupt.md
+        - Benchmark AWS disks on OCP: playbooks/openshift/ocp-aws-disk-benchmark.md
+
+      - API:
+        - Replace Kube-API AWS NLB target type: playbooks/openshift/replace-nlb-tg-k8sapi.md
+
+      - Karpenter | Day-2 exploration guides:
+        - Deploy Karpenter with OpenShift (standalone) on AWS | Day-2: guides/ocp-deploy-karpenter-aws.md
+        - Deploy Karpenter with OpenShift Hosted-cluster (Hypershift) on AWS | Day-2: guides/ocp-deploy-karpenter-aws-hcp.md
+
+      - Scaling labs:
+        - OpenShift on AWS using Karpenter: guides/ocp-lab-scaling-setup-karpenter.md
+        - OpenShift on AWS using Autoscaler: guides/ocp-lab-scaling-aws-autoscaler.md
+        - OpenShift on AWS using Ocean Spot by NetApp: guides/ocp-lab-scaling-setup-spotio-ocean.md
+        - Lab scaling and test: guides/ocp-lab-scaling-aws-autoscaling.md
+        - Draft/Spot interruption with FIS with CCO: guides/ocp-aws-spot-interrupt-CCO.md
 
     - HyperShift:
       - HyperShift Development Quick Start: guides/ocp-hcp-aws-devel.md
@@ -302,7 +295,7 @@ nav:
       - cloud-init: notes/cloud/cloud-init.md
 
     - container:
-      - Kubernetes: 
+      - Kubernetes:
         #- k8s: notes/container/kubernetes.md
         - K8S: notes/container/k8s/README.md
         - oc-patch: notes/container/k8s/kubectl-patch.md
@@ -359,7 +352,7 @@ nav:
 
     - Tools:
       - Wireshark: notes/tools/wireshark.md
-    
+
     - RaspberryPi:
       - WiFi: notes/rpi/wifi.md
 
