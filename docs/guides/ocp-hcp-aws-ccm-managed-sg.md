@@ -107,7 +107,8 @@ oc get co -w
 
 ```sh
 export REGISTRY=${REGISTRY:-quay.io/mrbraga}
-export CONTROL_PLANE_IMAGE=${REGISTRY}/hypershift-control-plane-operator:dev
+export TAG="feat-ccm-nlb-sg-$(git rev-parse --short HEAD)"
+export CONTROL_PLANE_IMAGE=${REGISTRY}/hypershift-control-plane-operator:${TAG}
 
 podman build -f Dockerfile.control-plane -t ${CONTROL_PLANE_IMAGE} .
 ```
@@ -135,6 +136,9 @@ podman push ${CONTROL_PLANE_IMAGE}
 
 ### Step 4: Create Layered Hosted Cluster with Custom Operator
 
+> Note 1: Use `-control-plane-operator-image` only when you are building it.
+> Note 2: Use `--feature-set=TechPreviewNoUpgrade` only when you want to change the feature set
+
 ```sh
 HOSTED_CLUSTER_NAME="${CLUSTER_PREFIX}-hc1"
 
@@ -147,6 +151,7 @@ HOSTED_CLUSTER_NAME="${CLUSTER_PREFIX}-hc1"
   --aws-creds="${AWS_CREDS}" \
   --ssh-key="${SSH_PUB_KEY_FILE}" \
   --release-image="${OCP_RELEASE_IMAGE}" \
+  --control-plane-operator-image="${CONTROL_PLANE_IMAGE}" \
   --feature-set=TechPreviewNoUpgrade
 
 # Check the cluster information:
@@ -195,6 +200,88 @@ bin/test-e2e \
     --e2e.aws-oidc-s3-region="${AWS_DEFAULT_REGION}"
 ```
 
+Alternative test target with custom CPO image:
+
+```sh
+bin/test-e2e \
+    -test.v --ginkgo.vv \
+    -test.run=TestCreateCluster/Main/AWSCCMWithCustomizations \
+    -test.timeout=30m \
+    --e2e.platform=AWS \
+    --e2e.aws-region=${AWS_DEFAULT_REGION} \
+    --e2e.aws-credentials-file="${AWS_SHARED_CREDENTIALS_FILE}" \
+    --e2e.pull-secret-file="${PULL_SECRET_FILE}" \
+    --e2e.base-domain="${CLUSTER_BASE_DOMAIN}" \
+    --e2e.aws-oidc-s3-bucket-name="${OIDC_BUCKET_NAME}" \
+    --e2e.control-plane-operator-image="${CONTROL_PLANE_IMAGE}"
+```
+
+### Manual NLB Verification
+
+Create a test LoadBalancer Service in the guest cluster and verify security groups:
+
+```sh
+KUBECONFIG_HC=$PWD/kubeconfig-${HOSTED_CLUSTER_NAME}
+
+oc --kubeconfig=${KUBECONFIG_HC} create namespace test-ccm-nlb-sg
+
+oc --kubeconfig=${KUBECONFIG_HC} apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-nlb-service
+  namespace: test-ccm-nlb-sg
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  type: LoadBalancer
+  selector:
+    app: test
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+EOF
+
+oc --kubeconfig=${KUBECONFIG_HC} get svc -n test-ccm-nlb-sg test-nlb-service -w
+```
+
+Once the LoadBalancer has an external hostname, verify security groups are attached:
+
+```sh
+LB_HOSTNAME=$(oc --kubeconfig=${KUBECONFIG_HC} get svc -n test-ccm-nlb-sg test-nlb-service \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+LB_NAME=$(echo ${LB_HOSTNAME} | cut -d'.' -f1 | rev | cut -d'-' -f2- | rev)
+
+aws elbv2 describe-load-balancers --names ${LB_NAME} --region ${AWS_DEFAULT_REGION} \
+  --query 'LoadBalancers[0].SecurityGroups'
+```
+
+Cleanup:
+
+```sh
+oc --kubeconfig=${KUBECONFIG_HC} delete svc test-nlb-service -n test-ccm-nlb-sg
+oc --kubeconfig=${KUBECONFIG_HC} delete namespace test-ccm-nlb-sg
+```
+
+
+## Iteration Workflow
+
+When iterating on CPO code changes without recreating the cluster:
+
+```sh
+# Rebuild with a new tag
+export TAG="feat-ccm-nlb-sg-$(git rev-parse --short HEAD)"
+export CONTROL_PLANE_IMAGE=${REGISTRY}/hypershift-control-plane-operator:${TAG}
+
+podman build -f Dockerfile.control-plane -t ${CONTROL_PLANE_IMAGE} .
+podman push ${CONTROL_PLANE_IMAGE}
+
+# Patch the running HostedCluster to use the new image
+oc patch hostedcluster ${HOSTED_CLUSTER_NAME} -n clusters --type=merge \
+  -p "{\"spec\":{\"controlPlaneOperatorImage\":\"${CONTROL_PLANE_IMAGE}\"}}"
+```
 
 ## Destroy HyperShift Operator
 
@@ -210,7 +297,26 @@ oc delete -f hypershift-manifests.yaml
 ```
 
 
-## Troubleshooting IAM Permissions for Control Plane Components
+## Troubleshooting
+
+### Verify CPO Image in Use
+
+```sh
+oc get pods -n clusters-${HOSTED_CLUSTER_NAME} -l app=control-plane-operator
+
+oc get deployment -n clusters-${HOSTED_CLUSTER_NAME} \
+  -l hypershift.openshift.io/control-plane-component \
+  -o jsonpath='{.items[*].spec.template.spec.containers[*].image}'
+```
+
+### Verify NLBSecurityGroupMode in CCM Config
+
+```sh
+oc get configmap aws-cloud-config -n clusters-${HOSTED_CLUSTER_NAME} \
+  -o jsonpath='{.data.aws\.conf}' | grep NLBSecurityGroupMode
+```
+
+### IAM Permissions for Control Plane Components
 
 Extract credentials from the CCM pod to validate IAM permissions:
 
