@@ -70,6 +70,13 @@ Inspect:
 jq . ${PULL_SECRET}
 ```
 
+Ensure registry creds is there:
+
+```bash
+$ jq '.auths|keys' ${PULL_SECRET} | grep registry.ci.openshift.org
+  "registry.ci.openshift.org",
+```
+
 Use the credentials bundle on installer configuration:
 ```bash
 cat ${PULL_SECRET}
