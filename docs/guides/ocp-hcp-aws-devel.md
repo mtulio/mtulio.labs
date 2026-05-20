@@ -65,6 +65,33 @@ aws s3api put-bucket-policy --bucket ${OIDC_BUCKET_NAME} --policy file://${bucke
 
 Choose the desired target release from the [release controller](https://openshift-release.apps.ci.l2s4.p1.openshiftapps.com/).
 
+!!! hint (Development Environment)
+
+    When using custom release with CI registry (`registry.ci.openshift.org`), you need to disable image check or provide the registry CA.
+    We'll disable the check as we are runnning in controlled environment, as well disable CVO to prevent reverting it.
+      # 1. Scale down CVO
+      oc scale deploy/cluster-version-operator -n openshift-cluster-version --replicas=0
+    
+      # 2. Patch the policy
+    	# get current config
+    ```
+    $ oc get clusterimagepolicy openshift -o yaml | yq ea .spec.scopes  -
+    - quay.io/openshift-release-dev/ocp-release
+    - quay.io/openshift-release-dev/ocp-v4.0-art-dev
+    - quay.io/openshift-release-dev/ocp-v5.0-art-dev
+    ```
+    	# disable only v5 (position 2)
+      oc patch clusterimagepolicy openshift --type=json -p '[
+        {"op": "remove", "path": "/spec/scopes/2"}
+      ]'
+    
+      # 3. Verify the scope is gone
+      oc get clusterimagepolicy openshift -o jsonpath='{.spec.scopes}' ; echo
+    
+      # 4. Watch MCO roll out the new config to nodes
+      oc get mcp -w
+
+Create the hosted cluster:
 ```sh
 OCP_RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:4.21.0-ec.3-x86_64
 HOSTED_CLUSTER_NAME=${CLUSTER_PREFIX}-hc1
