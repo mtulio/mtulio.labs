@@ -65,31 +65,35 @@ aws s3api put-bucket-policy --bucket ${OIDC_BUCKET_NAME} --policy file://${bucke
 
 Choose the desired target release from the [release controller](https://openshift-release.apps.ci.l2s4.p1.openshiftapps.com/).
 
-!!! hint (Development Environment)
-
+!!! warning "Development Environment"
     When using custom release with CI registry (`registry.ci.openshift.org`), you need to disable image check or provide the registry CA.
     We'll disable the check as we are runnning in controlled environment, as well disable CVO to prevent reverting it.
-      # 1. Scale down CVO
-      oc scale deploy/cluster-version-operator -n openshift-cluster-version --replicas=0
-    
-      # 2. Patch the policy
-    	# get current config
-    ```
-    $ oc get clusterimagepolicy openshift -o yaml | yq ea .spec.scopes  -
-    - quay.io/openshift-release-dev/ocp-release
-    - quay.io/openshift-release-dev/ocp-v4.0-art-dev
-    - quay.io/openshift-release-dev/ocp-v5.0-art-dev
-    ```
-    	# disable only v5 (position 2)
+      1. Scale down CVO
+      ```sh
+      oc scale deploy/cluster-version-operator -n openshift-cluster-version --replicas=0`
+      ```
+      2. Patch the policy
+      a. get current config
+      ```sh
+      $ oc get clusterimagepolicy openshift -o yaml | yq ea .spec.scopes  -
+      - quay.io/openshift-release-dev/ocp-release
+      - quay.io/openshift-release-dev/ocp-v4.0-art-dev
+      - quay.io/openshift-release-dev/ocp-v5.0-art-dev
+      ```
+      b. disable only v5 (position 2)
+      ```sh
       oc patch clusterimagepolicy openshift --type=json -p '[
         {"op": "remove", "path": "/spec/scopes/2"}
       ]'
-    
-      # 3. Verify the scope is gone
+      ```
+      3. Verify the scope is gone
+      ```sh
       oc get clusterimagepolicy openshift -o jsonpath='{.spec.scopes}' ; echo
-    
-      # 4. Watch MCO roll out the new config to nodes
+      ```
+      4. Watch MCO roll out the new config to nodes
+      ```sh
       oc get mcp -w
+      ```
 
 Create the hosted cluster:
 ```sh
