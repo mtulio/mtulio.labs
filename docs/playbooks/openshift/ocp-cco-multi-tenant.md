@@ -1,10 +1,6 @@
-
-
-![OCP with multi-tenant OIDC - banner](./../../diagrams/images/ocp-oidc-multitenant-banner.diagram-1000x350.png)
+[![OCP with multi-tenant OIDC - banner](./../../diagrams/images/ocp-oidc-multitenant-banner.diagram-1000x350.png)](./../../diagrams/images/ocp-oidc-multitenant-banner.diagram-1000x350.png)
 
 # Create a multi-tenant solution for the OpenID Connect endpoint on OpenShift with STS authentication mode on AWS
-
-> WIP document. More information at: https://github.com/mtulio/mtulio.labs/pull/19
 
 This article describes a solution to create a multi-tenant solution to store the OpenID Connect (OIDC) endpoint (issuer URL) when using OpenShift with AWS Security Token Services (STS) as the authentication mode. It can be used as a multi-cluster and multi-cloud deployment to centralize the OIDC discovery documents and JSON Web Key Sets (JWKS).
 
@@ -42,8 +38,6 @@ Cloud Resources created on this article:
 
 Table of Contents
 
-> (To be reviewed)
-
 - [Overview](#overview)
 - Prerequisites
     - Permissions
@@ -73,17 +67,11 @@ Table of Contents
 
 ## Overview
 
-<!-- ![Solution Overview](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/wkqj4io5d6f8zmd5g100.png) -->
-
-> TODO: description must be improved
-
-- Overview of the components used by this solution
+The following diagram shows the components used by this solution — a single S3 bucket behind CloudFront serves OIDC discovery documents for multiple clusters, each partitioned by path:
 
 ![Solution Overview](./../../diagrams/images/ocp-oidc-multitenant-overview.diagram.png)
 
-- Overview of the flow when the component assumes role (STS API Call `AssumeRoleWithWebIdentity`):
-
-> TODO: the margins of the auto-generated diagram must be reviewed, or the image cropped
+The flow when a component assumes a role via the STS API call `AssumeRoleWithWebIdentity`:
 
 ![AWS AssumeRoleWithWebIdentity Flow](./../../diagrams/images/ocp-oidc-multitenant-flow-aws.diagram.png)
 
@@ -93,19 +81,19 @@ Table of Contents
 
 AWS Permissions:
 
-- List and Create on CloudFront
-
-> TODO
+- S3: `s3:CreateBucket`, `s3:PutObject`, `s3:PutBucketPolicy`, `s3:PutBucketTagging`, `s3:PutPublicAccessBlock`
+- CloudFront: `cloudfront:CreateDistribution`, `cloudfront:CreateCloudFrontOriginAccessIdentity`, `cloudfront:TagResource`
+- ACM: `acm:RequestCertificate`, `acm:DescribeCertificate`
+- Route 53: `route53:ChangeResourceRecordSets`, `route53:ListHostedZonesByName`
+- IAM: `iam:CreateOpenIDConnectProvider`, `iam:CreateRole`, `iam:PutRolePolicy`
 
 ### Clients
 
 - oc
 - openshift-install
 - ccoctl
-- aws cli
-- jq
-
-> TODO: reference the tool's URL
+- [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- [jq](https://jqlang.github.io/jq/download/)
 
 ### Export the variables used in the next steps
 
@@ -123,15 +111,14 @@ export ACM_TAGS="[{\"Key\":\"Name\",\"Value\":\"${OIDC_DOMAIN_NAME}\"},{\"Key\":
 
 # Define the Bucket name
 export OIDC_BUCKET_NAME="${OIDC_DOMAIN_NAME}"
-export OIDC_BUKCET_REGION="us-east-1"
-export OIDC_BUCKET_DNS="${OIDC_BUCKET_NAME}.s3.${OIDC_BUKCET_REGION}.amazonaws.com"
+export OIDC_BUCKET_REGION="us-east-1"
+export OIDC_BUCKET_DNS="${OIDC_BUCKET_NAME}.s3.${OIDC_BUCKET_REGION}.amazonaws.com"
 ```
 
 ## Create the shared OpenID Connect issuer URL
 
 ### Create the SSL certificate with ACM
 
-> (Ready for review)
 
 - Create the Certificate on ACM
 
@@ -195,7 +182,7 @@ aws route53 change-resource-record-sets \
 }"
 ```
 
-- Wait for the Certificate be validated status transictioned from `PENDING_VALIDATION` to `SUCCESS`.
+- Wait for the Certificate be validated status transitioned from `PENDING_VALIDATION` to `SUCCESS`.
 
 ```bash
 watch -n 5 "aws acm describe-certificate --certificate-arn \"${ACM_ARN}\" --query 'Certificate.DomainValidationOptions[0].ValidationStatus' --output text"
@@ -203,9 +190,11 @@ watch -n 5 "aws acm describe-certificate --certificate-arn \"${ACM_ARN}\" --quer
 
 ### Create the Origin Access Identity (OAI)
 
-> (Ready for review)
 
 Steps to create the Origin Access Identity (OAI) to be used to access the bucket through CloudFront Distribution:
+
+!!! note "CloudFront OAI deprecation"
+    AWS now recommends [Origin Access Control (OAC)](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html) over OAI for new deployments. OAI still works but is considered legacy. See [migrating from OAI to OAC](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html#migrate-from-oai-to-oac) for details.
 
 Create the OAI and set the variable `OAI_CLOUDFRONT_ID`:
 
@@ -218,20 +207,22 @@ export OAI_CLOUDFRONT_ID=$(aws cloudfront create-cloud-front-origin-access-ident
 
 ### Create a private S3 Bucket
 
-> (Ready for review)
 
 - Create the private Bucket
 
 > Reference CLI: [aws s3api create-bucket](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3api/create-bucket.html)
 
-> You must specify the following flag when creating in another region than `us-east-1`: `--create-bucket-configuration LocationConstraint="${OIDC_BUKCET_REGION}"`
+> You must specify the following flag when creating in another region than `us-east-1`: `--create-bucket-configuration LocationConstraint="${OIDC_BUCKET_REGION}"`
 
 ```bash
 aws s3api create-bucket \
     --bucket ${OIDC_BUCKET_NAME} \
-    --region ${OIDC_BUKCET_REGION} \
+    --region ${OIDC_BUCKET_REGION} \
     --acl private
 ```
+
+!!! note "AWS S3 ACL changes (April 2023)"
+    Since April 2023, AWS disables ACLs on new S3 buckets by default. The `--acl private` flag may fail on buckets created after that date unless you explicitly enable ACLs. The `put-public-access-block` step below is the recommended approach to control access. See [AWS announcement](https://aws.amazon.com/blogs/aws/heads-up-amazon-s3-security-changes-are-coming-in-april-of-2023/) for details.
 
 - Create the respective tags on the Bucket (Recommended if you would like to use the ccoctl to delete resources)
 
@@ -282,7 +273,6 @@ aws s3api put-public-access-block \
 
 ### Create the CloudFront Distribution
 
-> (Ready for review)
 
 https://awscli.amazonaws.com/v2/documentation/api/latest/reference/cloudfront/index.html
 
@@ -423,7 +413,6 @@ export OIDC_CLOUDFRONT_DNS=$(aws cloudfront list-distributions \
 
 ### Create the DNS for CloudFront Distribution
 
-> (Ready for review)
 
 - Create the DNS Record for the OIDC (`OIDC_DOMAIN_NAME`) pointing to the CloudFront Distribution (`OIDC_CLOUDFRONT_DNS`)
 
@@ -470,14 +459,12 @@ curl https://${OIDC_DOMAIN_NAME}/ping
 
 ## Setup the cluster
 
-> WIP
-
 ### Steps to create the cluster
 
-For didactic reasons, we are assuming the following statements:
+For simplicity, we are assuming the following statements:
 
-- the two clusters installed in this article will have the OCP version (4.12.2)
-- consequently, the CredentialsRequests will be extracted at once
+- both clusters installed in this article use the same OCP version (`${VERSION}`, tested with 4.12.2)
+- consequently, the CredentialsRequests are extracted once
 - **the unique identifier used to append to OIDC URL, and uploaded on the bucket path, will be the infraID generated by Installer**. You can use other UUID as you want
 
 Steps to run one time:
@@ -507,24 +494,26 @@ chmod 775 ccoctl
 
 Steps to run for each cluster:
 
-- create install-config
-- create manifests
-- extract InfraID
-- create key pair
-- generate OIDC config
-- create the OIDC URL
-- patch the OIDC config
-- upload to bucket the OIDC configuration (discovery documents and public keys)
-- test it
-- create the IAM OIDC IdP
-- export the ARN
-- create the IAM Roles
-- add the manifests to the installer
-- create the cluster
+1. **Prepare installer artifacts**
+    - create install-config
+    - create manifests
+    - extract InfraID
+2. **Configure OIDC**
+    - create key pair
+    - generate OIDC config
+    - create the OIDC URL
+    - patch the OIDC config
+    - upload to bucket the OIDC configuration (discovery documents and public keys)
+    - test it
+3. **Create IAM resources**
+    - create the IAM OIDC IdP
+    - export the ARN
+    - create the IAM Roles
+4. **Install the cluster**
+    - add the manifests to the installer
+    - create the cluster
 
 ### Creating the cluster on AWS
-
-> WIP
 
 - Export the variables to create the cluster (adjust according to your environment)
 
@@ -574,7 +563,7 @@ export CLUSTER_INFRAID=$(awk '/infrastructureName: / {print $2}' ${INSTALL_DIR}/
 
 #### Generate the OpenID Configuration configuration
 
-- Generate the signing key par:
+- Generate the signing key pair:
 
 ```bash
 echo "> CCO - Creating key-par"
@@ -662,8 +651,6 @@ export OIDC_ARN=$(jq -r .OpenIDConnectProviderArn ${OUTPUT_DIR_CCO}/04-iam-ident
 echo ${OIDC_ARN}
 ```
 
-> TODO: insert the image with the OIDC (AWS Console)
-
 ![AWS OpenID Connect identity provider](https://user-images.githubusercontent.com/3216894/221041750-24a7be6a-ba24-4fe3-9d89-6b6465a5cba6.png)
 
 #### Create the IAM Roles
@@ -690,12 +677,8 @@ RELEASE_IMAGE=$(./openshift-install version | awk '/release image/ {print $3}')
     --output-dir ${OUTPUT_DIR_CCO}
 ```
 
-> TODO Add the image (AWS Console) with IAM Roles Created
-
 ![IAM Roles created by ccoctl](https://user-images.githubusercontent.com/3216894/221041747-588c2aeb-b025-4cc7-b5e1-31dffa042f6f.png)
 
-
-> TODO Add the image (AWS Console) with IAM Role' Trusted Policy referencing to the OIDC IdP
 
 ![IAM Role Trusted Policy for Machine API Controllers](https://user-images.githubusercontent.com/3216894/221041745-0ef754cf-dda5-4c4c-9860-3076ee48465c.png)
 
@@ -770,7 +753,7 @@ CAPI_POD=$(oc get pods -n openshift-machine-api \
 # Extract the ServiceAccoun token
 TOKEN_SA=$(oc exec -n openshift-machine-api ${CAPI_POD}     -c machine-controller -- cat ${SERVICEACCOUNT}/token)
 ```
-- Query the OIDC documents published by the Kuberbetes API server:
+- Query the OIDC documents published by the Kubernetes API server:
 
 ```bash
 # Get the JWKS published by KAS
@@ -862,21 +845,15 @@ Expected results: `aws sts assume-role-with-web-identity [...]`:
 }
 ```
 
-### Create more clusters
+### Next Steps
 
-> TODO: create the plugin with all snippets described here
+To add more clusters to this multi-tenant setup, repeat the per-cluster steps (Prepare, Configure OIDC, Create IAM, Install) using a new `CLUSTER_NAME` and `CLUSTER_INFRAID`. Each cluster gets its own path partition under the shared S3 bucket and CloudFront distribution.
 
-> TODO: one paragram describing what's next. More AWS Clusters? HyperShift? GCP?
-
-> TODO: example (or describe the idea) of creating a cluster in GCP with STS using storage in AWS. Why? AFAIK GCP does not provide a simple way to close the storage and provide a clean URL as we do with CloudFront in AWS
+This approach also extends to multi-cloud scenarios — for example, a GCP cluster using Workload Identity Federation could reference OIDC documents served from the same AWS S3 + CloudFront backend, provided the issuer URL is publicly resolvable.
 
 ## Solution Review
 
-> TODO
-
-## oc plugin `sts-setup`
-
-> TODO: create an oc plugin covering the steps described in this article
+This article demonstrated how to centralize OIDC discovery documents for multiple OpenShift clusters behind a single S3 bucket and CloudFront distribution with a custom DNS domain. This approach reduces operational overhead (fewer buckets to manage), improves security controls (centralized access policies), and provides flexibility to migrate or replace the issuer URL without impacting running clusters.
 
 ## References
 
