@@ -380,3 +380,60 @@ EVAL_ACTION                                         EVAL_DECISION
 elasticloadbalancing:DescribeLoadBalancers          allowed
 elasticloadbalancing:DescribeTargetGroupAttributes  implicitDeny
 ```
+
+
+## CCM OTE and Hypershift
+
+
+> This change requires merged PR to work as expected: https://github.com/openshift/cluster-cloud-controller-manager-operator/pull/464
+
+
+
+### Creating a HyperShift hosted cluster with NLB ingress
+
+Some tests (e.g., `should have security groups attached to default ingress
+controller NLB`) require the default ingress controller to use NLB type. By
+default, HyperShift creates hosted clusters with a Classic Load Balancer (CLB)
+for ingress.
+
+To enable NLB, patch the HostedCluster's `spec.configuration.ingress` after
+creation:
+
+```sh
+# Create the hosted cluster with TechPreview (required for AWSServiceLBNetworkSecurityGroup)
+hypershift create cluster aws \
+  --name="${HOSTED_CLUSTER_NAME}" \
+  --region="${AWS_DEFAULT_REGION}" \
+  --node-pool-replicas=3 \
+  --base-domain="${CLUSTER_BASE_DOMAIN}" \
+  --pull-secret="${PULL_SECRET_FILE}" \
+  --aws-creds="${AWS_CREDS}" \
+  --ssh-key="${SSH_PUB_KEY_FILE}" \
+  --release-image="${OCP_RELEASE_IMAGE}" \
+  --feature-set=TechPreviewNoUpgrade
+
+# Patch the HostedCluster to use NLB for the default ingress controller
+oc --kubeconfig "$HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG" patch hostedcluster "${HOSTED_CLUSTER_NAME}" -n clusters --type=merge -p '
+{
+  "spec": {
+    "configuration": {
+      "ingress": {
+        "loadBalancer": {
+          "platform": {
+            "type": "AWS",
+            "aws": {
+              "type": "NLB"
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+> **Note:** The ingress controller configuration is only applied during initial
+> creation of the `IngressController` resource on the guest cluster. If the
+> default ingress controller already exists, you may need to delete it first
+> for the NLB configuration to take effect, or apply this patch before the
+> cluster finishes installation.
