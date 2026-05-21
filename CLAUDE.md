@@ -32,7 +32,7 @@ make mkdocs-build    # Build static site
 - **Language**: English
 - **Format**: Markdown with MkDocs Material extensions (admonitions, tabs, mermaid, code highlighting)
 - **File naming**: kebab-case, prefixed by product/topic (e.g., `ocp-aws-local-zones-day-2.md`)
-- **Navigation**: New pages must be added to `mkdocs.yml` `nav:` section to appear on the site
+- **Navigation**: New pages must be added to `mkdocs.yml` `nav:` section to appear on the site. When reviewing content or PRs, always validate that every new or renamed file has a corresponding nav entry, and suggest the appropriate section for placement. The nav sections are actively maintained and reorganized — suggest grouping related content under existing sub-sections rather than creating top-level entries
 - **Code blocks**: Always use fenced blocks with language tags (```bash, ```yaml, etc.)
 - **Structure for guides**: Context > Prerequisites > Steps > Verification > Troubleshooting > References
 
