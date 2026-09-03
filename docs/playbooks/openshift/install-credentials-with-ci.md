@@ -4,10 +4,12 @@ The credentials used by installer is commonly called `pull-secret`.
 
 You can otain the pull-secret for free on Red Hat Portal using your RHNID.
 
-## Getting credentials (basic)
+This page guides you how to obtain the pull secret, as well appending CI registry tokens to the pull-secret to allow you install from OCP CI payloads (Red Hatters only).
 
-Visit the portal and get the credentials: [openshift.com/try](https://openshift.com/try)
+## Prerequisites
 
+- Install `oc` client ([example mirror](https://mirror.openshift.com/pub/openshift-v4/clients/ocp/5.0.0-rc.0/))
+- RHN credentials: Visit the portal and get the credentials: [openshift.com/try](https://openshift.com/try)
 
 ## Getting credentials with CI Registry
 
@@ -73,7 +75,7 @@ jq . ${PULL_SECRET}
 Ensure registry creds is there:
 
 ```bash
-$ jq '.auths|keys' ${PULL_SECRET} | grep registry.ci.openshift.org
+jq '.auths|keys' ${PULL_SECRET} | grep registry.ci.openshift.org
   "registry.ci.openshift.org",
 ```
 
