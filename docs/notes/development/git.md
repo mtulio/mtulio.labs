@@ -1,6 +1,6 @@
 # GIT | Development notes
 
-Some useful commands.
+Useful [git command references](https://git-scm.com/docs/user-manual).
 
 ## TAGs
 
@@ -18,6 +18,7 @@ Some useful commands.
 
 `git push --tags origin`
 
+
 ### Update tags
 
 * Delete the tag on any remote before you push
@@ -32,7 +33,15 @@ Some useful commands.
 
 `git push origin master --tags`
 
-### Backking up
+### Fetch
+
+- Fetch from from remote PRs
+```sh
+git fetch origin pull/$ID/head:$BRANCH_NAME
+git checkout $BRANCH_NAME
+```
+
+### Backing up / Restoring / Moving
 
 #### Moving directory to new repo
 
@@ -41,7 +50,7 @@ Refs:
 - https://help.github.com/en/github/using-git/splitting-a-subfolder-out-into-a-new-repository
 
 
-## Ramdom Examples
+## Random Examples
 
 ### Squash current branch (without preserving old commits)
 
