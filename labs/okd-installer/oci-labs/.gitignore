@@ -1,0 +1,8 @@
+ansible.cfg
+requirements.txt
+requirements.yml
+collections/
+
+# venv
+.oci
+.venv-oci
