@@ -141,6 +141,8 @@ nav:
         - Installing OpenShift on Alibaba Cloud in restricted environment [draft]: playbooks/openshift/ocp-installing-alibabacloud.md
       - Oracle Cloud:
         - Experimental | Installing OCP on OCI provisioning network with CAPOCI: guides/ocp-oci-capoci-exploration-net.md
+        - WIP | Installing OCP on OCI with external platform (CLI stages): guides/ocp-oci-external-upi-stages-cli.md
+        - TODO | Installing OCP on OCI with Ansible (full UPI): guides/ocp-oci-external-upi-ansible-full.md
 
     - OpenShift on AWS with STS advanced guides:
       - Articles: playbooks/openshift/ocp-aws-cco-oidc.md
@@ -292,6 +294,8 @@ nav:
       - aliyun-resourcemanager: notes/cloud/aliyun-resourcemanager.md
       - aliyun-slb: notes/cloud/aliyun-slb.md
       - aliyun-vpc: notes/cloud/aliyun-vpc.md
+      # Oracle Cloud (OCI)
+      - oci-instances: notes/cloud/oci-instances.md
       # General
       - cloud-init: notes/cloud/cloud-init.md
 
